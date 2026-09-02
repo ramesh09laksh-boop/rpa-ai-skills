@@ -56,16 +56,26 @@ Run from the root of the UC project.
 **Everything:**
 
 ```bash
-npx skills add rpa-ai-skills --agent claude-code
+npx skills add ramesh09laksh-boop/rpa-ai-skills --agent claude-code
 ```
 
 **Only what the project needs:**
 
 ```bash
-npx skills add rpa-ai-skills --skill finnova-library --skill security --agent claude-code
+npx skills add ramesh09laksh-boop/rpa-ai-skills --skill finnova-library --skill security --agent claude-code
 ```
 
-Swap `--agent claude-code` for the agent you use (`--agent copilot`, etc.).
+Swap `--agent claude-code` for the agent you use — `--agent copilot`, `--agent codex`, or
+`--agent '*'` for all of them.
+
+> **The `owner/repo` prefix is required.** `npx skills add rpa-ai-skills` fails with
+> `fatal: repository 'rpa-ai-skills' does not exist` — the CLI resolves a source as
+> `owner/repo` or a full URL, never as a bare package name. The full URL form
+> (`https://github.com/ramesh09laksh-boop/rpa-ai-skills`) works too.
+>
+> The repo is **private**, so git must be authenticated — a GitHub sign-in through VS Code, or
+> `gh auth login`, is enough. Verified working: all seven skills install, including
+> `project-scaffolding` with its fetch scripts intact.
 
 ### Available skills
 

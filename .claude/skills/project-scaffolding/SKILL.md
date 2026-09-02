@@ -64,6 +64,29 @@ If the clone fails against the default, the likely causes are that the repo is p
 git is not authenticated (`gh auth login`, an SSH key, or a PAT), or that your team works from
 a mirror — GitHub returns "not found" for both. The scripts say so when they fail.
 
+### Fetched files have CRLF line endings — this is expected
+
+A fetched template will differ from the source in `rpa-ai-skills` on **every text file** if you
+diff it naively:
+
+```
+$ diff -r rpa-ai-skills/templates/REFramework-Dispatcher-Base ./REFramework-Dispatcher-Base
+   ... every .md, .json and .uiproj reported as changed
+```
+
+**That is line endings, not content.** Git's `core.autocrlf` normalises LF to CRLF on checkout
+on Windows, so the fetched copy is CRLF where the repo stores LF. Confirm it before chasing it:
+
+```bash
+diff -r --strip-trailing-cr <source> <fetched>   # exits clean if only line endings differ
+md5sum <source>/Data/Config_TST.xlsx <fetched>/Data/Config_TST.xlsx   # binaries are untouched
+```
+
+Verified on the real repo: content identical, all three `.xlsx` workbooks match by md5. It has
+no effect on UiPath — Studio and the Excel activities do not care — so **there is nothing to
+fix here.** Do not add a `.gitattributes` to force LF or re-normalise a fetched template; the
+only cost is a noisy diff, and the two commands above settle it in seconds.
+
 ## After fetching — this is not a finished project
 
 The template is project-level scaffolding only. Three things still have to happen, in order:

@@ -52,6 +52,43 @@ The three `../REFramework-*/` projects are where the templates' `project.json`,
 templates ship — see `templates/README.md`. When Studio is upgraded, re-open these three,
 let Studio rewrite their `project.json`, and carry the diff into `templates/`.
 
+### Who can actually resolve these paths
+
+**Only someone maintaining this repo in the original local layout.** Every `../Finnova/`,
+`../Avaloq/` and `../REFramework-*/` reference in this repo — 18 files carry them, including
+several `references/*.md` inside the skills — assumes `rpa-ai-skills/` is checked out as a
+sibling of those directories:
+
+```
+00 - AI Skills/
+  Finnova/                        <- library + two sample UC processes
+  Avaloq/                         <- library + one sample UC process
+  REFramework-Dispatcher-Base/    <- three reference projects
+  REFramework-Performer-Avaloq/
+  REFramework-Performer-Finnova/
+  rpa-ai-skills/                  <- this repo; all ../ paths are relative to here
+```
+
+They are **not resolvable** from:
+
+- a **standalone clone** of this repo — `git clone` gives you `rpa-ai-skills/` alone, and `../`
+  is then whatever directory you happened to clone into;
+- a skill **installed via `npx skills add`** into an unrelated UC project — the skill files land
+  in that project's `.claude/skills/`, so `../` points somewhere entirely unrelated.
+
+This is deliberate and the paths stay as they are. The libraries and sample processes are
+client and employer material and are intentionally not published here, so the citations name
+where the evidence lives for a maintainer who has it, rather than pretending it travels with
+the skills.
+
+**What this means in practice.** Treat a `../` path as a provenance citation, not a fetch
+instruction. If you are reading a skill inside a UC project and it cites
+`../Finnova/Swisscom FinnovaLibrary/`, you cannot open that file and should not go looking for
+it — the surrounding prose states what was found there, and that statement is the usable part.
+Do not "fix" a `../` path to point at something local that happens to match; do not treat its
+absence as a broken link. Only re-verify a skill against ground truth from a checkout that has
+the siblings present.
+
 ## Skills
 
 Load the skill that matches the work. App-specific detail lives in the skills, not here.
