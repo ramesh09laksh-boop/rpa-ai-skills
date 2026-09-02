@@ -1,0 +1,6 @@
+{
+  "Name": "<PROJECT-NAME-TBD-ask-team>",
+  "ProjectType": "Process",
+  "Description": "REFramework Performer — consumes the shared queue and drives the Finnova Java thin client.",
+  "MainFile": "Main.xaml"
+}

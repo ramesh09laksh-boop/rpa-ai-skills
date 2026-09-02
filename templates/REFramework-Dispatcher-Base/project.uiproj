@@ -1,0 +1,6 @@
+{
+  "Name": "<PROJECT-NAME-TBD-ask-team>",
+  "ProjectType": "Process",
+  "Description": "REFramework Dispatcher — reads the upstream source, applies the selection rule, enqueues.",
+  "MainFile": "Main.xaml"
+}

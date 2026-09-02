@@ -1,0 +1,37 @@
+# UiPath Studio local state — machine-specific, never shared
+.local/
+.settings/
+.objects/
+.project/
+.entities/
+.tmh/
+.templates/
+*.nuget.props
+project.lock.json
+
+# UiPath build output
+.nuget/
+packages/
+*.nupkg
+
+# Instantiated-in-place run artefacts. The templates ship empty Data/Output and
+# Data/Temp on purpose; a real run's output must not be committed.
+**/Data/Output/*
+!**/Data/Output/.gitkeep
+**/Data/Temp/*
+!**/Data/Temp/.gitkeep
+
+# Screenshots of a logged-in banking session contain customer data.
+# See .claude/skills/security/references/prohibited-practices.md
+**/Exceptions_Screenshots/*
+!**/Exceptions_Screenshots/.gitkeep
+
+# Excel lock files
+~$*.xlsx
+
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/

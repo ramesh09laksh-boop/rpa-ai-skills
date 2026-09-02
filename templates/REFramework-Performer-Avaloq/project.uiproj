@@ -1,0 +1,6 @@
+{
+  "Name": "<PROJECT-NAME-TBD-ask-team>",
+  "ProjectType": "Process",
+  "Description": "REFramework Performer — consumes the shared queue and drives the Avaloq Smart Client.",
+  "MainFile": "Main.xaml"
+}
