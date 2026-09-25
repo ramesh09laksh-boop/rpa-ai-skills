@@ -133,7 +133,11 @@ internal mirror, point at it instead:
         if (-not (Test-Path $src)) {
             throw "templates/$t not found in $RepoUrl$refNote."
         }
-        Move-Item -Path $src -Destination (Join-Path $destAbs $t)
+        # Copy + remove, not Move-Item: $work is a temp dir, and a move across volumes
+        # (or under a sandboxed agent) fails after the clone has already succeeded.
+        # The "already exists" guard above still owns overwrite safety.
+        Copy-Item -Path $src -Destination (Join-Path $destAbs $t) -Recurse
+        Remove-Item -Path $src -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "  -> $(Join-Path $destAbs $t)"
     }
 }

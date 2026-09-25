@@ -113,12 +113,12 @@ Both `Config_TST.xlsx` and `Config_PRD.xlsx` **are** committed — that is the d
 works only because they contain no secrets. Keep it that way:
 
 - **No passwords, tokens, API keys or connection strings with embedded credentials.**
-- **No run output.** `Data/Output/` and `Data/Temp/` should contain only `placeholder.txt`.
+- **No run output.** `Data/Output/` and `Data/Temp/` should contain only `.gitkeep`.
   The reference projects violate this — `output_28thOct.txt`, `Strukis.txt`,
   `output_Analyze_1.txt`, `Tests/TestLog.txt` are all committed run artefacts.
 - **No downloaded attachments.** `File_System_Folder_Download_*` points at the robot's data
   drive, outside the repo. Keep it that way.
-- **No exception screenshots.** `Exceptions_Screenshots/` keeps its `placeholder.txt` only.
+- **No exception screenshots.** `Exceptions_Screenshots/` keeps its `.gitkeep` only.
 
 `Config_PRD.xlsx` does contain production mailbox addresses, folder paths, server names and
 account names. That is accepted here, but it is still internal information — do not paste a

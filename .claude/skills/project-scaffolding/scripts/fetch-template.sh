@@ -145,7 +145,11 @@ for t in "${TEMPLATES[@]}"; do
         echo "error: templates/$t not found in $REPO${REF:+ at $REF}." >&2
         exit 1
     fi
-    mv "$WORK/repo/templates/$t" "$DEST_ABS/$t"
+    # cp + rm, not mv: $WORK is a temp dir, and mv across filesystems (or under a
+    # sandboxed agent) fails with EXDEV / Permission denied *after* the clone has
+    # already succeeded. The "already exists" guard above still owns overwrite safety.
+    cp -R "$WORK/repo/templates/$t" "$DEST_ABS/$t"
+    rm -rf "$WORK/repo/templates/$t"
     echo "  -> $DEST_ABS/$t"
 done
 
