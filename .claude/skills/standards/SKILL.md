@@ -117,6 +117,10 @@ For the activity APIs of the two custom libraries, use `.claude/skills/finnova-l
 - `references/where-does-it-go.md` — decision rules for placing a new workflow
 - `references/naming-conventions.md` — workflow and argument naming
 - `references/error-handling.md` — exception types and the retry idiom used across all projects
+- `references/silent-failure-traps.md` — things that run, report success and do the wrong
+  thing: the classic Excel write activities on .NET 6, `TryParse` out-parameters in an
+  expression, relative config paths resolving into the extracted package, negative filters
+  over business workbooks. Read it before writing anything that writes Excel or parses a date
 - `references/systems/*.md` — one file per application folder (table above)
 
 Cross-cutting: `.claude/skills/security/` (credentials and config), `.claude/skills/web/` (browser work).

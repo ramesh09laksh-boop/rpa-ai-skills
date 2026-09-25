@@ -26,6 +26,25 @@ rule, enqueue — touches neither banking library, so one skeleton fits every pr
 SDD describes no queue at all and the process is a single self-contained run, say so and fetch
 only the Performer; do not invent a Dispatcher the process does not need.
 
+### Non-queue REFramework
+
+Both Performer templates assume an Orchestrator queue in two places, and neither is flagged in
+their deltas. Fetch a Performer for a process that has no queue and it will run green having
+processed nothing — the same silent failure the repo warns about for a mismatched queue name.
+
+Three things must change together:
+
+| What | Stock | With no queue |
+|---|---|---|
+| `Framework/GetTransactionData.xaml` | Get Transaction Item against `in_Config("OrchestratorQueueName")` | Read the source **once** on the first pass (`in_TransactionNumber = 1`), hold it in a `DataTable`/collection, then hand out one item per call and `Nothing` when exhausted |
+| `Constants!MaxRetryNumber` | `0` — "must be 0 when working with Orchestrator queues" | **Non-zero.** With no queue there is no queue definition to carry the retry count, so `0` means a transient failure is never retried at all |
+| `Settings!OrchestratorQueueName` | `[UC-SPECIFIC — replace]` | `(not used - no queue)`. An explicit value shows the key is deliberately unused; an empty cell is indistinguishable from one nobody filled in |
+
+`in_TransactionItem` stops being a `QueueItem` and becomes whatever your source yields — a
+`DataRow`, a mail, a file path. `SetTransactionStatus.xaml` must lose its queue calls while
+keeping the retry and circuit-breaker counters and the failure screenshot. `validate-project`
+will not flag a non-zero `MaxRetryNumber`, but it *will* flag a queue name left at stock.
+
 **If `rpa-ai-skills` is already checked out locally, skip the script and copy the folder.**
 The script exists for the case where it isn't — it is not the only sanctioned route.
 
@@ -103,6 +122,33 @@ The template is project-level scaffolding only. Three things still have to happe
 3. **Work the instantiation checklist** in `templates/README.md` — project name, fresh GUIDs,
    every `[UC-SPECIFIC — replace]` in `Config_TST.xlsx` *and* `Config_PRD.xlsx`, and the shared
    queue name.
+4. **Run the conformance checker and get it to zero errors.**
+
+   ```bash
+   .claude/skills/project-scaffolding/scripts/validate-project.sh  <project-dir> [<project-dir>]
+   pwsh -File .claude/skills/project-scaffolding/scripts/validate-project.ps1 <project-dir>
+   ```
+
+   Pass a Dispatcher and its Performer together and it also checks the queue name is
+   byte-identical across the pair. Every rule it enforces catches a failure that is otherwise
+   **silent** — a stock `ProcessABCQueue`, a disabled circuit breaker, `ShouldMarkJobAsFaulted`
+   false, a `Main.xaml` still pointing at the non-existent `Data\Config.xlsx`. Non-zero exit on
+   any error, so it drops straight into CI. An unreplaced marker is a review finding; this is
+   what finds it.
+
+   A rule that is genuinely not applicable yet goes in a `validate-project.ignore` beside
+   `project.json`, one `rule: reason` per line, indented lines continuing the reason:
+
+   ```
+   assets-parity: The credential Orchestrator assets do not exist yet, so the TST Assets sheet
+     carries only the rows that resolve today. InitAllSettings resolves every Assets row at
+     startup, so shipping rows for assets nobody has created fails Initialization.
+   ```
+
+   A suppressed finding is **still printed**, with its reason — it just stops failing the run.
+   That is the point: a rule you can switch off silently is a rule nobody trusts six months
+   later. `-SkipRule <name>` does the same thing ad hoc, without the written reason, and is
+   meant for experimenting rather than for committing.
 
 ## Two decisions to settle before the first publish
 

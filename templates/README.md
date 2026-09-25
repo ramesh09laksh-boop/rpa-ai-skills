@@ -55,6 +55,36 @@ in step with your Studio version. Shipping a frozen copy here would rot, and nob
 repo can verify a hand-written REFramework `.xaml` still opens. Each template's README lists
 the deltas to apply to the generated skeleton.
 
+#### If Studio is not available
+
+You do not have to hand-write the skeleton, and you should not. Seed `Main.xaml` and
+`Framework/*.xaml` by **copying them from an unmodified REFramework project** — the three
+reference projects one level above this repo (`../REFramework-Dispatcher-Base/`,
+`../REFramework-Performer-Avaloq/`, `../REFramework-Performer-Finnova/`) are real Studio 23.10
+Windows projects and exist for exactly this. Any untouched REFramework in the estate works too.
+
+Copy only from a project whose `project.json` agrees with your target on all four of:
+
+| | must match |
+|---|---|
+| `studioVersion` | e.g. `23.10.8.0` |
+| `targetFramework` | `Windows` — never a `Windows - Legacy` source |
+| `designOptions.modernBehavior` | `true` |
+| `expressionLanguage` | `VisualBasic` |
+
+A mismatch on any of them produces a project that opens with errors, or silently behaves
+differently at runtime.
+
+**The source must be an unmodified skeleton, not another UC's implementation.** Copying a
+working project drags its business logic, its selectors and its config assumptions into yours,
+and they are extremely hard to spot afterwards — the `.xaml` looks plausible because it *is*
+plausible, just for a different process.
+
+Then: apply the deltas from the template's README (including the `in_ConfigFile` change in step
+5 — the stock literal points at a `Config.xlsx` that does not exist), open the result in Studio
+at the first opportunity so it reconciles `project.json`, and run
+`.claude/skills/project-scaffolding/scripts/validate-project.ps1` before you trust it.
+
 ### The templates target Windows, not Legacy
 
 All three `project.json` files set `"targetFramework": "Windows"` with
@@ -113,6 +143,12 @@ so the templates do **not** come along with the skills. Two routes:
    Then mirror `"name"` and `"description"` into `project.uiproj`, and
    `entryPoints[0].uniqueId` into `entry-points.json`. Three files, one set of values — a
    half-renamed project publishes under the wrong package name.
+
+   **Leave `project.json`'s own `entryPoints[0].input` as `[]`.** It looks inconsistent next to
+   `entry-points.json`, which declares three arguments — that is expected, not an oversight.
+   Studio rewrites `input`/`output` from `Main.xaml`'s actual arguments the first time it opens
+   and saves the project. Hand-editing it to "fix" the mismatch achieves nothing and is
+   overwritten on the next save.
 5. Open the project in Studio so it reconciles `Main.xaml` against `project.json`, and add the
    `in_ENV` argument (plus `in_TOWER` / `in_System` if the process serves more than one
    installation). `entry-points.json` already declares `in_ENV`,
@@ -120,10 +156,38 @@ so the templates do **not** come along with the skills. Two routes:
    arguments or delete the ones the process does not use. Being able to override the queue per
    Orchestrator process without a redeploy is worth keeping for a Dispatcher/Performer pair —
    `PJFVA-966_UC81` does exactly this.
+
+   **Then wire `in_ENV` to the config workbook — this step is not optional.** Selecting the
+   workbook is the entire reason `in_ENV` exists. Stock Studio `Main.xaml` invokes
+   `Framework/InitAllSettings.xaml` with the literal `in_ConfigFile = "Data\Config.xlsx"`, and
+   **no template ships a `Config.xlsx`** — they ship `Config_TST.xlsx` and `Config_PRD.xlsx`.
+   Leave the stock literal in place and the very first run dies in Initialization with
+   file-not-found. Change that argument to:
+
+   ```vb
+   [If(String.IsNullOrWhiteSpace(in_ENV), "Data\Config_TST.xlsx",
+       "Data\Config_" & in_ENV.Trim().ToUpperInvariant() & ".xlsx")]
+   ```
+
+   The vocabulary is `TST` and `PRD`, matching the two shipped workbooks. The fallback is
+   **TST**, deliberately: an unset `in_ENV` must not silently pick up production settings. If
+   you add a third environment, add the workbook and keep the key set identical across all of
+   them — `validate-project` enforces that parity.
 6. Fill in every `[UC-SPECIFIC — replace]` in `Data/Config_TST.xlsx` **and**
    `Data/Config_PRD.xlsx`, and wire each `Assets` row to a real Orchestrator asset —
    [`orchestrator-assets.md`](../.claude/skills/security/references/orchestrator-assets.md).
 7. Replace the placeholder rows in `Tests/Tests.xlsx` and add `Tests/RunAllTests.xaml`.
+
+   No template ships the harness, because like `Main.xaml` it is Studio-generated. Its contract:
+   it reads the `Tests` sheet of `Tests.xlsx`, invokes each named workflow with the arguments in
+   that row, and writes pass/fail back to the `Result` sheet. Seed it from an estate project that
+   already has one — `UC39_BPO_manuelle_Boersenauftraege/Tests/` or
+   `PJFVA-966_UC81_BPO_VD03_TK_Valoren/Tests/`.
+
+   **Do not invoke anything under `Tests/` from production code.** UC39 calls
+   `Tests\RunAllTests_Logging.xaml` from its live process; the test harness then runs as part of
+   the business process, which is how a test fixture ends up writing to a production system. See
+   [`project-layout.md`](../.claude/skills/standards/references/project-layout.md).
 8. Delete `.gitkeep` from any folder that now has real content.
 
 An unreplaced `[UC-SPECIFIC — replace]` marker is a review finding, the same way an

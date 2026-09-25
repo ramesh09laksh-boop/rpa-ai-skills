@@ -30,6 +30,19 @@ restore with an unresolved-dependency error rather than half-loading. Publish fi
 
 ## Deltas to apply to the generated skeleton
 
+**`Main.xaml` — point `in_ConfigFile` at the right workbook.** Stock Studio invokes
+`Framework/InitAllSettings.xaml` with the literal `in_ConfigFile = "Data\Config.xlsx"`, and this
+template ships **no `Config.xlsx`** — only `Config_TST.xlsx` and `Config_PRD.xlsx`. Left as-is,
+the first run fails in Initialization with file-not-found. Replace the literal with:
+
+```vb
+[If(String.IsNullOrWhiteSpace(in_ENV), "Data\Config_TST.xlsx",
+    "Data\Config_" & in_ENV.Trim().ToUpperInvariant() & ".xlsx")]
+```
+
+`in_ENV` is `TST` or `PRD`; empty falls back to **TST** so an unset argument can never pick up
+production settings.
+
 **Create `Avaloq_System/`.** Every workflow that touches a Smart Client window lives here and
 nowhere else; `Logic/` decides, `Avaloq_System/` acts. See
 [`systems/avaloq-system.md`](../../.claude/skills/standards/references/systems/avaloq-system.md).

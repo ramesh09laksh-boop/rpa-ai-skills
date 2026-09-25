@@ -95,7 +95,7 @@ shape is the house pattern for "same job, many source formats".
 |---|---|
 | `Config_TST.xlsx`, `Config_PRD.xlsx` | Sheets `Settings`, `Constants`, `Assets`. See `.claude/skills/security/references/env-config.md`. |
 | `Input/` | Static reference data checked into the repo — `Mappings.xlsx`, `BankLists.xlsx`, `CounterPartyList.xlsx`, mail templates (`Exception.txt`, `Info.txt`), Camunda request bodies (`Get*_JSON.txt`). |
-| `Output/` | Runtime output. Ships with a `placeholder.txt` so the folder exists. |
+| `Output/` | Runtime output. Ships with a `.gitkeep` so the folder exists. |
 | `Temp/` | Scratch. Same placeholder convention. |
 | `Template/` | UC39 — mail body templates. |
 | `AI/` | UC39 — prompt files (`SystemPrompt_Commission.txt`, `UserPrompt_Commission.txt`, `FewShot_Examples.txt`). |
@@ -120,7 +120,7 @@ in three places — that is a defect, not a pattern to copy.)
 
 ## `Exceptions_Screenshots/`
 
-Target of `Framework/TakeScreenshot.xaml`. Ships with `placeholder.txt`.
+Target of `Framework/TakeScreenshot.xaml`. Ships with `.gitkeep`.
 `ExScreenshotsFolderPath` may redirect it to a network share (TKB-UC11 does). Screenshots
 of a logged-in banking session contain customer data — see
 `.claude/skills/security/references/prohibited-practices.md`.

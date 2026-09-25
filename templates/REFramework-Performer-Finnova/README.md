@@ -30,6 +30,19 @@ restore with an unresolved-dependency error rather than half-loading. Publish fi
 
 ## Deltas to apply to the generated skeleton
 
+**`Main.xaml` — point `in_ConfigFile` at the right workbook.** Stock Studio invokes
+`Framework/InitAllSettings.xaml` with the literal `in_ConfigFile = "Data\Config.xlsx"`, and this
+template ships **no `Config.xlsx`** — only `Config_TST.xlsx` and `Config_PRD.xlsx`. Left as-is,
+the first run fails in Initialization with file-not-found. Replace the literal with:
+
+```vb
+[If(String.IsNullOrWhiteSpace(in_ENV), "Data\Config_TST.xlsx",
+    "Data\Config_" & in_ENV.Trim().ToUpperInvariant() & ".xlsx")]
+```
+
+`in_ENV` is `TST` or `PRD`; empty falls back to **TST** so an unset argument can never pick up
+production settings.
+
 **Create `Finnova_System/`.** Every workflow that touches a Finnova window lives here and
 nowhere else; `Logic/` decides, `Finnova_System/` acts. Workflow naming is
 `Finnova-<Subject>_<Verb>.xaml` — verb last. See

@@ -105,7 +105,7 @@ range — call that rather than opening a scope inline.
   unattended robot indefinitely. Remove it if you touch this workflow; never add one.
 - **Committed run output.** `Data/Output/` in the reference projects contains real artefacts
   (`output_28thOct.txt`, `Strukis.txt`). Keep `Data/Output/` and `Data/Temp/` to their
-  `placeholder.txt` only.
+  `.gitkeep` only.
 - **Downloaded attachments contain customer data.** `File_System_Folder_Download_*` points at
   the robot's data drive; those files are not cleaned up by any workflow in the project.
   Retention is unmanaged — flag it if your process adds to it.

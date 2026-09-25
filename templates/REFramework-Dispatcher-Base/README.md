@@ -32,8 +32,22 @@ Enterprise Process* template and apply the deltas below. See
 A Dispatcher keeps the REFramework state machine but inverts what the transaction *is*: it
 reads a batch up front and each transaction is one row of that batch, written to the queue.
 
-**`Framework/InitAllSettings.xaml`** — leave stock. It already reads all three sheets and
-resolves the `Assets` rows against Orchestrator.
+**`Main.xaml` — point `in_ConfigFile` at the right workbook.** Stock Studio invokes
+`Framework/InitAllSettings.xaml` with the literal `in_ConfigFile = "Data\Config.xlsx"`, and this
+template ships **no `Config.xlsx`** — only `Config_TST.xlsx` and `Config_PRD.xlsx`. Left as-is,
+the first run fails in Initialization with file-not-found. Replace the literal with:
+
+```vb
+[If(String.IsNullOrWhiteSpace(in_ENV), "Data\Config_TST.xlsx",
+    "Data\Config_" & in_ENV.Trim().ToUpperInvariant() & ".xlsx")]
+```
+
+`in_ENV` is `TST` or `PRD`; empty falls back to **TST** so an unset argument can never pick up
+production settings.
+
+**`Framework/InitAllSettings.xaml`** — leave the workflow itself stock: it already reads all
+three sheets and resolves the `Assets` rows against Orchestrator. Only the `in_ConfigFile`
+argument passed to it from `Main.xaml` changes, as above.
 
 **`Framework/InitAllApplications.xaml`** — open only what the source needs. If the source is a
 share the robot already has rights to, this stays empty; do not open a banking client here.

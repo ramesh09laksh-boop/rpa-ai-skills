@@ -102,7 +102,7 @@ Keep that discipline.
 ## 5. Never commit run output, downloads or screenshots
 
 `Data/Output/`, `Data/Temp/` and `Exceptions_Screenshots/` exist in source control **only**
-to hold `placeholder.txt`.
+to hold `.gitkeep`.
 
 ❌ **Violated in the reference projects.** These are committed run artefacts:
 
