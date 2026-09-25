@@ -39,14 +39,41 @@ Throw New ApplicationException("CarOne Login: Failed.")
 
 Login failures are system exceptions — the machine may recover. Data problems are not.
 
-### The alternative: mail instead of throw
+### Notifying a human: three conventions
+
+| | Where the mail is sent | Transaction outcome |
+|---|---|---|
+| **Throw only** (UC39, TKB-UC11) | nowhere | Business / System, correct |
+| **Mail instead of throw** (UC81) | `Process.xaml` | **Successful** — the failure is invisible to the queue |
+| **Throw and notify** (UC252) | `Framework/SetTransactionStatus.xaml` | Business / System, correct |
 
 UC81 does **not** throw business exceptions from `Process.xaml`. It invokes
 `Mail_System\Mail-_Process_Exception.xaml` with a numbered `in_ExceptionNr` that maps to
-`Exception_<n>_Msg` in config, leaving the queue item successful while mailing a human.
+`Exception_<n>_Msg` in config, leaving the queue item successful while mailing a human. The
+cost is that queue statistics no longer show the failure.
 
-Both conventions are legitimate. **Pick one per project and keep to it** — mixing them makes
-queue statistics meaningless.
+UC252 resolves that tension by notifying from **`SetTransactionStatus`** instead of from
+`Process.xaml`. `Process.xaml` throws exactly as it should, REFramework marks the transaction
+Business or System, and the notification is a side effect of the *outcome* rather than a
+replacement for it. Prefer this for new work: the reporting stays honest and humans still get
+told. See `systems/mail-system.md` → *Notifying from SetTransactionStatus*.
+
+**Whichever you pick, keep to it within a project** — mixing "mail instead of throw" with
+"throw" in the same process makes queue statistics meaningless.
+
+### Four rules for notifying from `SetTransactionStatus`
+
+1. **Never let the notification throw.** This code runs while an exception is already being
+   handled; an exception escaping here turns a handled transaction failure into an unhandled
+   crash of the whole job. Wrap the invoke in `TryCatch` → `Log Message (Warn)`.
+2. **Gate the system-exception mail on retries being exhausted.** `RetryCurrentTransaction`
+   resets `io_RetryNumber` to 0 when it gives up and leaves it above 0 while it still intends
+   to retry, so `io_RetryNumber = 0` *after* that invoke means "given up". Ungated, a
+   `MaxRetryNumber` of 2 mails the same failure three times.
+3. **Business exceptions are never retried**, so notify unconditionally on that branch.
+4. **Attach the screenshot** on system exceptions — `TakeScreenshot` has already run and
+   `screenshotPath` is in scope. Mind that screenshots of a banking session contain customer
+   data (see *Screenshots* below).
 
 ## The retry idiom
 

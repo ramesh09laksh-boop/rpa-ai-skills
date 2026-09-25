@@ -36,7 +36,7 @@ sample processes above for how this estate actually structures work.
   <Application>_System/      One folder per external system. UI interaction ONLY.
   Logic/                     Business rules and decisions. No UI interaction.
   Data/                      Config_TST.xlsx, Config_PRD.xlsx, Input/, Output/, Temp/
-  Tests/                     Test workflows, Tests.xlsx, RunAllTests.xaml
+  Tests/                     Tests.xlsx, Test-<Thing>.xaml probes. See references/testing.md.
   Documentation/
   Exceptions_Screenshots/
 ```
@@ -117,6 +117,8 @@ For the activity APIs of the two custom libraries, use `.claude/skills/finnova-l
 - `references/where-does-it-go.md` — decision rules for placing a new workflow
 - `references/naming-conventions.md` — workflow and argument naming
 - `references/error-handling.md` — exception types and the retry idiom used across all projects
+- `references/testing.md` — how to run and prove a workflow here: the UiRobot recipe,
+  sandbox rule, probes vs test cases, probes with real-world effects
 - `references/systems/*.md` — one file per application folder (table above)
 
 Cross-cutting: `.claude/skills/security/` (credentials and config), `.claude/skills/web/` (browser work).
