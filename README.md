@@ -85,7 +85,7 @@ Swap `--agent claude-code` for the agent you use — `--agent copilot`, `--agent
 | `project-scaffolding` | Starting a new UC project — picks the right template(s) and fetches just those subfolders out of `templates/` |
 | `finnova-library` | Calling `Swisscom.FinnovaLibrary` activities |
 | `avaloq-library` | Calling `Swisscom.UiPath.UIAutomation.Avaloq` activities |
-| `web` | Any browser-based step; Playwright MCP for selector validation |
+| `web` | Any browser-based step; live target capture with the `uip rpa uia` CLI |
 | `security` | Credentials, Orchestrator assets, config, never-do list |
 | `pdd-sdd-scaffolding` | PDD/SDD (incl. screenshots) → first-draft workflow scaffold; also covers scaffolding while the target application is unavailable |
 

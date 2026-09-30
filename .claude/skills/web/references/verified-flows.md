@@ -12,7 +12,7 @@ Why no live verification was performed:
 |---|---|
 | No credentials | SIX iD, CardOne and Avaloq are authenticated production banking systems. No test account was provided, and production logins were not attempted. |
 | Authorisation | Driving a bank's production portal needs explicit authorisation for a named environment and account. That was not in scope of this task. |
-| Tooling timing | Playwright MCP was installed and verified connected (`claude mcp add playwright npx @playwright/mcp@latest`, Node 22.21.1), but MCP tools load at session start, so it was not drivable in the session that produced these notes. |
+| Tooling | Capture is done with `uip rpa uia` (see `../SKILL.md`). Playwright MCP is **no longer used in this estate** — it inspects a page with a different engine than the robot runs, and its output had to be re-typed into selectors by hand. |
 
 **Treat every selector here as unverified until someone runs the procedure below.** Then
 update the status column and date.
@@ -31,13 +31,16 @@ update the status column and date.
 
 Run this per flow, in a **test** environment with an account you are authorised to use.
 
-1. Start a session with Playwright MCP available (installed as above).
-2. Navigate to the flow's entry URL.
-3. Take an **accessibility snapshot** at each step — not a screenshot. Snapshots give roles,
-   names and ids; screenshots give none of that.
-4. For each element the flow touches, confirm the attribute the UiPath selector relies on
-   still exists and is unique. Check raw DOM attributes for anything matched on `aaname` —
-   snapshots normalise whitespace, and several selectors here depend on exact spaces.
+1. Record the window baseline: `uip rpa uia snapshot capture --folder-path "$W"`.
+2. Open the flow's entry URL: `uip rpa uia interact browser open <url> --browser Chrome`.
+3. Capture the page tree at each step: `uip rpa uia snapshot capture <bN> --folder-path "$W"`,
+   then read `tree.yml`. Use it to pick each element's `eN` ref — not to read attributes.
+4. For each element the flow touches, run the capture loop in `../SKILL.md` and confirm with
+   `selector-intelligence evaluate` that the selector matches that element **and nothing
+   else**. Do not re-type attributes by hand; `resolve-defaults` and `selector-intelligence`
+   own selector construction.
+5. Advance the application only with `uip rpa uia interact`, and only after every element on
+   the current screen is registered (complete-then-advance).
 5. Walk the flow to completion, recording every interstitial (consent banner, "Login
    anyway", error page, session-expiry prompt).
 6. Update the table above and note any drift in the flow's section below.
@@ -187,9 +190,11 @@ WindowScope (WinSelector)
   RowCount = ExtractDataTable.Rows.Count    ' MUST be checked — ContinueOnError hides failure
 ```
 
-Playwright MCP **cannot** verify this flow — the page is hosted inside `smartclient.exe` and
-is not reachable by an external browser. Verify it with UiExplorer against a running Smart
-Client instead.
+This flow is **not** reachable by an external browser — the page is hosted inside
+`smartclient.exe`. It is still capturable with `uip rpa uia`: the CLI works against the
+desktop window rather than a browser tab, so take the window's `wN` ref from
+`window-tree.yml` and capture with that instead of a `bN`. That is the advantage over an
+external browser tool, which cannot reach this surface at all.
 
 **Known limits:** `MaxNumberOfResults=1000` silently truncates larger reports;
 `ContinueOnError=True` turns a failed extract into an empty table. See

@@ -99,7 +99,7 @@ Load the skill that matches the work. App-specific detail lives in the skills, n
 | [`.claude/skills/project-scaffolding/`](.claude/skills/project-scaffolding/SKILL.md) | Starting a new UC project — picking the right template(s) and fetching just those subfolders out of `templates/`. Carries the fetch scripts, since `templates/` itself does not travel with `npx skills add` |
 | [`.claude/skills/finnova-library/`](.claude/skills/finnova-library/SKILL.md) | Calling `Swisscom.FinnovaLibrary` activities |
 | [`.claude/skills/avaloq-library/`](.claude/skills/avaloq-library/SKILL.md) | Calling `Swisscom.UiPath.UIAutomation.Avaloq` activities |
-| [`.claude/skills/web/`](.claude/skills/web/SKILL.md) | Any browser-based step; Playwright MCP for selector validation during development |
+| [`.claude/skills/web/`](.claude/skills/web/SKILL.md) | Any browser-based step; capturing targets live with the `uip rpa uia` CLI |
 | [`.claude/skills/security/`](.claude/skills/security/SKILL.md) | Credentials, Orchestrator assets, config, never-do list |
 | [`.claude/skills/pdd-sdd-scaffolding/`](.claude/skills/pdd-sdd-scaffolding/SKILL.md) | Turning a PDD/SDD — including screenshots annotated only with an arrow — into a first-draft scaffold; and scaffolding when the target application is unavailable |
 
@@ -185,11 +185,23 @@ Only what the estate actually evidences. Do not add a rule here that no project 
 
 ## Tooling
 
-Playwright MCP is configured for this project and used **during development only** to
-validate web selectors — it is never a runtime dependency of a shipped robot:
+Web selectors are captured and validated with the **UiPath UI Automation CLI**, `uip rpa uia`.
+It explores the page through the same UI Automation engine the robot runs and writes the
+result straight into the Object Repository, so no selector is ever re-typed by hand:
 
 ```bash
-claude mcp add playwright npx @playwright/mcp@latest
+uip rpa uia snapshot capture --folder-path "$W"        # window baseline
+uip rpa uia interact browser open <url> --browser Chrome
+uip rpa uia snapshot capture <bN> --folder-path "$W"   # page tree -> pick eN refs
+uip rpa uia target-anchorable resolve-defaults --refs '[...]'
+uip rpa uia selector-intelligence evaluate --selector ... --refs ...
+uip rpa uia object-repository create-elements --screen-reference-id ... 
 ```
 
-Requires Node.js 20+. See `.claude/skills/web/`.
+Requires `UiPath.UIAutomation.Activities` and `UiPath.UIAutomation.CLI` **at the same
+version** (26.10.4 verified) — a mismatch makes `uip rpa uia` list zero subcommands.
+
+**Playwright MCP is no longer used.** It inspected pages with a different engine than the
+robot runs, and its output had to be hand-translated into selectors — which is the largest
+single source of selector breakage in this estate. Do not install or drive it.
+See `.claude/skills/web/`.

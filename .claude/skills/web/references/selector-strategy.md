@@ -1,7 +1,7 @@
 # Web selector strategy
 
 Derived from every `<html>` / `<webctrl>` selector in the three reference projects (96
-distinct selectors), plus the shape Playwright MCP accessibility snapshots return.
+distinct selectors), plus what `uip rpa uia` reports for the same pages.
 
 ## Selector anatomy
 
@@ -42,8 +42,13 @@ Three live examples where a space is part of the selector:
 <webctrl tag='TD' rowName='ISIN ' tableCol='2' />
 ```
 
-Trailing spaces come from the page markup (`<td>ISIN </td>`). When you read a name off a
-Playwright snapshot, copy it verbatim — do not trim.
+Trailing spaces come from the page markup (`<td>ISIN </td>`). `selector-intelligence
+get-selector-attributes` prints values double-quoted so the padding is visible — copy what is
+between the quotes verbatim, and do not trim.
+
+**Better still, wildcard it.** Measured on SIX iD 2026-09-30, the real padding is *two*
+trailing spaces (`rowName="Versammlungsdatum  "`) where this estate's reference docs say one.
+`rowName='Versammlungsdatum*'` removes the whole class of error.
 
 Where the text is unreliable, wildcard instead: `aaname='*Login anyway*'`.
 
@@ -78,40 +83,38 @@ Do **not** use `<html app='chrome.exe' title='*' />` in production logic; it mat
 Chrome window. The sample project uses it only to detect "is a browser open at all" before
 closing one.
 
-## Building a selector from a Playwright snapshot
+## Building a selector — never by hand
 
-Playwright's accessibility snapshot gives roles and accessible names. Map them:
+Do not translate a snapshot into a selector yourself. The selector is produced by
+`target-anchorable resolve-defaults`, hardened with `selector-intelligence get-ancestors` /
+`get-selector-attributes`, and accepted only once `selector-intelligence evaluate` reports
+your target as the sole matching candidate.
 
-| Snapshot | UiPath |
+The page tree (`tree.yml` from `uip rpa uia snapshot capture <bN>`) is for **choosing which
+element** to configure — its `eN` ref — not for reading attributes into a selector. Attributes
+lifted from a tree, a screenshot or `interact get-all` are exactly the guesses this file
+exists to prevent.
+
+What the tree is good for:
+
+| `tree.yml` line | What it tells you |
 |---|---|
-| `button "Login"` | `<webctrl tag='BUTTON' aaname='Login' />` |
-| `textbox "Email"` with `name=email` | `<webctrl tag='INPUT' name='email' />` |
-| element with `id=j_password` | `<webctrl tag='INPUT' type='password' id='j_password' />` |
-| `link "Back to home"` | `<webctrl tag='A' aaname='Back to home' />` |
-| `cell` in row "ISIN", column 2 | `<webctrl tag='TD' rowName='ISIN ' tableCol='2' />` |
+| `InputBox "Suchbegriff" [ref=e507]` | the ref to configure, and that it is a text input |
+| `DropDown "Suchtyp" [ref=e5837]: ISIN - GLOBAL` | a real `<select>` — `SelectItem` is viable |
+| `[invisible]` on a `DropDown` | a hidden select behind a custom widget — see below |
+| `Link "15.06.2026"` + `/url: …EventID=6714613` | the discriminator lives in the href |
 
-Snapshots normalise whitespace in accessible names. **Confirm the raw attribute in the DOM**
-(via the snapshot's element handle or `page.getAttribute`) before relying on an exact
-`aaname` — this is exactly where the ` Login ` spaces hide.
-
-Prefer whatever `id` or `name` the snapshot exposes over the accessible name.
-
-## Parameterising selectors
-
-Where a selector varies, the estate uses `String.Format`:
-
-```vb
-String.Format("<webctrl parentid='linkContainer' tag='I' idx='{0}' />", IdxValue)
-String.Format("<webctrl aaname=' *{0}*' tag='LABEL' />", User)
-```
-
-Keep the variable part minimal and always inside a scoped selector.
+**Two dropdowns that look identical can behave differently.** On SIX iD, `Suchtyp` is a plain
+`<select>` and `SelectItem` sticks; `Suche in` is a hidden `<select>` behind a custom widget
+that silently reverted a `SelectItem` back to its default while the CLI reported success. Query
+`interact get <eN> items` and, when in doubt, drive it click-to-open then click-the-option.
 
 ## Verification checklist
 
 Before committing a selector:
 
-- [ ] Confirmed against the live page (Playwright snapshot or UiExplorer), not guessed
+- [ ] Produced by `resolve-defaults` and accepted by `selector-intelligence evaluate` — never hand-written
+- [ ] `evaluate` listed your target and nothing else (unless it is a deliberate set)
 - [ ] Uses the highest-ranked attribute available
 - [ ] Unique — no second match on the page
 - [ ] Any leading/trailing whitespace preserved verbatim
