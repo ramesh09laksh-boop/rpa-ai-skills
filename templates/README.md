@@ -173,6 +173,13 @@ so the templates do **not** come along with the skills. Two routes:
    **TST**, deliberately: an unset `in_ENV` must not silently pick up production settings. If
    you add a third environment, add the workbook and keep the key set identical across all of
    them — `validate-project` enforces that parity.
+
+   **This step assumes the stock xlsx config.** If the SDD calls for JSON config instead
+   (`Config_TST.json` / `Config_PRD.json`), the expression above changes its file extension
+   accordingly, **and** `Framework/InitAllSettings.xaml` itself has to be rebuilt in Studio to
+   deserialize JSON instead of `ReadRange` — it is no longer stock. See
+   [`config-format.md`](../.claude/skills/standards/references/config-format.md) before
+   touching this step if that's the case.
 6. Fill in every `[UC-SPECIFIC — replace]` in `Data/Config_TST.xlsx` **and**
    `Data/Config_PRD.xlsx`, and wire each `Assets` row to a real Orchestrator asset —
    [`orchestrator-assets.md`](../.claude/skills/security/references/orchestrator-assets.md).

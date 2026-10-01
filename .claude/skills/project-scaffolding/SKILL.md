@@ -150,9 +150,18 @@ The template is project-level scaffolding only. Three things still have to happe
    later. `-SkipRule <name>` does the same thing ad hoc, without the written reason, and is
    meant for experimenting rather than for committing.
 
-## Two decisions to settle before the first publish
+## Three decisions to settle before the first publish
 
-Both are painful to change afterwards and neither has a default this repo will pick for you.
+All three are painful to change afterwards and none has a default this repo will pick for you.
+
+**The config file format.** Stock is `Config_TST.xlsx` / `Config_PRD.xlsx` — zero Framework
+changes, the only zero-migration-risk option. A JSON alternative
+(`Config_TST.json` / `Config_PRD.json`) is possible but requires rebuilding
+`Framework/InitAllSettings.xaml` itself, since `ReadRange` can't read JSON — this is the one
+Framework file allowed to diverge from stock if JSON is chosen, and the same divergence
+applies identically to whichever template(s) are fetched. Ask during PDD → SDD, not here —
+by scaffolding time the answer should already be in the SDD. See
+`.claude/skills/standards/references/config-format.md`.
 
 **The project name.** The templates ship `"name": "<PROJECT-NAME-TBD-ask-team>"`, which fails
 the publishability check on purpose. There are three naming formats live in the estate and no

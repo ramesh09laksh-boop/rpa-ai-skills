@@ -128,6 +128,140 @@ and none is minuted; the templates ship `"name": "<PROJECT-NAME-TBD-ask-team>"`,
 the publishability check on purpose. Ask the team, then apply the answer —
 [`naming-conventions.md`](.claude/skills/standards/references/naming-conventions.md).
 
+## Development lifecycle
+
+Eight stages, each a short prompt you can paste into Claude Code (or any agent with these
+skills installed). Every prompt routes to skills that already exist in this repo — none of
+them duplicate skill content, they just point the agent at the right ones for that stage.
+
+```
+PDD → SDD → Project → Development → Testing → Code Review → UAT Readiness → Deployment Readiness
+                                                                                    ↑__________________|
+                                                                              Change / Enhancement
+```
+
+**One rule holds across every stage, repeated in each prompt below so it survives a lone
+copy-paste:** never invent a selector, activity, API, configuration value, credential, or
+business rule. Where the source material doesn't say, write it down as a `TODO` / Open
+Question instead of a best guess.
+
+### 1. PDD → SDD
+
+```
+Load `standards` for project/application conventions and `security` for the credential and
+config vocabulary. Read <PDD file> and produce a complete SDD: business context, process
+flow, Dispatcher/Performer split (if any), queue design, config keys (Settings/Constants/
+Assets, for both TST and PRD), exception handling (Business vs Application), test strategy,
+and the Orchestrator assets required. Ask two decisions up front and record the answers in
+the SDD: (1) config file format — stock `Config_<ENV>.xlsx`, or JSON (`Config_<ENV>.json`,
+which requires rebuilding `InitAllSettings.xaml` — see `standards/references/config-format.md`);
+(2) credentials — Orchestrator Credential asset, CyberArk PHI vault, or both (see `security`).
+Add an Open Questions / Assumptions section for anything else the PDD doesn't state. Do not
+invent a business rule, a credential name, a selector, or a config value — if the PDD is
+silent, it's an Open Question, not a guess.
+```
+
+### 2. SDD → Project
+
+```
+Load `project-scaffolding`. Given <SDD file>, determine Dispatcher-only, Performer-only, or
+both, and fetch the matching template(s). Carry forward the config-format and credential
+decisions from the SDD — don't re-ask if they're already recorded there. Ask for the project
+name and the shared Orchestrator queue name if not already settled. Work the instantiation
+checklist in `templates/README.md` end to end (including rebuilding `InitAllSettings.xaml` in
+Studio if the SDD calls for JSON config) and run `validate-project` to zero errors before
+calling this stage done.
+```
+
+### 3. SDD → Development
+
+```
+Load `standards` for where each step belongs, plus the application skill(s) the SDD names —
+`finnova-library`, `avaloq-library`, `web`. Use `pdd-sdd-scaffolding` for any screenshot-driven
+step, or anything that can't be confirmed against a live application yet. Use modern
+activities only — this is a Windows/modernBehavior project, so no classic Excel write
+activities and no raw selector outside `Tests/` or Avaloq's `Web_Nav_System/`. Never invent an
+activity, API, selector, or config value: mark it `TODO_SELECTOR` / `APPROX_SELECTOR` (per
+`pdd-sdd-scaffolding`) or a config `TODO` instead.
+```
+
+### 4. Development → Testing
+
+```
+Build or extend `Tests/Tests.xlsx` and `Tests/RunAllTests.xaml` — never invoked from
+`Process.xaml`. Cover: the happy path for each transaction type in the SDD, every named
+Business exception, every Application exception (file/Excel/Finnova/Avaloq/Orchestrator
+unavailable), and any edge case the SDD or `standards/references/silent-failure-traps.md`
+calls out. Run the suite and report pass/fail per the `Result` sheet — don't claim a test
+passed without running it.
+```
+
+### 5. Code Review
+
+```
+Load `standards`, `security`, and the application skill(s) in use. Validate against
+`AGENTS.md` → "Deployment & review rules", `silent-failure-traps.md`,
+`naming-conventions.md`, `prohibited-practices.md`, and the SDD's own requirement list — every
+requirement should trace to a workflow and a test. Flag findings, don't fix them silently:
+raw selectors outside `Tests/`/`Web_Nav_System/`, classic or Legacy-project activity usage,
+a secret anywhere, an unresolved `[UC-SPECIFIC — replace]` or `*-selector-todo`, a
+config-key or queue-name mismatch between TST and PRD. Do not migrate a Legacy workflow as a
+side effect of review — report it as a finding and let the team decide.
+```
+
+### 6. UAT Readiness
+
+```
+Confirm: every SDD requirement traces to a workflow and a test case; every
+`APPROX_SELECTOR` / `TODO_SELECTOR` in every `*.selectors-todo.md` is resolved against the
+live application; `Config_TST.xlsx` has no remaining `[UC-SPECIFIC — replace]`;
+`validate-project` runs clean (or every suppressed rule has a written reason in
+`validate-project.ignore`); `Tests/RunAllTests.xaml` passes. List anything still open as a
+named blocker, not a soft caveat.
+```
+
+### 7. Deployment Readiness
+
+```
+Confirm: `Config_PRD.xlsx` carries the same key set as `Config_TST.xlsx`, with no remaining
+`[UC-SPECIFIC — replace]`; every `Assets` row is wired to a real Orchestrator asset in the
+right folder (`security` → `orchestrator-assets.md`); the Finnova/Avaloq `.nupkg`s are
+published to the feed at the pinned versions; `project.json → name` has no placeholder and no
+whitespace, and matches `project.uiproj`; the Dispatcher/Performer pair share one
+byte-identical `OrchestratorQueueName`; logging excludes secrets
+(`excludedLoggedData`). List anything unresolved as a blocker, not a note.
+```
+
+### 8. Change / Enhancement
+
+```
+Read the existing project and the change request together. Load `standards` and the
+application skill(s) the project already uses — match its existing conventions; don't
+introduce a second credential mechanism or a new folder pattern without asking. Identify
+every workflow, config key, and test the change touches, and update `Tests/Tests.xlsx` and
+both `Config_TST.xlsx`/`Config_PRD.xlsx` together if config changes. Don't migrate an
+existing Legacy or classic-activity workflow as a side effect — flag it, don't touch it,
+unless the change explicitly asks for that migration. Re-run `validate-project` and the test
+suite before calling the change done.
+```
+
+## Definition of Done (UiPath project)
+
+- [ ] Every SDD requirement traces to a workflow and a test case — no silent gaps
+- [ ] No raw Finnova/Avaloq selector outside `Tests/` (and Avaloq's `Web_Nav_System/`)
+- [ ] No classic/Legacy activity on a Windows (`modernBehavior: true`) project — see
+      `standards/references/silent-failure-traps.md`
+- [ ] No secret in a `.xaml`, config sheet, log, exception message, mail, screenshot, or commit
+- [ ] `Config_TST.xlsx` and `Config_PRD.xlsx` carry the same key set, with no
+      `[UC-SPECIFIC — replace]` remaining
+- [ ] `project.json → name` has no placeholder, no whitespace, and matches `project.uiproj`
+- [ ] A Dispatcher/Performer pair share one byte-identical `OrchestratorQueueName`
+- [ ] Every `APPROX_SELECTOR` / `TODO_SELECTOR` resolved against the live application
+- [ ] `validate-project` runs with zero errors, or every suppressed rule has a written reason
+- [ ] `Tests/RunAllTests.xaml` passes, and nothing under `Tests/` is invoked from `Process.xaml`
+- [ ] Every Open Question/Assumption from the SDD is resolved or explicitly still open —
+      never silently dropped
+
 ## Why the library and sample projects are still kept
 
 They sit **one level above this repo**, as siblings of `rpa-ai-skills/`:

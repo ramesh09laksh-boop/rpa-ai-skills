@@ -122,5 +122,7 @@ For the activity APIs of the two custom libraries, use `.claude/skills/finnova-l
   expression, relative config paths resolving into the extracted package, negative filters
   over business workbooks. Read it before writing anything that writes Excel or parses a date
 - `references/systems/*.md` — one file per application folder (table above)
+- `references/config-format.md` — `Config_<ENV>.xlsx` (stock) vs `Config_<ENV>.json`
+  (requires rebuilding `InitAllSettings.xaml`) — ask which, during PDD → SDD
 
 Cross-cutting: `.claude/skills/security/` (credentials and config), `.claude/skills/web/` (browser work).
