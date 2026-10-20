@@ -126,3 +126,5 @@ For the activity APIs of the two custom libraries, use `.claude/skills/finnova-l
   (requires rebuilding `InitAllSettings.xaml`) — ask which, during PDD → SDD
 
 Cross-cutting: `.claude/skills/security/` (credentials and config), `.claude/skills/web/` (browser work).
+For test cases — acceptance criteria or a manual test script into Gherkin and then into Studio
+test cases — use `.claude/skills/bdd-test/`.
