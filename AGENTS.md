@@ -102,6 +102,7 @@ Load the skill that matches the work. App-specific detail lives in the skills, n
 | [`.claude/skills/web/`](.claude/skills/web/SKILL.md) | Any browser-based step; capturing targets live with the `uip rpa uia` CLI |
 | [`.claude/skills/security/`](.claude/skills/security/SKILL.md) | Credentials, Orchestrator assets, config, never-do list |
 | [`.claude/skills/pdd-sdd-scaffolding/`](.claude/skills/pdd-sdd-scaffolding/SKILL.md) | Turning a PDD/SDD — including screenshots annotated only with an arrow — into a first-draft scaffold; and scaffolding when the target application is unavailable |
+| [`.claude/skills/bdd-test/`](.claude/skills/bdd-test/SKILL.md) | **Testing** — requirements/ACs/manual test steps → Gherkin → Studio BDD test cases with real assertions. Authoring and validating tests only; Test Manager projects, test sets, executions and reporting belong to UiPath's own `uipath-test` skill |
 
 Start with `.claude/skills/standards/` when translating an SDD into workflows — it routes to
 the right application reference and to the library skills.
