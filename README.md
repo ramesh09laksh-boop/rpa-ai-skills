@@ -74,7 +74,7 @@ Swap `--agent claude-code` for the agent you use — `--agent copilot`, `--agent
 > (`https://github.com/ramesh09laksh-boop/rpa-ai-skills`) works too.
 >
 > The repo is **private**, so git must be authenticated — a GitHub sign-in through VS Code, or
-> `gh auth login`, is enough. Verified working: all eight skills install, including
+> `gh auth login`, is enough. Verified working: all seven skills install, including
 > `project-scaffolding` with its fetch scripts intact.
 
 ### Available skills
@@ -88,7 +88,6 @@ Swap `--agent claude-code` for the agent you use — `--agent copilot`, `--agent
 | `web` | Any browser-based step; live target capture with the `uip rpa uia` CLI |
 | `security` | Credentials, Orchestrator assets, config, never-do list |
 | `pdd-sdd-scaffolding` | PDD/SDD (incl. screenshots) → first-draft workflow scaffold; also covers scaffolding while the target application is unavailable |
-| `bdd-test` | Requirements / ACs / manual test steps → Gherkin scenarios → UiPath Studio BDD test cases with real assertions and an honest execution report. Test Manager admin stays with UiPath's `uipath-test` |
 
 `standards` routes to the others — take it in every project.
 
@@ -99,11 +98,6 @@ Typical picks:
 | Finnova | `standards` `project-scaffolding` `finnova-library` `security` `pdd-sdd-scaffolding` |
 | Avaloq | `standards` `project-scaffolding` `avaloq-library` `security` `pdd-sdd-scaffolding` |
 | …plus any web portal (SIX iD, CardOne) | add `web` |
-
-Projects with automated tests also take `bdd-test` — it turns acceptance criteria or a manual
-test script into Studio test cases. It authors and validates tests in the project only;
-Test Manager projects, test sets, executions and reporting belong to UiPath's own
-[`uipath-test`](https://github.com/UiPath/skills) skill, which `bdd-test` hands off to.
 
 ### `templates/` does not travel with `npx skills add`
 
@@ -194,8 +188,6 @@ activity, API, selector, or config value: mark it `TODO_SELECTOR` / `APPROX_SELE
 ### 4. Development → Testing
 
 ```
-Load `bdd-test` for test-case authoring — it turns the SDD's acceptance criteria, or a manual
-test script, into Gherkin scenarios and then into Studio test cases with real assertions.
 Build or extend `Tests/Tests.xlsx` and `Tests/RunAllTests.xaml` — never invoked from
 `Process.xaml`. Cover: the happy path for each transaction type in the SDD, every named
 Business exception, every Application exception (file/Excel/Finnova/Avaloq/Orchestrator
