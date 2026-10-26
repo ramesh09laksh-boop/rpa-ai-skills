@@ -176,9 +176,23 @@ credential you were not given. Those are the only two reasons to stop mid-run.
 
 ## Working alongside the official UiPath skills
 
-Teams install UiPath's own skills (`uipath-rpa`, and others from `npx skills add UiPath/skills
---list`) next to these. Both sets load. The `uip rpa` CLI itself prints a reminder to load
-`uipath-rpa` on every invocation.
+**The CLI tells you to load the official `uipath-rpa` skill, and it means it.** Every
+`uip rpa` invocation prints:
+
+> *Before using this tool, make sure you have loaded the **uipath-rpa** skill and read its
+> documentation. `uipath-rpa/SKILL.md` is the canonical reference. Direct CLI use without
+> loading the skill bypasses authoring rules that catch errors early.*
+
+So: **load `uipath-rpa` for CLI mechanics** — verb names, flags, activity authoring, what a
+command actually does. It ships with the tool and is updated with it, which is exactly what this
+repo cannot promise about command names.
+
+**This estate's rules win on structure, naming and security** — where a workflow goes, how it is
+named, the `_System` contract, credentials and assets, what must never be logged or committed.
+Those are not UiPath's to decide.
+
+Teams install the rest of UiPath's set too (`npx skills add UiPath/skills --list`). Both sets
+load.
 
 **Precedence:** this repo's skills win for project creation, the estate's conventions,
 Finnova/Avaloq UI automation, REFramework structure and testing. The official skills own generic
@@ -186,6 +200,27 @@ activity authoring, the CLI surface and Orchestrator operations.
 
 When the two disagree, **follow the estate and note the conflict in `Progress.md`** so it can be
 settled rather than re-decided per project.
+
+## CLI rules that are not negotiable
+
+- **`uip` is a host plus separately-versioned tools.** `uip --version` tells you about the host,
+  not about `rpa`. Run **`uip tools list`** and record the versions in
+  `Documentation/Progress.md` at the start of the project. Command names have already moved
+  under this repo once.
+- **Never run `uip tools update` mid-project.** It changes verb names and flags underneath work
+  in progress. Update between projects, deliberately, and record the new versions. Preflight
+  prints `uip tools list` and warns when `rpa-tool` differs from the version recorded in
+  `Progress.md`.
+- **`rpa cleanup` only with `--dry-run`.** Its own description: *"Remove unused items from a
+  UiPath project (**modifies the project sources in place**)"*. Without `--dry-run` it edits
+  your sources. Run it bare only on a clean, committed tree, never as a side effect.
+- **`run` likely needs a Studio instance with the project open — UNVERIFIED.** The help text
+  describes `--project-dir` as matching *running Studio instances*, and `rpa instances list` can
+  report a live Studio with `"ProjectDirectory": "(none)"`. That is suggestive and has not been
+  tested. Do not present it as the cause of a failed run; test it, then record the answer.
+
+Full map, keyed by tool and version: the `project-scaffolding` skill,
+`references/cli-command-map.md`.
 
 ## Related skills
 

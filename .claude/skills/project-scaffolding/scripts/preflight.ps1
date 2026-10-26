@@ -126,7 +126,27 @@ if (-not $uipOk) {
     Report fail 'uip CLI' 'not on PATH' 'install the UiPath CLI, then re-run this script'
 }
 else {
-    Report ok 'uip CLI' (& uip --version 2>$null)
+    Report ok 'uip CLI (host)' (& uip --version 2>$null)
+
+    # `uip` is a host plus separately-versioned tools that update INDEPENDENTLY, and a tool
+    # auto-installs on first use. That is not trivia: on this machine rpa-tool was rewritten
+    # mid-day between two agent sessions, and the verb names differed either side of it
+    # (search-templates/create-project vs templates search/init). So print the tool versions,
+    # and compare rpa-tool against whatever the project recorded.
+    $rpaToolVersion = $null
+    try {
+        $tools = & uip tools list --output json 2>$null | ConvertFrom-Json
+        foreach ($t in @($tools.Data)) {
+            $line = "$($t.Name) $($t.Version) [$($t.CommandPrefix)] $($t.Status)"
+            if ($t.Name -eq 'rpa-tool') { $rpaToolVersion = $t.Version }
+            if ($t.Status -eq 'ok') { Report ok "  tool: $($t.Name)" "$($t.Version) (prefix '$($t.CommandPrefix)')" }
+            else {
+                Report warn "  tool: $($t.Name)" "$($t.Version) - status '$($t.Status)'" `
+                    'do NOT run `uip tools update` mid-project; update between projects and record the versions'
+            }
+        }
+    }
+    catch { Report warn 'uip tools list' 'could not read the tool versions' 'uip tools list' }
 
     $status = $null
     try {
@@ -146,6 +166,33 @@ else {
         # skipped and a tenant governance policy cannot be resolved, which changes what the
         # analyzer actually enforces - so it must not pass silently.
         Report warn 'uip login' "$status - Orchestrator feeds and tenant governance will be skipped" 'uip login'
+    }
+}
+
+# --- 4b. rpa-tool version vs what the project recorded ------------------------
+# A tool change mid-project silently alters verb names and flags. Progress.md is where the
+# project records what it was built against; this is the comparison that makes a change visible
+# rather than mysterious.
+if ($ProjectPath -and $rpaToolVersion) {
+    $progress = Join-Path $ProjectPath 'Documentation/Progress.md'
+    if (-not (Test-Path -LiteralPath $progress)) {
+        Report skip 'rpa-tool vs Progress.md' 'no Documentation/Progress.md to compare against' `
+            "record `"rpa-tool: $rpaToolVersion`" in Documentation/Progress.md"
+    }
+    else {
+        $txt = Get-Content -LiteralPath $progress -Raw
+        $m = [regex]::Match($txt, '(?im)rpa-tool\s*[:=]?\s*v?([0-9]+\.[0-9]+\.[0-9]+)')
+        if (-not $m.Success) {
+            Report warn 'rpa-tool vs Progress.md' "Progress.md records no rpa-tool version (running $rpaToolVersion)" `
+                "add `"rpa-tool: $rpaToolVersion`" to Documentation/Progress.md"
+        }
+        elseif ($m.Groups[1].Value -ne $rpaToolVersion) {
+            Report fail 'rpa-tool vs Progress.md' `
+                ("Progress.md records rpa-tool $($m.Groups[1].Value) but $rpaToolVersion is installed. " +
+                 'Verb names and flags may have changed under this project') `
+                'recheck the commands you rely on with --help, then update Progress.md'
+        }
+        else { Report ok 'rpa-tool vs Progress.md' "both $rpaToolVersion" }
     }
 }
 
