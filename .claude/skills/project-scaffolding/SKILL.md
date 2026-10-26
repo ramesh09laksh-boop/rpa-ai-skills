@@ -162,8 +162,11 @@ The template is project-level scaffolding only. Three things still have to happe
    `system-workflow-no-config`, `system-workflow-no-outcome`, `secret-argument-string`,
    `logic-workflow-no-arguments`. They are warnings because the rules are new, not because the
    contract is optional: a scaffold that trips them does not meet the `_System` contract in
-   `standards/references/project-layout.md`. Calibration — the estate's reference-quality
-   project (UC39) reports **zero** of them.
+   `standards/references/project-layout.md`. Calibration, measured 2026-10-26 after tuning: these fire **19** times on
+   TKB-UC11, **28** on UC81 and **23** on UC39. They are not zero anywhere — the estate's own
+   projects predate the contract, and the remaining findings are genuine (workflows taking
+   neither Config nor any coordinate argument, so their window titles can only be hardcoded).
+   Treat them as a backlog on existing projects and a gate on new ones.
 
    A rule that genuinely does not apply yet goes in a `validate-project.ignore` beside
    `project.json` **with a written reason**, and the finding is still printed. See

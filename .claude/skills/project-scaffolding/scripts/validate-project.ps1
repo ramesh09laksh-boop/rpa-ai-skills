@@ -578,17 +578,46 @@ function Test-Project {
         # the same carve-out the raw-selector rules give them.
         if ($rel -match '(^|[\\/])[A-Za-z0-9 _]+_System[\\/]' -and $props.Count -gt 0 -and
             $x.Name -notlike '_*') {
-            if ('in_Config' -notin $argNames) {
+            # Config may arrive as in_Config OR io_Config. TKB-UC11's
+            # File_System\Tracelog_Init takes io_Config (an InOutArgument Dictionary) and was
+            # reported as having no Config at all.
+            $hasConfig = [bool] ($argNames | Where-Object { $_ -match '^(in_|io_)Config$' })
+
+            # project-layout.md's contract reads: "in: in_Config, THE WINDOW/SESSION
+            # COORDINATES IT NEEDS (in_WinTitel, in_Tower), and business inputs". So a workflow
+            # that takes its coordinates explicitly already satisfies it - arguably better than
+            # threading the whole dictionary. UC39's Finnova-ISIN_Extract (in_WinTitel,
+            # in_Counterparty -> out_ISIN) is the model of the contract and was being flagged.
+            #
+            # What the rule is actually worth catching is a workflow with NO configuration input
+            # of any kind, which can only have hardcoded its window title, URL, paths and
+            # timeouts.
+            $hasCoordinates = [bool] ($argNames | Where-Object {
+                    $_ -match '(?i)^(in_|io_)(Win|Window|Tower|Url|Uri|Host|Path|Folder|File|Dir|Server|Mailbox|Bank|Mandant|Env|LaunchCmd|Vault|Timeout)'
+                })
+
+            if (-not $hasConfig -and -not $hasCoordinates) {
                 Add-Finding warning 'system-workflow-no-config' $name `
-                    ("$rel is a _System workflow with no in_Config argument. project-layout.md's " +
-                     'contract is in_Config + coordinates in, plain values out. Without it the window ' +
-                     'title, timeouts and paths can only be hardcoded.')
+                    ("$rel is a _System workflow with no in_Config/io_Config and no explicit " +
+                     'coordinate argument (in_WinTitel, in_Url, in_Path, in_LaunchCmd...). ' +
+                     "project-layout.md's contract is in_Config OR the coordinates it needs, in; " +
+                     'plain values out. With neither, the window title, URL, paths and timeouts ' +
+                     'can only be hardcoded.')
             }
-            if (-not ($argNames | Where-Object { $_ -like 'out_*' -or $_ -like 'io_*' })) {
+
+            # A session/lifecycle action has no value to return: it succeeds, or it throws.
+            # Finnova_Login and SIX_ID_Login were both flagged for "returning nothing", which is
+            # the correct design for a login. The rule is for a workflow that DOES something to
+            # a business object and leaves its caller unable to tell whether it happened.
+            $isLifecycleAction = $x.Name -match '(?i)(login|logon|logout|signin|sign_in|signout|_init|init_|close|open|kill|start|stop|launch|navigate|attach|connect|disconnect)'
+
+            if (-not ($argNames | Where-Object { $_ -like 'out_*' -or $_ -like 'io_*' }) -and
+                -not $isLifecycleAction) {
                 Add-Finding warning 'system-workflow-no-outcome' $name `
                     ("$rel is a _System workflow that returns nothing. A no-op is then " +
                      'indistinguishable from success to its caller. Return an out_ outcome ' +
-                     '(out_Created, out_Moved, out_Status).')
+                     '(out_Created, out_Moved, out_Status). Session actions - login, close, ' +
+                     'init - are exempt: they succeed or they throw.')
             }
         }
 
