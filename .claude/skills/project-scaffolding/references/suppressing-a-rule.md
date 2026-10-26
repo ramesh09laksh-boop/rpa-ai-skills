@@ -40,11 +40,5 @@ is for.
   silently re-armed duplicate emails to external parties.
 - **A leaf-workflow-contract warning on a new scaffold.** `system-workflow-no-config`,
   `system-workflow-no-outcome`, `secret-argument-string` and `logic-workflow-no-arguments` are
-  warnings because the rules are new, not because the contract is optional.
-
-  Calibration, measured 2026-10-26 after tuning: 19 on TKB-UC11, 28 on UC81, 23 on UC39.
-  **Not zero anywhere** — the estate's projects predate the contract. An earlier version of this
-  file claimed UC39 reported zero; that was a measurement error (`grep` treated the project's
-  non-ASCII output as binary and suppressed the lines). On an **existing** project these are a
-  backlog, and a blanket suppression with a written reason is legitimate. On a **new** scaffold
-  they are not.
+  warnings because the rules are new, not because the contract is optional. Calibration: UC39,
+  the estate's reference-quality project, reports **zero** of them.

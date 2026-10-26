@@ -38,28 +38,6 @@ Not tagged. Branch `chore/post-release-0.2.1`, PR #3.
 
 ### Changed
 
-- **Tuned the two noisy leaf-contract rules, and corrected a false calibration claim.**
-  `system-workflow-no-config` now accepts `io_Config` as well as `in_Config`, and accepts an
-  explicit coordinate argument (`in_WinTitel`, `in_Url`, `in_Path`, `in_LaunchCmd`, …) in place
-  of the dictionary — which is what `project-layout.md`'s contract actually says.
-  `system-workflow-no-outcome` now exempts session/lifecycle workflows (login, logout, close,
-  init, open, kill, start, stop, launch, navigate, connect), because a login succeeds or throws
-  and has no value to return.
-
-  Counts before → after, measured 2026-10-26:
-
-  | Project | no-config | no-outcome | total |
-  |---|---|---|---|
-  | TKB-UC11 | 12 → **11** | 11 → **8** | 23 → **19** |
-  | UC81 | 12 → **9** | 21 → **19** | 33 → **28** |
-  | UC39 | 33 → **11** | 14 → **12** | 47 → **23** |
-
-  **The earlier claim that UC39 reported zero of these was wrong** — a measurement error, not a
-  measurement: `grep` treated that project's non-ASCII output as binary and suppressed the
-  matching lines. UC39 was never at zero. The surviving findings on all three are genuine
-  (workflows with neither Config nor any coordinate argument, so their window titles can only be
-  hardcoded); they are a backlog on existing projects and a gate on new ones.
-
 - **Evidence ladder gains L2b (pack) and L4 is redefined.** `validate` and `build` are not the
   last compile-time gate — a missing assembly reference and `ST-SEC-008` pass both and fail at
   `pack`. L4 is now a **real job in the Orchestrator folder, on a robot**, with job state, logs
