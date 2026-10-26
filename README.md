@@ -124,10 +124,15 @@ npx skills remove <skill> --agent <id>
 The CLI installs into the *agent's own* folder, and that folder differs per agent. Verified
 with the current CLI (`skills@latest`, probe install into an empty repo):
 
-| `--agent` | Folder written |
+| Install | Where the content actually lives |
 |---|---|
-| `claude-code` | `.claude/skills/<skill>/` |
-| `github-copilot`, `codex`, `opencode` | `.agents/skills/<skill>/` (shared) |
+| `--agent claude-code` alone | `.claude/skills/<skill>/` |
+| `--agent github-copilot` / `codex` / `opencode` | `.agents/skills/<skill>/` (shared by all three) |
+| **two or more agents together** | `.agents/skills/<skill>/`, with `.claude/skills/<skill>` as a **symlink** into it |
+
+That last row is the common case and the one that surprises people: ask for Claude Code *and*
+Copilot and the files are in `.agents/skills/`, with `.claude/skills/` pointing at them. Commit
+both — a checkout that has the symlinks without their target has no skills at all.
 
 Older CLI versions wrote Copilot skills to `.github/skills/` instead. **Check which one your
 version actually wrote** — the install output prints the full target path, and
