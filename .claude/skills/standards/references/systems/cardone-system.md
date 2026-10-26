@@ -6,7 +6,7 @@ context menu, then driven as an ordinary web application. Used by
 violation.
 
 No custom library — raw UiPath UI Automation with hand-written selectors. See
-`.claude/skills/web/`.
+the `web` skill.
 
 ## Launching CardOne
 

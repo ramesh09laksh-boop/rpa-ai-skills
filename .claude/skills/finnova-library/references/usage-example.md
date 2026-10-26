@@ -2,7 +2,7 @@
 
 Patterns lifted from `../Finnova/UC39_BPO_manuelle_Börsenaufträge/Finnova_System/` and
 `../Finnova/PJFVA-966_UC81_BPO_VD03_TK _Valoren/Finnova_System/`. These are library call
-sequences; for the surrounding project structure see `.claude/skills/standards/references/systems/finnova-system.md`.
+sequences; for the surrounding project structure see the `standards` skill, `references/systems/finnova-system.md`.
 
 Throughout, `WinTitel = in_Config("Finnova_System_Win_Title_" + in_TOWER).ToString`.
 

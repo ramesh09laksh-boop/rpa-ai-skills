@@ -1,7 +1,7 @@
 # `Finnova_System/` — Finnova core banking
 
 UI interaction with the Finnova Java thin client. For the activity API of the underlying
-library, use `.claude/skills/finnova-library/`.
+library, use the `finnova-library` skill.
 
 Present in `UC39_BPO_manuelle_Börsenaufträge` (40 workflows) and
 `PJFVA-966_UC81_BPO_VD03_TK _Valoren` (23 workflows).
@@ -22,7 +22,7 @@ UC39 — `Finnova_System/Finnova-Login.xaml` (`in_FinnovaLaunchCmd`, `in_ObjectN
 UC81 — `Finnova_System/Finnova_Login.xaml` (`in_Bank`, `in_VaultName`, `in_FinnovaLaunchCmd`)
 takes the password from the **CyberArk PHI vault** (`Logic-PHI_Vault_Get.xaml` →
 `Get PHI Vault`) instead of an Orchestrator credential. Both patterns are live — follow the
-one the project already uses. See `.claude/skills/security/`.
+one the project already uses. See the `security` skill.
 
 ### Where login is invoked
 
@@ -52,7 +52,7 @@ reason — thread it through.
 
 The library reads the **environment variable `isRemoteApp`** when building window selectors.
 Nothing in the workflow sets it. If selectors resolve on one runner and fail on another,
-check that variable first. Detail in `.claude/skills/finnova-library/references/selector-model.md`.
+check that variable first. Detail in the `finnova-library` skill, `references/selector-model.md`.
 
 ### Shutdown
 

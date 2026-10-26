@@ -7,7 +7,7 @@ description: Use when calling the Swisscom.UiPath.UIAutomation.Avaloq activity p
 
 The reusable UiPath library that wraps the Avaloq Smart Client. This skill covers the
 **library API**. For how a project orchestrates it (login workflow, transaction flow,
-error conventions) see `.claude/skills/standards/references/systems/avaloq-system.md`.
+error conventions) see the `standards` skill, `references/systems/avaloq-system.md`.
 
 - NuGet: `Swisscom.UiPath.UIAutomation.Avaloq` (sample pins `[2.6.5]`), described in
   `project.json` as "Avaloq Smart Client Library"
@@ -59,8 +59,8 @@ use `Click Confirm OK` / `Click Confirm Abbrechen` (both take no arguments).
 | Embedded report browser | `<html app='smartclient.exe' title='Smart Client Report' />` | `Web Table *` |
 
 The `Web Table *` family targets the **embedded** browser, not an external one. See
-`.claude/skills/standards/references/systems/web-nav-system.md` for how the sample project actually drives it (it bypasses these
-activities — a documented gap) and `.claude/skills/standards/references/systems/cardone-system.md` for the genuinely external
+the `standards` skill, `references/systems/web-nav-system.md` for how the sample project actually drives it (it bypasses these
+activities — a documented gap) and the `standards` skill, `references/systems/cardone-system.md` for the genuinely external
 Chrome application.
 
 ## Activity groups

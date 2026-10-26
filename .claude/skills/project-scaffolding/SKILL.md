@@ -6,9 +6,8 @@ description: Use when starting a new UC project — determines which Dispatcher/
 # Fetching a project template
 
 `templates/` in `rpa-ai-skills` has no `SKILL.md` of its own, so `npx skills add` never brings
-it along — that command only carries `.claude/skills/` folders. This skill is the fetch step,
-wrapped so it travels like any other skill: install it, and `scripts/fetch-template.*` comes
-with it.
+it along — that command carries skill folders only. This skill is the fetch step, wrapped so it
+travels like any other skill: install it, and `scripts/fetch-template.*` comes with it.
 
 ## What to fetch
 
@@ -123,8 +122,8 @@ The template is project-level scaffolding only. Three things still have to happe
 4. **Run the conformance checker and get it to zero errors.**
 
    ```bash
-   .claude/skills/project-scaffolding/scripts/validate-project.sh  <project-dir> [<project-dir>]
-   pwsh -File .claude/skills/project-scaffolding/scripts/validate-project.ps1 <project-dir>
+   `scripts/validate-project.sh`  <project-dir> [<project-dir>]
+   pwsh -File `scripts/validate-project.ps1` <project-dir>
    ```
 
    Pass a Dispatcher and its Performer together and it also checks the queue name is
@@ -182,13 +181,13 @@ changes, the only zero-migration-risk option. A JSON alternative
 Framework file allowed to diverge from stock if JSON is chosen, and the same divergence
 applies identically to whichever template(s) are fetched. Ask during PDD → SDD, not here —
 by scaffolding time the answer should already be in the SDD. See
-`.claude/skills/standards/references/config-format.md`.
+the `standards` skill, `references/config-format.md`.
 
 **The project name.** The templates ship `"name": "<PROJECT-NAME-TBD-ask-team>"`, which fails
 the publishability check on purpose. There are three naming formats live in the estate and no
 minuted decision between them — ask the team, then apply the answer to `project.json → name`,
 `project.uiproj → Name` and the folder name together. See
-`.claude/skills/standards/references/naming-conventions.md`.
+the `standards` skill, `references/naming-conventions.md`.
 
 **How the Dispatcher and Performer relate.** There is no working pair in this estate yet, so
 a `_Dispatcher`/`_Performer` suffix rule would be an assumption. When a UC first needs both
@@ -216,7 +215,7 @@ jobs finish green in Orchestrator with no work done.
 
 ## Related skills
 
-- `.claude/skills/standards/` — where each workflow goes, naming, project layout, error handling
-- `.claude/skills/security/` — wiring the `Assets` sheet rows to real Orchestrator assets
-- `.claude/skills/pdd-sdd-scaffolding/` — turning the SDD into first-draft workflows once the skeleton exists
-- `.claude/skills/finnova-library/`, `.claude/skills/avaloq-library/` — the activity APIs the Performers call
+- the `standards` skill — where each workflow goes, naming, project layout, error handling
+- the `security` skill — wiring the `Assets` sheet rows to real Orchestrator assets
+- the `pdd-sdd-scaffolding` skill — turning the SDD into first-draft workflows once the skeleton exists
+- `finnova-library`, `avaloq-library` — the activity APIs the Performers call

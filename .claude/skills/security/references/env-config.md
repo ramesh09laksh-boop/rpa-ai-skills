@@ -25,7 +25,7 @@ against test — verify the argument on any PRD process.
 
 The one environment variable in play is `isRemoteApp`, read by the Finnova library to detect
 Citrix RemoteApp mode. It is set on the robot machine, not by the project. See
-`.claude/skills/finnova-library/references/selector-model.md`.
+the `finnova-library` skill, `references/selector-model.md`.
 
 ## Workbook structure
 
@@ -128,7 +128,7 @@ config sheet into a ticket, a test fixture or an external tool.
 
 1. Choose the sheet using the table above.
 2. Name it `<Application>_System_<Purpose>[_<Variant>]` — see
-   `.claude/skills/standards/references/naming-conventions.md`.
+   the `standards` skill, `references/naming-conventions.md`.
 3. Add it to **both** `Config_TST.xlsx` and `Config_PRD.xlsx`. A key present in only one
    fails at runtime in the other environment with a `KeyNotFoundException`, not at build time.
 4. Fill the `Description` column — it is the only documentation these keys have.

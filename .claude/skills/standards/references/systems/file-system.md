@@ -91,7 +91,7 @@ for `ReadPDFWithOCR` / `GoogleOCR` only when the text layer is missing.
 
 `GoogleOCR` sends page images to an external Google endpoint. Trade confirmations contain
 customer and counterparty data — confirm that route is approved before extending its use.
-See `.claude/skills/security/references/prohibited-practices.md`.
+See the `security` skill, `references/prohibited-practices.md`.
 
 ## Excel
 

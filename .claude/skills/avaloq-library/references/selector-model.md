@@ -97,7 +97,7 @@ built from `Parentid`, `Parentclass`, `Idx`, `RowIndex`, `ColumnIndex`, `Tag`, `
 
 The report grid in the sample project anchors on `parentid='grid1'` +
 `parentclass='objbox'`, which is stable across reports. See
-`.claude/skills/standards/references/systems/web-nav-system.md`.
+the `standards` skill, `references/systems/web-nav-system.md`.
 
 ## Choosing addressing arguments
 
@@ -146,4 +146,4 @@ normalised form.
 - No mail, file or Excel access.
 - Nothing for external browsers. CardOne, launched from an Avaloq context menu, is a real
   Chrome application handled with raw UI Automation — see
-  `.claude/skills/standards/references/systems/cardone-system.md` and `.claude/skills/web/`.
+  the `standards` skill, `references/systems/cardone-system.md` and the `web` skill.

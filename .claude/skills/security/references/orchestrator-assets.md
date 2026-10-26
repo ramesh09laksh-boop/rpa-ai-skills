@@ -163,7 +163,7 @@ name a new credential asset after the vault object it mirrors.
 | Environment-specific and changes without redeploy (endpoints, launch paths, report keywords, recipient lists) | `Assets` sheet → Orchestrator **Text** asset |
 | Environment-specific but stable (window titles, mail folders) | `Settings` sheet, per `Config_<ENV>.xlsx` |
 | Framework tuning (`MaxRetryNumber`, log messages) | `Constants` sheet |
-| A business rule a user should change | Camunda DMN table — see `.claude/skills/standards/references/systems/camunda-system.md` |
+| A business rule a user should change | Camunda DMN table — see the `standards` skill, `references/systems/camunda-system.md` |
 
 ## Gaps
 

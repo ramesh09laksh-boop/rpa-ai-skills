@@ -267,7 +267,7 @@ Adds `NumberOfScrollsDistance`, `MaximumNumberOfScrolls` → `ExtractedDataTable
 
 > **Known gap:** the TKB-UC11 sample project does **not** use these activities. Its
 > `Web_Nav_System/` folder reimplements the same operations with raw `ExtractData`,
-> `Click` and `GetAttribute` inside a `WindowScope`. See `.claude/skills/standards/references/systems/web-nav-system.md`.
+> `Click` and `GetAttribute` inside a `WindowScope`. See the `standards` skill, `references/systems/web-nav-system.md`.
 
 ---
 
@@ -335,4 +335,4 @@ Internal helpers of the PHI flow. Not intended for direct use.
   unrelated selector error.
 - **No logout activity exists.** `Stop` kills the process; that is what the sample project
   does in both `CloseAllApplications` and `KillAllProcesses`.
-- **No activity reads mail, files or Excel** — see `.claude/skills/standards/references/systems/mail-system.md`, `.claude/skills/standards/references/systems/file-system.md`.
+- **No activity reads mail, files or Excel** — see the `standards` skill, `references/systems/mail-system.md`, the `standards` skill, `references/systems/file-system.md`.

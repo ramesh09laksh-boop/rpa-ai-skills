@@ -203,7 +203,7 @@ Similarly, `CardOne_Logout.xaml` is invoked from both `CloseAllApplications.xaml
 that for any authenticated web system.
 
 ⚠ Nothing closes UBS KeyTrader in UC81 — it is left running between jobs. Flagged in
-`.claude/skills/standards/references/systems/ubs-keytrader.md`.
+the `standards` skill, `references/systems/ubs-keytrader.md`.
 
 ---
 

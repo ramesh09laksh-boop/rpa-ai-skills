@@ -21,7 +21,7 @@ Use it for any browser-based target — see `references/capture-troubleshooting.
 
 **The Avaloq report is not a browser.** There is no `chrome.exe` process to open, attach to,
 refresh or kill. Use `WindowScope`, not `BrowserScope`; browser-level activities do not
-apply. Details: `.claude/skills/standards/references/systems/web-nav-system.md`.
+apply. Details: the `standards` skill, `references/systems/web-nav-system.md`.
 
 ## Core rules
 
@@ -137,7 +137,7 @@ Record what you confirmed in `references/verified-flows.md`, and see
 
 **Authorisation:** SIX iD, CardOne and Avaloq are authenticated production banking systems.
 Only drive them against an environment and account you are authorised to use, and never paste
-a credential into a prompt, a snapshot or a definition file. See `.claude/skills/security/`.
+a credential into a prompt, a snapshot or a definition file. See the `security` skill.
 
 ## References
 

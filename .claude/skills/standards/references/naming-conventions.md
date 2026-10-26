@@ -272,7 +272,7 @@ String.Format("Move Archiv Mail Msg ID={0} System={1}", in_MsgId, System)
 ```
 
 Never log a credential, password or full connection string — see
-`.claude/skills/security/references/prohibited-practices.md`.
+the `security` skill, `references/prohibited-practices.md`.
 
 ## Variable names
 

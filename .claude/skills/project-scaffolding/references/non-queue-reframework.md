@@ -29,8 +29,8 @@ along with the queue calls is the easy mistake, and it removes the circuit break
 > **If a configured source yields 0 transactions, log an `Error` and fail visibly.**
 
 Without a queue there is no Orchestrator view of "how much work was there", so a source that
-silently reads nothing is invisible. See the `standards` skill,
-`references/wiring-the-framework.md` and `references/silent-failure-traps.md` →
+silently reads nothing is invisible. See the `standards` skill, `references/wiring-the-framework.md`,
+and the `standards` skill, `references/silent-failure-traps.md` →
 *"A Performer that ends instantly with 0 transactions"*.
 
 ## What the checker will and will not catch

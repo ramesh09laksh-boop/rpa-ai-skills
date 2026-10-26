@@ -356,7 +356,7 @@ Mostly internal, but callable.
 - **`WindowTitle` is per-tower.** `BRZ Entris*`, `SLM -*`, `ZGKB -*`, `Habib Bank AG -*`,
   `BLK / BSS*` in the samples. Always `in_Config("Finnova_System_Win_Title_" + in_TOWER)`.
 - **No library activity opens a browser or reads mail.** Those are separate systems — see
-  `.claude/skills/standards/references/systems/six-id-system.md`, `.claude/skills/standards/references/systems/mail-system.md`.
+  the `standards` skill, `references/systems/six-id-system.md`, the `standards` skill, `references/systems/mail-system.md`.
 - **No library activity exists for reading a Finnova report to file.** UC39 goes through
   Backoffice messages and table extraction instead.
 

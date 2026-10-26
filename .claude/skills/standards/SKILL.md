@@ -108,8 +108,8 @@ their arguments:
 | `Mail_System/` | Exchange / SMTP | `references/systems/mail-system.md` |
 | `File_System/` | Files, Excel, PDF, trace logs | `references/systems/file-system.md` |
 
-For the activity APIs of the two custom libraries, use `.claude/skills/finnova-library/` and
-`.claude/skills/avaloq-library/`.
+For the activity APIs of the two custom libraries, use the `finnova-library` skill and
+the `avaloq-library` skill.
 
 ## References
 
@@ -135,4 +135,4 @@ For the activity APIs of the two custom libraries, use `.claude/skills/finnova-l
   `analyzer-rules list`, the four ways a governance rule file is silently not applied, and how
   to read the result. Required at Code Review and UAT
 
-Cross-cutting: `.claude/skills/security/` (credentials and config), `.claude/skills/web/` (browser work).
+Cross-cutting: the `security` skill (credentials and config), the `web` skill (browser work).

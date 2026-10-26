@@ -112,4 +112,4 @@ in the workflow (no headers, no client certificate — `ClientCertificate` and
 
 The request bodies carry instrument attributes, not customer identifiers. Confirm that is
 still true before adding a field to a template, and flag the unauthenticated endpoint if
-your process sends anything more sensitive. See `.claude/skills/security/`.
+your process sends anything more sensitive. See the `security` skill.

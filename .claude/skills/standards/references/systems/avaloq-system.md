@@ -1,7 +1,7 @@
 # `Avaloq_System/` — Avaloq Smart Client
 
 UI interaction with the Avaloq Smart Client. For the activity API of the underlying
-library, use `.claude/skills/avaloq-library/`.
+library, use the `avaloq-library` skill.
 
 Present in `../Avaloq/TKB-UC11.Kreditverletzung` (13 workflows). Business domain: credit-limit
 violations (Kreditverletzungen) at TKB.
@@ -46,7 +46,7 @@ Two details worth keeping:
   stretches (batch windows). Do not shorten this without checking the operating schedule.
 
 Credentials come from an **Orchestrator Credential asset** (`AVQ_Credential_1004`), not
-CyberArk — the opposite of the Swisscom Finnova projects. See `.claude/skills/security/`.
+CyberArk — the opposite of the Swisscom Finnova projects. See the `security` skill.
 
 ### Connection parameters
 

@@ -112,5 +112,5 @@ for `Idx` — a narrower scope usually makes `Idx` unnecessary.
 ## Not covered by the library
 
 - No activity opens a browser or attaches to one. Finnova's own UI is entirely Java.
-- No activity reads mail, files or Excel — see `.claude/skills/standards/references/systems/mail-system.md`, `.claude/skills/standards/references/systems/file-system.md`.
+- No activity reads mail, files or Excel — see the `standards` skill, `references/systems/mail-system.md`, the `standards` skill, `references/systems/file-system.md`.
 - No activity performs a Finnova logout; projects terminate the process instead.

@@ -27,7 +27,7 @@ surface — `Web Table Extract`, `Web Table Extract By Scrollbar`, `Web Table Cl
 activities it calls are `Sync` (3×) and `Utility/Get_Win_Selector` (2×).
 
 Before adding a workflow here, check whether a `Web Table *` activity already does the job —
-see `.claude/skills/avaloq-library/references/activities.md`. The reason for the bypass is not
+see the `avaloq-library` skill, `references/activities.md`. The reason for the bypass is not
 recorded anywhere in the project; treat it as unexplained rather than deliberate, and
 verify against the live report before switching an existing workflow over.
 

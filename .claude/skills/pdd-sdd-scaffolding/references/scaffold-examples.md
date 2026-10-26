@@ -1,7 +1,7 @@
 # Worked examples — screenshot to scaffold
 
 Three cases, in the order you hit them: instruction text present, arrow only, and no app
-access. Notation matches `.claude/skills/finnova-library/references/usage-example.md` —
+access. Notation matches the `finnova-library` skill, `references/usage-example.md` —
 activity name on the left, arguments indented.
 
 Markers used throughout:
@@ -20,7 +20,7 @@ Markers used throughout:
 > *"Im Feld Valor die Valorennummer aus der Mail eingeben und «Suchen» klicken."*
 
 Text wins: no visual inference needed. The screen is in the UC81 inventory
-(`.claude/skills/standards/references/systems/finnova-system.md`) as
+(the `standards` skill, `references/systems/finnova-system.md`) as
 `Finnova-Valoren_Search.xaml` — **so the scaffold is a call to the existing workflow, not new
 UI code**:
 

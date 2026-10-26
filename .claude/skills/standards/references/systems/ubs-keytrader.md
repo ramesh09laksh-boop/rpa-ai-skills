@@ -15,7 +15,7 @@ Finnova, but a separate application with no custom library). Present in
 | `UBS_KeyTrader_Launch_Process` | `D:\Install\UBS KeyTrader\keytrader.exe` |
 | `UBS_KeyTrader_PHI_Vault_Name` | `UBSKeyTrader@UC81` |
 
-Credentials come from the CyberArk PHI vault. See `.claude/skills/security/`.
+Credentials come from the CyberArk PHI vault. See the `security` skill.
 
 ## Selectors
 
@@ -32,7 +32,7 @@ library generates:
 `SunAwtFrame` for windows, `SunAwtDialog` for dialogs, `<java role='…'>` for controls —
 identical to Finnova. If you need to extend this folder, the Finnova library's selector
 model is the right mental model even though the library itself does not apply here:
-`.claude/skills/finnova-library/references/selector-model.md`.
+the `finnova-library` skill, `references/selector-model.md`.
 
 ## Login — `UBS-KeyTrader-Login.xaml`
 

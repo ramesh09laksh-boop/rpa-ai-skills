@@ -76,7 +76,7 @@ project fetches — there's no per-template variation to design separately.
 
 ## Known gap — not yet closed
 
-`.claude/skills/project-scaffolding/scripts/validate-project.*` reads the config workbook
+the `project-scaffolding` skill, `scripts/validate-project.*` reads the config workbook
 directly to check things like TST/PRD key parity and unresolved `[UC-SPECIFIC — replace]`
 markers. **It does not yet parse JSON.** A project built with Option 2 needs that script
 extended before it can get the same validation coverage — until then, check TST/PRD parity

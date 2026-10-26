@@ -12,7 +12,7 @@ developer reviews against the live application.
 right order with the arguments the document actually supports, and it marks every value it
 could not confirm. It never invents an activity name and never invents a selector.
 
-Load `.claude/skills/standards/` first to decide which folder each step belongs in,
+Load the `standards` skill first to decide which folder each step belongs in,
 then the matching system reference and library skill.
 
 ## What you can produce without the application
@@ -55,11 +55,11 @@ hand back a stub — the sequence is the valuable part and it is fully derivable
    not "type here". Check the surrounding text for a business term (`Valor`, `FileId`,
    `Auftragsnummer`) before deciding.
 3. **Cross-reference the screen against the system reference** —
-   `.claude/skills/standards/references/systems/finnova-system.md`,
+   the `standards` skill, `references/systems/finnova-system.md`,
    `.../avaloq-system.md`, `.../six-id-system.md`, `.../cardone-system.md`, etc. If a
    **project workflow** already wraps that screen (the inventory tables list every one), call
    it by name instead of scaffolding new UI code. If not, drop to the library skill
-   (`.claude/skills/finnova-library/`, `.claude/skills/avaloq-library/`) and pick the library
+   (`finnova-library` / `avaloq-library`) and pick the library
    activity by name.
 4. **Never a raw selector or a generic `Click` / `Type Into`** for Finnova or Avaloq. If no
    library activity fits, that is a finding to report, not a licence to write a selector.
@@ -127,7 +127,8 @@ or a `Table/Extract` column check (Finnova). Both are cheap and both turn a sile
 read into a clear failure.
 
 If the library only exposes index-based access for the operation you need, **record it as a
-gap** — add a line to the relevant `references/activities.md` "Gotchas" section rather than
+gap** — add a line to the `finnova-library` skill, `references/activities.md` (or the
+`avaloq-library` equivalent), in its "Gotchas" section, rather than
 quietly working around it with a raw selector.
 
 ## Emit a `.selectors-todo.md` per workflow
@@ -208,8 +209,8 @@ analyzer's `ST-NMG-002` regex. Both names are correct; they are just not the sam
   `Close Tab`).
 - Business refusals become `BusinessRuleException` carrying the application's own message
   text from `ErrorMsg` / `ConfirmMessage`; technical failures become `ApplicationException`.
-  See `.claude/skills/standards/references/error-handling.md`.
-- Credentials and asset names come from `.claude/skills/security/` — never from the SDD text
+  See the `standards` skill, `references/error-handling.md`.
+- Credentials and asset names come from the `security` skill — never from the SDD text
   itself, even if it prints one.
 
 ## References

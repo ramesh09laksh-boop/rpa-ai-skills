@@ -2,7 +2,7 @@
 
 Patterns lifted from `../Avaloq/TKB-UC11.Kreditverletzung/Avaloq_System/`. These are library
 call sequences; for the surrounding project structure see
-`.claude/skills/standards/references/systems/avaloq-system.md`.
+the `standards` skill, `references/systems/avaloq-system.md`.
 
 ---
 
@@ -174,7 +174,7 @@ Select Right Click Menu   FieldCtrlname = "pos_id"
 ```
 
 Avaloq passes the customer context to the target application. See
-`.claude/skills/standards/references/systems/cardone-system.md`.
+the `standards` skill, `references/systems/cardone-system.md`.
 
 ---
 

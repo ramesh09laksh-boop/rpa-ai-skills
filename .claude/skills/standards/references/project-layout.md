@@ -52,7 +52,7 @@ Standard REFramework files. Modify `InitAllApplications` / `CloseAllApplications
 
 | File | What projects put here |
 |---|---|
-| `InitAllSettings.xaml` | Reads `Settings` + `Constants` sheets into `out_Config`, then overlays the `Assets` sheet from Orchestrator. **Do not modify** — see `.claude/skills/security/`. |
+| `InitAllSettings.xaml` | Reads `Settings` + `Constants` sheets into `out_Config`, then overlays the `Assets` sheet from Orchestrator. **Do not modify** — see the `security` skill. |
 | `InitAllApplications.xaml` | Log in to every application the process needs. UC39 invokes `Finnova_System\Finnova-Login.xaml`; TKB-UC11 invokes `Avaloq_System\Avaloq_Login.xaml`. **Empty in UC81**, which logs in per transaction inside `Process.xaml` instead. |
 | `GetTransactionData.xaml` | Pulls the next queue item / DataTable row. |
 | `SetTransactionStatus.xaml` | Reports Success / Business / System back to Orchestrator. |
@@ -93,7 +93,7 @@ shape is the house pattern for "same job, many source formats".
 
 | Path | Contents |
 |---|---|
-| `Config_TST.xlsx`, `Config_PRD.xlsx` | Sheets `Settings`, `Constants`, `Assets`. See `.claude/skills/security/references/env-config.md`. |
+| `Config_TST.xlsx`, `Config_PRD.xlsx` | Sheets `Settings`, `Constants`, `Assets`. See the `security` skill, `references/env-config.md`. |
 | `Input/` | Static reference data checked into the repo — `Mappings.xlsx`, `BankLists.xlsx`, `CounterPartyList.xlsx`, mail templates (`Exception.txt`, `Info.txt`), Camunda request bodies (`Get*_JSON.txt`). |
 | `Output/` | Runtime output. Ships with a `.gitkeep` so the folder exists. |
 | `Temp/` | Scratch. Same placeholder convention. |
@@ -123,4 +123,4 @@ in three places — that is a defect, not a pattern to copy.)
 Target of `Framework/TakeScreenshot.xaml`. Ships with `.gitkeep`.
 `ExScreenshotsFolderPath` may redirect it to a network share (TKB-UC11 does). Screenshots
 of a logged-in banking session contain customer data — see
-`.claude/skills/security/references/prohibited-practices.md`.
+the `security` skill, `references/prohibited-practices.md`.

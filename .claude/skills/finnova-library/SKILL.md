@@ -7,7 +7,7 @@ description: Use when calling the Swisscom FinnovaLibrary UiPath activity packag
 
 The reusable UiPath library that wraps the Finnova Java thin client. This skill covers the
 **library API**. For how a project orchestrates it (login workflows, transaction flow,
-error conventions) see `.claude/skills/standards/references/systems/finnova-system.md`.
+error conventions) see the `standards` skill, `references/systems/finnova-system.md`.
 
 - NuGet: `Swisscom.FinnovaLibrary` (samples pin `[4.0.3]` / `[4.0.7]`)
 - Source: `../Finnova/Swisscom FinnovaLibrary/`

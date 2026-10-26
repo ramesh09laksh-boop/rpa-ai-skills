@@ -198,7 +198,7 @@ external browser tool, which cannot reach this surface at all.
 
 **Known limits:** `MaxNumberOfResults=1000` silently truncates larger reports;
 `ContinueOnError=True` turns a failed extract into an empty table. See
-`.claude/skills/standards/references/systems/web-nav-system.md`.
+the `standards` skill, `references/systems/web-nav-system.md`.
 
 ---
 

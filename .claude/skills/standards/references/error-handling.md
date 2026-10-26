@@ -137,7 +137,7 @@ The idempotent-login pattern is this rule applied to sessions — see
 `Exceptions_Screenshots` in the Finnova projects, a network share in TKB-UC11.
 
 Screenshots of a logged-in banking session contain customer data. See
-`.claude/skills/security/references/prohibited-practices.md`.
+the `security` skill, `references/prohibited-practices.md`.
 
 ## Framework tuning
 

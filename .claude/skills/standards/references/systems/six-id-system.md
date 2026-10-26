@@ -6,8 +6,8 @@ into Finnova.
 
 **There is no custom library for SIX iD.** Every workflow uses raw UiPath UI Automation —
 `OpenBrowser`, `BrowserScope`, `UiElementExists`, `Click`, `TypeInto`, `GetText`,
-`ExtractData` — with hand-written selectors. See `.claude/skills/web/` for selector strategy and
-`.claude/skills/web/references/verified-flows.md` before changing any of them.
+`ExtractData` — with hand-written selectors. See the `web` skill for selector strategy and
+the `web` skill, `references/verified-flows.md` before changing any of them.
 
 ## Configuration
 

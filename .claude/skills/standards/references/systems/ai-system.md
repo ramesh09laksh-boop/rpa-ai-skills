@@ -80,7 +80,7 @@ Two details worth reusing:
 - **The API token is stored as a credential asset's *password*** and unwrapped at the point
   of use with `new NetworkCredential(String.Empty, secure).Password`. It stays a
   `SecureString` everywhere else. Do this for any bearer token — see
-  `.claude/skills/security/references/orchestrator-assets.md`.
+  the `security` skill, `references/orchestrator-assets.md`.
 - **`EnableSSLVerification=True`** and a 60 s timeout. Keep both.
 
 ## Response handling

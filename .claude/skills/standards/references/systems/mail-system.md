@@ -143,7 +143,7 @@ both `Config_TST.xlsx` and `Config_PRD.xlsx` with the same number.
 
 - **Never log mail credentials.** `Mail_System_PHI_Account_Name` is an identifier; the
   password from the vault must not reach a log or an exception message. See
-  `.claude/skills/security/references/prohibited-practices.md`.
+  the `security` skill, `references/prohibited-practices.md`.
 - Mail addresses in config are business data, not secrets, but they are still PII — do not
   copy `Config_PRD.xlsx` into a ticket or a test fixture.
 - `Mail-Delete.xaml` exists in UC81. Prefer `Mail-Archiv_Move.xaml`; deletion is not
