@@ -150,6 +150,29 @@ The template is project-level scaffolding only. Three things still have to happe
    later. `-SkipRule <name>` does the same thing ad hoc, without the written reason, and is
    meant for experimenting rather than for committing.
 
+## `validate-project` PASS is level 1 of 4 — say which level you reached
+
+`validate-project` is a **static** checker: text and workbook rules. It compiles nothing and
+runs nothing. On the Lanes run it reported PASS and `uip rpa build` reported Success while
+Studio showed a compile error in `Framework/InitAllSettings.xaml` and every run failed with
+"The workflow cannot be found".
+
+| Level | What it establishes | Command |
+|---|---|---|
+| **L1** | Estate conformance (static) | `validate-project.sh` / `.ps1` |
+| **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
+| **L3** | Studio opens it with an **empty Error List** | Studio |
+| **L4** | A real run of `Main.xaml` on TST, with a log excerpt | Studio, or `uip rpa run` |
+
+Every report names the highest level reached **and the command that proved it**. A wiring or
+"project ready" stage is not done below **L3** — L1 and L2 both passed on a project Studio
+could not compile. Never write PASS without the level.
+
+Full detail, the two traps in those commands, and why `validate` is not a superset of the
+analyzer: `references/evidence-ladder.md`. The command names changed in `uip` 1.204.0 —
+`run-file`, `get-analyzer-rules`, `search-templates` and `create-project` no longer exist; see
+`references/cli-command-map.md`.
+
 ## Three decisions to settle before the first publish
 
 All three are painful to change afterwards and none has a default this repo will pick for you.

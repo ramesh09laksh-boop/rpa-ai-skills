@@ -296,9 +296,31 @@ unless the change explicitly asks for that migration. Re-run `validate-project` 
 suite before calling the change done.
 ```
 
+## How much "validated" is worth — the evidence ladder
+
+`validate-project` is a static checker. It reads text and workbook cells; it compiles nothing
+and runs nothing. On the Lanes run it reported PASS, and `uip rpa build` reported Success, while
+Studio showed a compile error in `Framework/InitAllSettings.xaml` and every workflow run failed
+with *"The workflow cannot be found"*.
+
+So "validated" on its own is not a claim. Name the level and the command:
+
+| Level | What it establishes | Command |
+|---|---|---|
+| **L1** | Estate conformance (static) | `validate-project.sh` / `.ps1` |
+| **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
+| **L3** | Studio opens it with an **empty Error List** | Studio |
+| **L4** | A real run of `Main.xaml` on TST, with a log excerpt | Studio, or `uip rpa run` |
+
+A wiring or "project ready" stage is **not done below L3**; "tested" means **L4**, with the log
+excerpt attached. Detail and the Studio-IPC trap in those commands:
+[`evidence-ladder.md`](.claude/skills/project-scaffolding/references/evidence-ladder.md).
+
 ## Definition of Done (UiPath project)
 
 - [ ] Every SDD requirement traces to a workflow and a test case — no silent gaps
+- [ ] **L3 reached at minimum** — Studio opens the project with an empty Error List — and the
+      report names the level and the command that proved it
 - [ ] No raw Finnova/Avaloq selector outside `Tests/` (and Avaloq's `Web_Nav_System/`)
 - [ ] No classic/Legacy activity on a Windows (`modernBehavior: true`) project — see
       `standards/references/silent-failure-traps.md`

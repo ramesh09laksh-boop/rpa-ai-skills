@@ -140,6 +140,30 @@ the right application reference and to the library skills.
   estate yet, so there is no observed pattern. Ask the team on first occurrence; do not infer
   a `_Dispatcher`/`_Performer` suffix rule.
 
+## "Validated" is not a claim — name the level
+
+`validate-project` is a **static** conformance checker. It compiles nothing and runs nothing, so
+its PASS is the weakest of four claims, not the strongest. On the Lanes run, `validate-project`
+PASS and `uip rpa build` Success coexisted with a Studio compile error and a project in which
+no workflow would run at all.
+
+| Level | What it establishes | Command |
+|---|---|---|
+| **L1** | Estate conformance (static) | `validate-project.sh` / `.ps1` |
+| **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
+| **L3** | Studio opens it with an **empty Error List** | Studio |
+| **L4** | A real run of `Main.xaml` on TST, with a log excerpt | Studio, or `uip rpa run` |
+
+- Every report names the **highest level reached and the command that proved it**.
+- A wiring or "project ready" stage is **not done below L3**.
+- "Tested" means **L4**, with a log excerpt. No excerpt, no L4.
+- **Never write PASS without the level.** A bare PASS is what this ladder exists to stop.
+
+Detail, and the Studio-IPC trap in `uip rpa validate` / `run`: the `project-scaffolding` skill,
+`references/evidence-ladder.md`. Command names changed in `uip` 1.204.0 (`run-file`,
+`get-analyzer-rules`, `search-templates`, `create-project` are gone) —
+`references/cli-command-map.md`.
+
 ## Deployment & review rules
 
 Only what the estate actually evidences. Do not add a rule here that no project follows.

@@ -184,6 +184,42 @@ the rule finds it in a second.
 Do **not** over-correct: `System.Private.CoreLib` and friends appear in every Studio-authored
 file and are entirely legitimate.
 
+### A missing `System.Data.Common` reference compiles clean on the CLI and fails in Studio
+
+The mirror image of the rule above: the `xmlns` is fine, the **assembly reference** is missing,
+and the failure surfaces only once Studio compiles the file.
+
+```
+BC31424: Type 'System.Data.DataRow' in assembly 'System.Data' has been forwarded to
+assembly 'System.Data.Common'. Either add a reference to that assembly, or remove the
+reference to 'System.Data'.
+```
+
+Observed in `Framework/InitAllSettings.xaml` while **`validate-project` reported PASS and
+`uip rpa build` reported Success** — and with it, every `uip rpa run` on the project failed
+with the unrelated-looking *"The workflow cannot be found"*. The compile error is the cause;
+the run error is the symptom you notice first.
+
+Fix: add the forwarded-to assembly to `TextExpression.ReferencesForImplementation` in **every**
+XAML that touches `DataTable` / `DataRow`:
+
+```xml
+<TextExpression.ReferencesForImplementation>
+  <AssemblyReference>System.Data.Common</AssemblyReference>
+  ...
+</TextExpression.ReferencesForImplementation>
+```
+
+Add `System.Private.CoreLib` too **only where the compiler names it** — do not add it
+pre-emptively.
+
+Where this comes from: `Framework/` files copied between template versions. The xlsx-config
+`InitAllSettings.xaml` from the 25.10.1 REFramework template, dropped into a skeleton generated
+from 26.10, is the exact case observed. A Framework file is not version-portable just because
+it is "close to stock" — if you move one across template versions, L3 (Studio, empty Error
+List) is the only check that catches this. See the `project-scaffolding` skill,
+`references/evidence-ladder.md`.
+
 ---
 
 ## Scheduling
