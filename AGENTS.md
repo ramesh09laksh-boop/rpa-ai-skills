@@ -178,6 +178,14 @@ from a real run that lost time to it, not from a style guide.
    with no explanation, which is indistinguishable from an item being forgotten. A named blocker
    is useful; silence is not.
 6. **Do not assert a baseline you did not re-measure.** Re-run the same command and quote it.
+7. **Count findings binary-safely, and name the method.** Several projects in this estate have
+   non-ASCII names and content (`UC39_BPO_manuelle_Börsenaufträge`, `Auftrag Öffnen.xaml`).
+   Plain `grep` treats such a stream as binary, prints `Binary file (standard input) matches`
+   and **suppresses the matching lines**, so a count comes back as zero. That produced a false
+   "UC39 reports zero findings" claim that survived two commits.
+
+   Use `--output json` with `--output-filter` where the tool offers it, or `grep -a`, or the
+   exit code. And state which you used — a count without a method is not a measurement.
 
 **Keep going.**
 

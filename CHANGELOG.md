@@ -61,6 +61,23 @@ Not tagged. Branch `chore/post-release-0.2.1`, PR #3.
 
 ### Fixed
 
+- **Re-ran every "0 findings" claim binary-safely.** Method: `grep -a` (or structured
+  `--output json`) plus the exit code, on all seven real projects and the three templates.
+  Plain `grep` suppresses matches when it decides a stream is binary, which non-ASCII project
+  names trigger.
+
+  | Claim | Re-measured | Verdict |
+  |---|---|---|
+  | UC39 reports **zero** leaf-contract findings | 47 before tuning, 23 after | **Was false** — already corrected |
+  | **0** `secret-argument-string` anywhere | **1 on Lanes** — `Lanes-SignIn.xaml` declares `in_Password` as `String` | **Was overstated.** The sweep covered only the three Legacy samples and was generalised to "anywhere". The finding is a **true positive** — the exact defect the original review raised |
+  | `config-key-undefined` 0 on all real projects | 0 on all seven | Holds |
+  | `unresolved-mock` 0 on all real projects | 0 on all seven | Holds |
+  | `object-repository-not-shared` silent on templates and reference projects | 0 on all six | Holds |
+  | Templates 0 leaf-contract findings | 0/0/0 on all three | Holds |
+  | Analyzer: 0 findings with `Default`, 1 with TAU | unchanged | Holds — was measured with `--output-filter`, not `grep` |
+
+  The binary-safe counting rule is now in `AGENTS.md` → *Working agreement for long runs*.
+
 Two defects shipped in v0.2.0, both in `preflight.ps1`, both found by testing rather than review:
 
 - **`$deps.'UiPath.UIAutomation.CLI'` threw under `Set-StrictMode`** on any project without that
