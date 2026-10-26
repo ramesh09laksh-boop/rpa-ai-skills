@@ -114,6 +114,10 @@ For the activity APIs of the two custom libraries, use `.claude/skills/finnova-l
 ## References
 
 - `references/project-layout.md` — every folder and Framework file, what belongs in it
+- `references/wiring-the-framework.md` — how to **connect** the SDD's transactions to
+  `GetTransactionData` / `InitAllApplications` / `Process` / `SetTransactionStatus`, in order.
+  A project with good leaf workflows and a stock Framework runs green and processes nothing —
+  read this before authoring the first leaf workflow
 - `references/where-does-it-go.md` — decision rules for placing a new workflow
 - `references/naming-conventions.md` — workflow and argument naming
 - `references/error-handling.md` — exception types and the retry idiom used across all projects

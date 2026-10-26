@@ -236,6 +236,43 @@ run and is naturally idempotent — the same shape as a dispatch log preventing 
 
 ---
 
+## Running a Performer
+
+### A Performer that ends instantly with 0 transactions
+
+The purest silent failure in the estate: the job goes green in Orchestrator, the log has no
+error, and nothing was done. "Nothing to do today" and "I could not find the work" produce
+byte-identical evidence, and only one of them is acceptable.
+
+Three ways in, all observed or warned about here:
+
+| Cause | What it looks like |
+|---|---|
+| A mismatched `OrchestratorQueueName` between a Dispatcher and its Performer | Dispatcher enqueues, Performer polls a queue that is empty or does not exist. Both jobs green. |
+| `Get Transaction Item` replaced by a `Log Message` while wiring | The Framework "looks wired". `GetTransactionData` yields `Nothing` on the first call, so `Main.xaml` goes straight to End. |
+| A non-queue source that reads nothing — wrong path, filter matched nothing, credential silently failed | Same shape, no error anywhere. |
+
+The second was found on a real run: leaf workflows all authored, Framework left at stock, and
+the queue call stubbed out. The process ended with **0 transactions** and reported success.
+
+**Guard it.** If a *configured* source yields zero transactions, log an `Error` and fail
+visibly:
+
+```vb
+' in GetTransactionData, after the first-pass read, before handing out transaction 1
+If dt_WorkItems Is Nothing OrElse dt_WorkItems.Rows.Count = 0 Then
+    ' Log Message, Error: "Source '<path/queue>' yielded 0 transactions."  then Throw
+```
+
+An idle queue on a genuinely quiet day is the one legitimate zero — and the SDD has to say so
+explicitly for it to count, because otherwise you are asserting it on the process's behalf.
+
+A green L4 run that processed zero transactions is **not** an L4 pass. See the
+`project-scaffolding` skill, `references/evidence-ladder.md`, and
+`wiring-the-framework.md` for the wiring order this belongs to.
+
+---
+
 ## Credentials
 
 ### A SecureString may not leave the scope that created it
