@@ -69,13 +69,11 @@ Subcommands, where the verb is a group:
 > **`processes`**: *"runnable bindings of packages to folders. Processes are what you execute
 > with `jobs start`."*
 
-### `rpa-legacy` — rpa-legacy-tool 1.204.0
+### `rpa-legacy`
 
-`debug` (*"Execute a XAML workflow locally via UiRobot"*) · `find-activities` · `find-package` ·
-`pack` · `type-definition` · `validate`
-
-**`debug`, `pack` and `validate` exist on *both* `rpa` and `rpa-legacy`** and are different
-implementations. Say which prefix you mean.
+**`rpa-legacy` is for Legacy-framework projects; new projects don't use it.** New projects are
+Windows / `modernBehavior: true`, where `rpa` owns everything. Nothing in these skills should
+reach for `rpa-legacy`, and it is not a prerequisite — `preflight` does not check for it.
 
 ## The renames — old name → current, with confidence
 
@@ -90,17 +88,43 @@ The left column is what earlier documentation in this repo and an earlier agent 
 | `rpa get-default-activity-xaml` | **`rpa activities get-default-xaml`** | **Confirmed** |
 | `rpa run-file` | **`rpa run --file-path <path>`** | **Confirmed** — `run`'s usage is `--file-path <string>` |
 | `rpa create-project` | **`rpa init --name <string>`** | **Unconfirmed as a rename.** `init` is *"Initialize a new UiPath project from a template"* and takes the same `--template-package-id` / `--template-package-version` / `--target-framework` / `--expression-language` / `--skip-solution-registration` flags the earlier session used, so it is the same operation. But no `create-project` verb is listed by `rpa --help` on **rpa-tool 1.204.2**, and nothing records which version had it |
-| `rpa find-activities` | **`rpa activities find`** *…and also still `rpa-legacy find-activities`* | **Confirmed, with a correction** — see below |
+| `rpa find-activities` | **`rpa activities find`** | **Confirmed** |
 
-### Correction to earlier docs: `find-activities` is not gone
+### State the tool and version, not just the name
 
-An earlier version of this file said these names "are **not** commands in this version". That was
-wrong for one of them. **`find-activities` exists on rpa-legacy-tool 1.204.0** as
-`uip rpa-legacy find-activities`. It is absent from **rpa-tool 1.204.2**, where the equivalent is
-`rpa activities find`.
+An earlier version of this file said these names "are **not** commands in this version". For
+modern work the statement that matters is narrower and checkable: **"absent from `rpa --help` on
+rpa-tool 1.204.2"**. Never write that a command "does not exist" without naming the tool and the
+version you checked.
 
-The general rule this teaches: *"command X does not exist"* is meaningless without a tool and a
-version. State both, as **"absent from `rpa --help` on rpa-tool 1.204.2"**.
+(Some of these names do still exist on `rpa-legacy`, which is irrelevant to new projects — see
+above.)
+
+## Inspecting a library or its activities — the modern verbs
+
+For re-verifying what a library actually exposes, without `rpa-legacy`:
+
+| Need | Command | Status |
+|---|---|---|
+| Find activities available in the project's dependencies | `rpa activities find --query <q> [--tags] [--limit]` | **Verified** present |
+| The exact XAML an activity produces, with real defaults | `rpa activities get-default-xaml --activity-class-name <FQCN>` | **Verified** — used to author Framework XAML |
+| A package's **public API by reflection** | `rpa packages inspect --package-name <n> --package-version <v>` *or* `--nupkg-path <local .nupkg>` | **Verified working** — run against `UiPath.System.Activities 23.10.3`, returns a markdown API dump with per-class property tables (name / type / get / set). Both `packageName` **and** `packageVersion` are required, or it fails `INVALID_ARGUMENTS` |
+| Which versions of a package exist | `rpa packages versions <package>` | **Verified** present |
+| The Object Repository **inside** library `.nupkg`s | `rpa get-library-object-repository --library-paths <array>` | **Verified** present |
+| Install/update a dependency | `rpa packages install` | **Verified** present |
+
+### The gap, stated
+
+**No `uip rpa` verb has been shown to recover a UiPath *library project's* `in_`/`out_` argument
+names the way reading its `x:Members` does.** `packages inspect` reflects over the *compiled*
+assemblies, which for a UiPath library means generated wrappers — whether the `in_`/`out_`
+names survive that identically is **unverified**, because the Swisscom packages are not on a
+feed reachable from this machine and no local `.nupkg` was available for `--nupkg-path`.
+
+So for library signature re-verification the demonstrated method is still reading `x:Members`
+from the library **source** project (155 workflows across both libraries — see
+`docs/feasibility-generated-activity-tables.md`). If someone gets a Swisscom `.nupkg` locally,
+`rpa packages inspect --nupkg-path` is the first thing to try, and the answer belongs here.
 
 `init --help` also still says *"Use search-templates to discover available packages"* — stale
 help text inside the current tool. The command is `rpa templates search`.

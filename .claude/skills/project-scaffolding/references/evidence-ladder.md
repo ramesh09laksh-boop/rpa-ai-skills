@@ -87,10 +87,9 @@ Procedure and the full acceptance table: the `standards` skill, `references/end-
 Verified on this machine 2026-10-26 against **rpa-tool 1.204.2** (host `cli` 1.204.0)
 by running `--help` on each. Tool versions move independently of the host — check
 `uip tools list`. Earlier names (`run-file`, `get-analyzer-rules`,
-`search-templates`, `create-project`, `get-default-activity-xaml`) are absent from
-`rpa --help` on this tool version — but note `find-activities` is **not** gone: it lives on
-**rpa-legacy-tool 1.204.0** as `uip rpa-legacy find-activities`. Full mapping, with per-rename
-confidence: `cli-command-map.md`.
+`search-templates`, `create-project`, `find-activities`, `get-default-activity-xaml`) are
+absent from `rpa --help` on this tool version. Full mapping, with per-rename confidence:
+`cli-command-map.md`.
 
 ```bash
 # L2 — diagnostics. --file-path is relative to the project; omit it for the whole project.

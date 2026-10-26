@@ -200,8 +200,9 @@ folder on a robot. A mocked run reaches **L3 at most**. Never write PASS without
 Full detail, the two traps in those commands, and why `validate` is not a superset of the
 analyzer: `references/evidence-ladder.md`. **Command names are per-tool and per-version** —
 `uip` is a host plus separately-versioned tools. On **rpa-tool 1.204.2** the earlier
-`run-file`, `get-analyzer-rules`, `search-templates` and `create-project` are absent, and
-`find-activities` moved to `rpa-legacy`. Check `uip tools list` and see
+`run-file`, `get-analyzer-rules`, `search-templates`, `create-project` and `find-activities`
+are absent — the equivalents are `run --file-path`, `analyzer-rules list`, `templates search`,
+`init` and `activities find`. Check `uip tools list` and see
 `references/cli-command-map.md`.
 
 ## Three decisions to settle before the first publish
