@@ -414,6 +414,8 @@ function Test-Project {
     $selectorDocs = @(Get-ChildItem -LiteralPath $abs -Filter *.selectors-todo.md -Recurse -File -ErrorAction SilentlyContinue)
 
     $mainWired = $false
+    $configRefs = @{}          # key name -> list of "file" strings that read it
+    $configWrites = [System.Collections.Generic.HashSet[string]]::new()   # keys assigned at runtime
     foreach ($x in $xamls) {
         $text = Get-Content -LiteralPath $x.FullName -Raw
         $rel = $x.FullName.Substring($abs.Length).TrimStart('\', '/')
@@ -489,6 +491,36 @@ function Test-Project {
             Add-Finding warning 'negative-active-filter' $name `
                 ("$rel filters a business table with Active <> FALSE. Explanatory/footnote rows with a " +
                  'blank Active pass that test. Use = "TRUE".')
+        }
+
+        # config-key-undefined: collect every in_Config("Key") read in this file.
+        # A key that is read but not defined returns Nothing from the Dictionary, the
+        # expression evaluates to "" and the workflow carries on with an empty path, queue
+        # name or timeout - no error, wrong behaviour. XAML stores the expression
+        # HTML-encoded, so both quote forms have to match.
+        $cfgKeyPattern = '(?:in_|io_|out_)?Config\(\s*(?:&quot;|")([^&"]+?)(?:&quot;|")\s*\)'
+        foreach ($m in [regex]::Matches($text, $cfgKeyPattern)) {
+            $k = $m.Groups[1].Value.Trim()
+            if (-not $k) { continue }
+            if (-not $configRefs.ContainsKey($k)) { $configRefs[$k] = [System.Collections.Generic.List[string]]::new() }
+            if (-not $configRefs[$k].Contains($rel)) { $configRefs[$k].Add($rel) }
+        }
+
+        # A key can also be WRITTEN into the dictionary at runtime, which defines it just as
+        # legitimately as a workbook row. Stock REFramework does exactly this for "ENV" in
+        # Main.xaml:
+        #     <Assign.To><OutArgument x:TypeArguments="x:Object">[Config("ENV")]</OutArgument>
+        # Without this carve-out the rule reports ENV on every REFramework project in the
+        # estate - verified against UC39, where it was the rule's only finding.
+        foreach ($blk in [regex]::Matches($text, '(?s)<Assign\.To>(.*?)</Assign\.To>')) {
+            foreach ($m in [regex]::Matches($blk.Groups[1].Value, $cfgKeyPattern)) {
+                [void] $configWrites.Add($m.Groups[1].Value.Trim())
+            }
+        }
+        # AddToCollection / InvokeMethod Add("Key", ...) against the Config dictionary
+        foreach ($m in [regex]::Matches($text,
+                '(?:in_|io_|out_)?Config\.Add\(\s*(?:&quot;|")([^&"]+?)(?:&quot;|")')) {
+            [void] $configWrites.Add($m.Groups[1].Value.Trim())
         }
 
         # hardcoded-culture in a date parse
@@ -585,6 +617,25 @@ function Test-Project {
         if (-not $mainWired) {
             Add-Finding warning 'config-file-not-wired' $name `
                 'Main.xaml never mentions a Config_<ENV> workbook - check that in_ConfigFile is wired to in_ENV'
+        }
+    }
+
+    # --- config-key-undefined -----------------------------------------------
+    # Compare what the workflows READ against what the workbooks DEFINE. Checked against TST
+    # because config-parity already enforces that PRD carries the same key set, so a key
+    # missing from both is reported once here rather than twice.
+    if ($configRefs.Count -gt 0 -and $settings.Contains('TST')) {
+        # $settings[env] keys are "SheetName|KeyName"; the sheet does not matter here because
+        # InitAllSettings merges all three into one Dictionary.
+        $defined = @($settings['TST'].Keys | ForEach-Object { ($_ -split '\|', 2)[1] })
+        foreach ($k in ($configRefs.Keys | Sort-Object)) {
+            if ($k -in $defined) { continue }
+            if ($configWrites.Contains($k)) { continue }   # assigned at runtime, not a workbook row
+            $where = $configRefs[$k] -join ', '
+            Add-Finding error 'config-key-undefined' $name `
+                ("$where reads in_Config(`"$k`") but no Settings/Constants/Assets row defines " +
+                 "'$k'. A missing key returns Nothing, the expression becomes an empty string, " +
+                 'and the run continues with an empty path/queue/timeout - no error, wrong behaviour.')
         }
     }
 

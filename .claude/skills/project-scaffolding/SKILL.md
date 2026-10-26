@@ -149,6 +149,12 @@ The template is project-level scaffolding only. Three things still have to happe
    any error, so it drops straight into CI. An unreplaced marker is a review finding; this is
    what finds it.
 
+   **`config-key-undefined` (error)** catches a workflow reading a config key no sheet defines.
+   A missing key returns `Nothing` from the Dictionary, the expression becomes `""`, and the run
+   continues with an empty path, queue name or timeout — no error, wrong behaviour. Keys the
+   project *assigns* into Config at runtime (stock REFramework does this for `ENV` in
+   `Main.xaml`) count as defined.
+
    **A `WARN` is not "pre-existing, therefore harmless".** `relative-persisted-path` in
    particular is a documented silent-failure trap — fix it before the first real run.
 
