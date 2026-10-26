@@ -128,6 +128,14 @@ the `avaloq-library` skill.
 - `references/systems/*.md` — one file per application folder (table above)
 - `references/config-format.md` — `Config_<ENV>.xlsx` (stock) vs `Config_<ENV>.json`
   (requires rebuilding `InitAllSettings.xaml`) — ask which, during PDD → SDD
+- `references/troubleshooting.md` — **symptom → cause → fix**, consolidated. Start here when
+  something is broken; the symptom is usually not the problem
+- `references/decisions.md` — the decisions the skills say to "ask the team" about, in plain
+  language: options, consequences, a recommended default marked *recommended, not decided*,
+  and who confirms. Ask one at a time
+- `references/studio-checkpoints.md` — the steps only a person can do (Studio Error List, a TST
+  run, the Orchestrator job/queue/logs, an asset, a live capture), each with what "good" looks
+  like and **what to paste back**
 - `references/test-data.md` — ingesting a business test-data workbook: mapping its Config sheet
   onto Settings/Constants/Assets, why the provenance column matters more than the value, work
   items that depend on each other, and turning NegativeData into Business-exception tests
