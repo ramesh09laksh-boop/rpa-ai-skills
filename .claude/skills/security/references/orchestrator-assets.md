@@ -1,5 +1,11 @@
 # Orchestrator assets and the CyberArk PHI vault
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. The `Settings`/`Constants`/`Assets` model and the
+> asset-naming rules carry over unchanged. Modern equivalent for the workbooks themselves:
+> `templates/*/Data/Config_TST.xlsx`.
+
 Everything here is taken from the three reference projects. Where a secret type has no
 evidenced pattern, that is called out rather than filled in.
 

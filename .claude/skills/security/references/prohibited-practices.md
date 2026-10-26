@@ -1,5 +1,11 @@
 # Prohibited practices
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. The `Settings`/`Constants`/`Assets` model and the
+> asset-naming rules carry over unchanged. Modern equivalent for the workbooks themselves:
+> `templates/*/Data/Config_TST.xlsx`.
+
 The never-do list. Each entry states the rule, then what the reference projects actually do —
 including the places where they get it wrong, which are marked as **defects to fix, not
 patterns to copy**.

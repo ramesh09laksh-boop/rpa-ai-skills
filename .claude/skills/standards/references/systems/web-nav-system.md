@@ -1,5 +1,11 @@
 # `Web_Nav_System/` — Avaloq Navigator report tables
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. Selectors depend on the **application**, not on the
+> project's target framework, so the selector content carries over unchanged. Only the
+> surrounding activity choices are Legacy — modern equivalents in the `web` skill.
+
 **Browser-based, but embedded.** Avaloq Smart Client renders its reports in an embedded
 browser inside `smartclient.exe`. This folder drives those report tables.
 

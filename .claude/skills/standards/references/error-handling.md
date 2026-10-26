@@ -1,5 +1,11 @@
 # Error handling conventions
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. The exception **types and the Business-vs-Application
+> split** are framework-independent and carry over. Any classic activity shown has a modern
+> replacement — see `silent-failure-traps.md` in the `standards` skill.
+
 Patterns present in all three reference projects. Nothing here is invented — where a
 project deviates, that is noted.
 

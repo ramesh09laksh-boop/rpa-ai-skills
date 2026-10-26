@@ -1,5 +1,11 @@
 # Finnova library — activity reference
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. The library **activity APIs** quoted here are
+> framework-independent and still apply; the surrounding project shape is not. Modern equivalent for
+> structure: `templates/`, plus `wiring-the-framework.md` in the `standards` skill.
+
 Source of truth: `../Finnova/Swisscom FinnovaLibrary/` (project `Swisscom FinnovaLibrary`,
 published as NuGet `Swisscom.FinnovaLibrary`). Every activity listed here exists as a
 `.xaml` in that project. Argument names are exactly as declared.
