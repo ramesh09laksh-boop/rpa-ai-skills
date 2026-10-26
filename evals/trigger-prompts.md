@@ -23,6 +23,15 @@ hand **before each release**, on the agents the estate uses.
 
 A ❌ is a `description` defect, not a user error. Fix the description, do not coach the prompt.
 
+## Recording a run
+
+Copy [`results/TEMPLATE.md`](results/TEMPLATE.md) to
+`results/<YYYY-MM-DD>-<agent>.md` and fill it in — one file per agent per run. It captures the
+agent version, the skills ref installed, which skill actually loaded, whether the references
+resolved, and whether anything was invented.
+
+A run that is not written down is a run nobody can compare against next release.
+
 ## Scoreboard
 
 Copy this per release. Agents: Claude Code, GitHub Copilot, OpenCode.
