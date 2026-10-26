@@ -1,0 +1,99 @@
+name: checks
+
+# `npx skills update` pulls whatever is on main, so a broken skill on main is a broken skill in
+# every UC project on its next update. These checks run on every push and PR so that cannot
+# happen quietly.
+#
+# What is NOT checked here, and cannot be: anything needing UiPath Studio, the `uip` CLI, the
+# internal NuGet feed, or a live application. Those are the L2-L4 rungs of the evidence ladder
+# and they belong on a machine with the estate installed. CI covers L1 and the repo's own
+# consistency.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  skills:
+    name: skill lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint the skills
+        shell: pwsh
+        run: |
+          ./.claude/skills/project-scaffolding/scripts/lint-skills.ps1
+
+  templates:
+    name: validate-project on the templates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conformance-check all three templates
+        shell: pwsh
+        run: |
+          ./.claude/skills/project-scaffolding/scripts/validate-project.ps1 `
+            ./templates/REFramework-Dispatcher-Base `
+            ./templates/REFramework-Performer-Finnova `
+            ./templates/REFramework-Performer-Avaloq `
+            -TemplateMode
+
+  shell:
+    name: shell scripts parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The whole point of .gitattributes `*.sh text eol=lf`. On a Linux runner a CRLF shebang
+      # fails here rather than on a developer's machine.
+      - name: bash -n every shipped script
+        run: |
+          set -euo pipefail
+          found=0
+          while IFS= read -r -d '' f; do
+            found=$((found + 1))
+            echo "checking $f"
+            bash -n "$f"
+            head -c 2 "$f" | grep -q '#!' || { echo "::error file=$f::no shebang"; exit 1; }
+            if head -1 "$f" | grep -q $'\r'; then
+              echo "::error file=$f::CRLF line ending in the shebang - check .gitattributes"
+              exit 1
+            fi
+          done < <(find . -name '*.sh' -not -path './.git/*' -print0)
+          echo "$found script(s) checked"
+          test "$found" -gt 0
+
+  workbooks:
+    name: template workbooks are generated, not hand-edited
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # AGENTS.md: "The templates' workbooks are generated. Change
+      # build-template-workbooks.ps1 and re-run it; a hand-edit to a shipped .xlsx is lost on
+      # the next run." This proves the script still reproduces what is committed.
+      #
+      # Compare the *contents.md renderings, NOT the .xlsx bytes. An .xlsx is a zip and its
+      # entries carry timestamps, so re-running the generator always produces different bytes
+      # for identical content - verified. The contents.md files exist precisely so the
+      # workbooks are diffable, and they are what a hand-edit would fail to reproduce.
+      - name: Re-run the generator and diff the renderings
+        shell: pwsh
+        run: |
+          ./templates/tools/build-template-workbooks.ps1
+          $changed = git status --porcelain -- '*contents.md'
+          if ($changed) {
+            Write-Host '::error::Re-running build-template-workbooks.ps1 changed a committed rendering.'
+            Write-Host 'Either a workbook was hand-edited, or the generator changed without being re-run:'
+            $changed | ForEach-Object { Write-Host "  $_" }
+            git --no-pager diff -- '*contents.md'
+            exit 1
+          }
+          Write-Host 'Generator output matches the committed renderings.'

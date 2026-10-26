@@ -41,7 +41,18 @@ param(
 
     # Suppress a rule everywhere. Prefer a per-project validate-project.ignore file, which
     # forces a written reason and keeps the exception on screen.
-    [string[]] $SkipRule = @()
+    [string[]] $SkipRule = @(),
+
+    # For checking templates/ itself, in CI. The templates SHIP their placeholders on purpose -
+    # "<PROJECT-NAME-TBD-ask-team>", "[UC-SPECIFIC - replace]", the un-regenerated template
+    # GUIDs - so template-default-left and name-no-whitespace fire on every one of them by
+    # design. In this mode those two are reported as 'expected' and do not fail the run, while
+    # every other rule still does. An EMPTY expected list is itself a failure: it means the
+    # tripwires have gone missing from the templates.
+    #
+    # Never pass this for a real UC project. The whole point of those rules is that a
+    # half-instantiated project cannot pass for a finished one.
+    [switch] $TemplateMode
 )
 
 Set-StrictMode -Version Latest
@@ -703,6 +714,25 @@ else {
     $summary = "$($errors.Count) error(s), $($warnings.Count) warning(s)"
     if ($muted.Count -gt 0) { $summary += ", $($muted.Count) suppressed" }
     Write-Host "$summary across $($results.Count) project(s)."
+}
+
+if ($TemplateMode) {
+    $expectedRules = @('template-default-left', 'name-no-whitespace')
+    $expected = @($script:Findings | Where-Object { $_.Rule -in $expectedRules })
+    $errors = @($errors | Where-Object { $_.Rule -notin $expectedRules })
+    $warnings = @($warnings | Where-Object { $_.Rule -notin $expectedRules })
+
+    Write-Host ''
+    Write-Host "Template mode: $($expected.Count) finding(s) from $($expectedRules -join ', ') treated as expected." -ForegroundColor Cyan
+    Write-Host "Remaining: $($errors.Count) error(s), $($warnings.Count) warning(s)."
+
+    if ($expected.Count -eq 0) {
+        Write-Host ''
+        Write-Host 'FAIL - no placeholder findings at all. The templates ship their tripwires on purpose;' -ForegroundColor Red
+        Write-Host '       if none fires, a placeholder has been "helpfully" filled in and a half-' -ForegroundColor Red
+        Write-Host '       instantiated project could now pass for a finished one.' -ForegroundColor Red
+        exit 1
+    }
 }
 
 $failed = $errors.Count -gt 0 -or ($WarningsAsErrors -and $warnings.Count -gt 0)

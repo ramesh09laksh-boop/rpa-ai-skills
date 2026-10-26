@@ -479,6 +479,21 @@ it does not clone the sample workflow files.
 
 ## Maintaining a skill
 
+**Before merging to `main`, run the checks** — `main` is what every UC project pulls on its next
+`npx skills update`:
+
+```bash
+pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/lint-skills.ps1
+pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/validate-project.ps1   templates/REFramework-Dispatcher-Base templates/REFramework-Performer-Finnova   templates/REFramework-Performer-Avaloq -TemplateMode
+```
+
+Both run in CI ([`.github/workflows/checks.yml`](.github/workflows/checks.yml)) alongside
+`bash -n` on every shipped script and a check that the template workbooks still regenerate.
+
+Then work [`evals/trigger-prompts.md`](evals/trigger-prompts.md) — a skill that does not load is
+a skill that does not exist, and trigger reliability is what a user actually experiences. Record
+the result, update [`CHANGELOG.md`](CHANGELOG.md), and tag the release.
+
 1. Edit under `.claude/skills/<name>/`. `SKILL.md` is the always-loaded summary; put detail
    in `references/*.md` so it loads only when needed.
 2. Keep the frontmatter `description` trigger-shaped — it is the only thing an agent sees
