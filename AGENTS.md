@@ -204,6 +204,14 @@ Only what the estate actually evidences. Do not add a rule here that no project 
   newer template pins were taken from the reference projects, not re-derived from the library
   sources. Treat an activity signature as unconfirmed on the newer packages until someone
   checks it — that check is outstanding work, not a completed step.
+- **The Workflow Analyzer is part of review, not an optional extra.** `uip rpa analyze` at Code
+  Review and UAT, and the report names **which rule set actually ran** — a signed-in tenant's
+  policy, a `Default` file type, or a rule id this Studio version does not recognise each
+  silently shrink the rule set without failing. Fix findings; do not relax a rule to pass.
+  Commands and the four observed traps: `.claude/skills/standards/references/code-quality.md`.
+  **Which rule file is canonical is an open decision** — three candidates sit in
+  `../RuleConfigs/`, one of them with a malformed entry, and whether a client-specific rule set
+  may be committed here has not been answered.
 - **No secrets in a commit, ever** — including a "temporary" one later amended away. See
   `.claude/skills/security/`.
 

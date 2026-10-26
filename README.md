@@ -258,6 +258,13 @@ raw selectors outside `Tests/`/`Web_Nav_System/`, classic or Legacy-project acti
 a secret anywhere, an unresolved `[UC-SPECIFIC — replace]` or `*-selector-todo`, a
 config-key or queue-name mismatch between TST and PRD. Do not migrate a Legacy workflow as a
 side effect of review — report it as a finding and let the team decide.
+
+Run the Workflow Analyzer and report its findings too:
+`uip rpa analyze <project> --governance-file-path "<ABSOLUTE path to the rule file>"
+--governance-file-type Studio --detailed-log-path <log>`. Confirm which rule set actually ran
+(`standards/references/code-quality.md` — a tenant policy, a `Default` file type, or an
+unrecognised rule id all silently reduce the rule set), and cross-check the enabled ids against
+`uip rpa analyzer-rules list`. Fix findings; do not relax a rule to pass.
 ```
 
 ### 6. UAT Readiness
@@ -267,8 +274,10 @@ Confirm: every SDD requirement traces to a workflow and a test case; every
 `APPROX_SELECTOR` / `TODO_SELECTOR` in every `*.selectors-todo.md` is resolved against the
 live application; `Config_TST.xlsx` has no remaining `[UC-SPECIFIC — replace]`;
 `validate-project` runs clean (or every suppressed rule has a written reason in
-`validate-project.ignore`); `Tests/RunAllTests.xaml` passes. List anything still open as a
-named blocker, not a soft caveat.
+`validate-project.ignore`); `Tests/RunAllTests.xaml` passes. Additionally require **L4** on the
+evidence ladder — a real run of `Main.xaml` on TST, with a log excerpt — and a clean
+`uip rpa analyze` result, naming which rule set ran. List anything still open as a named
+blocker, not a soft caveat.
 ```
 
 ### 7. Deployment Readiness
@@ -331,6 +340,9 @@ excerpt attached. Detail and the Studio-IPC trap in those commands:
 - [ ] A Dispatcher/Performer pair share one byte-identical `OrchestratorQueueName`
 - [ ] Every `APPROX_SELECTOR` / `TODO_SELECTOR` resolved against the live application
 - [ ] `validate-project` runs with zero errors, or every suppressed rule has a written reason
+- [ ] `uip rpa analyze` runs clean, the report names **which rule set ran**, and no finding was
+      cleared by disabling a rule — see
+      [`code-quality.md`](.claude/skills/standards/references/code-quality.md)
 - [ ] `Tests/RunAllTests.xaml` passes, and nothing under `Tests/` is invoked from `Process.xaml`
 - [ ] Every Open Question/Assumption from the SDD is resolved or explicitly still open —
       never silently dropped
