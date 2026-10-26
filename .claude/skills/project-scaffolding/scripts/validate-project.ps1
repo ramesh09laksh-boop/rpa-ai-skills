@@ -440,6 +440,18 @@ function Test-Project {
             }
         }
 
+        # unresolved-mock: a [MOCK] stand-in left in the project. Guidance alone is the weaker
+        # form - the whole argument of this script is that a marker nobody greps for is
+        # indistinguishable from finished work. Warning rather than error because a mock is
+        # legitimate mid-build; it blocks review, not development.
+        # See standards/references/mocking.md.
+        if ($text -match '\[MOCK\]') {
+            Add-Finding warning 'unresolved-mock' $name `
+                ("$rel contains a [MOCK] stand-in. Legitimate mid-build, but a mocked run reaches " +
+                 'L3 at most and an unreplaced [MOCK] blocks review - replace it and point the ' +
+                 'config key at the real source.')
+        }
+
         # classic-excel-write: broken on Windows/.NET 6, see standards/excel-activities.md
         if ($text -match '<ui:(AppendRange|WriteRange)\b') {
             Add-Finding error 'classic-excel-write' $name `
