@@ -28,6 +28,42 @@ re-deriving, and it is the only place a captured Object Repository reference id 
 **`git init` and a `.gitignore` before the first change, then commit per item.** Without this
 there is no baseline and "what did that stage change?" has no answer.
 
+## The platform, and the project's Environment block
+
+**This estate is UiPath Automation Suite (self-hosted), not Automation Cloud.** Projects run on a
+**UiRobot** through an **Orchestrator folder** — e.g. `Modern/RAP-Demo`.
+
+**Do not assume Cloud.** The Orchestrator host is the estate's own Automation Suite URL, never
+`cloud.uipath.com`; `uip login` reaches it with `--authority <host>` (that flag's help names
+Automation Suite explicitly). Cloud-only features are not available by assumption — if one looks
+like the answer, that is a question for the team, not a step.
+
+Every project states its own environment in **its own `AGENTS.md`**, so no agent has to infer
+it. Create this block at stage 2 and keep it current:
+
+```markdown
+## Environment
+
+| | |
+|---|---|
+| Platform            | UiPath Automation Suite (self-hosted) — **not** Automation Cloud |
+| Orchestrator host   | <https://orchestrator.example.internal> |
+| Tenant              | <TenantName> |
+| Folder path         | Modern/RAP-Demo |
+| Robot machine       | <MACHINE-NAME> |
+| Windows account     | <DOMAIN\svc-rpa-account> (unattended, interactive session) |
+| Package feed        | the feed this folder uses — <name or URL> |
+| Environment         | TST  ·  production is <folder path>, separate approval required |
+| uip login           | `uip login --authority <host> --tenant <tenant> --profile <tst|prd>` |
+```
+
+**Non-secret facts only.** Names, hosts, paths, accounts, folder paths. **Never** a password,
+token, client secret, API key or connection string — those live in Orchestrator assets, and
+`AGENTS.md` is a committed file. If a field cannot be filled without a secret, leave it out.
+
+Keep **TST and production as separate login profiles** so a command cannot hit the wrong one by
+default. Detail: the `standards` skill, `references/decisions.md` §0.
+
 ## The ten stages, and the gate on each
 
 A stage is not done until its gate is met. Gates use the evidence ladder — **L1** static,
