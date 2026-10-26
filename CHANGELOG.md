@@ -98,3 +98,10 @@ Carried deliberately rather than guessed. Each is written up where it belongs.
 - **Applications with no library and no reference** (desktop, Java, SAP, Citrix) are out of scope
   until someone decides otherwise. Whether `uip rpa uia` captures desktop apps is unverified.
 - **Who owns test execution** — this repo or `test-ai-skills`.
+- **Is Test Manager available on this Automation Suite**, or are tests run only via
+  `Tests/RunAllTests.xaml`? `uip rpa tm` exists in the CLI (*"Configure Test Manager for the
+  project — server connection and default project"*), so the tooling assumes it may be there;
+  nothing in this estate records whether the Automation Suite deployment includes it. The answer
+  changes stage 6: either tests are authored and reported through Test Manager, or
+  `RunAllTests.xaml` plus `Tests.xlsx` stays the only mechanism and `uip rpa tm` should not be
+  suggested at all.
