@@ -486,6 +486,88 @@ function Test-Project {
                 ("$rel parses with a hardcoded CultureInfo. Excel cells stringify in the machine's culture; " +
                  'convert from the DataRow object or use InvariantCulture.')
         }
+
+        # --- leaf-workflow contract (project-layout.md "Contract for a workflow in this
+        # folder", and pdd-sdd-scaffolding "Scaffold shape") -------------------------------
+        #
+        # Scaffolded leaf workflows were breaking the estate's own _System contract while
+        # looking entirely plausible: no in_Config, no out_ outcome, a password typed String.
+        # None of that throws. The three rules below are deliberately WARNINGS - they are new,
+        # and a new rule that fails a build on its first contact with a real project gets
+        # switched off rather than fixed. Promote to error once a trial run across the estate
+        # is clean.
+        #
+        # x:Members is the only declaration of a workflow's arguments:
+        #   <x:Property Name="in_Config" Type="InArgument(scg:Dictionary(x:String, x:Object))" />
+        $members = [regex]::Match($text, '<x:Members>(.*?)</x:Members>', 'Singleline')
+        $props = @()
+        if ($members.Success) {
+            $props = @([regex]::Matches($members.Groups[1].Value,
+                    '<x:Property\b[^>]*?Name="([^"]+)"[^>]*?Type="([^"]+)"') |
+                ForEach-Object {
+                    [pscustomobject]@{ ArgName = $_.Groups[1].Value; ArgType = $_.Groups[2].Value }
+                })
+            # Name= and Type= also occur in the other order
+            $props += @([regex]::Matches($members.Groups[1].Value,
+                    '<x:Property\b[^>]*?Type="([^"]+)"[^>]*?Name="([^"]+)"') |
+                ForEach-Object {
+                    [pscustomobject]@{ ArgName = $_.Groups[2].Value; ArgType = $_.Groups[1].Value }
+                })
+            $props = @($props | Sort-Object ArgName -Unique)
+        }
+        $argNames = @($props | ForEach-Object ArgName)
+
+        # system-workflow-no-config: a _System workflow that cannot see Config has to get its
+        # window titles, paths and timeouts from somewhere else - which means hardcoded.
+        # '_'-prefixed files are developer scratchpads (project-layout.md), not deliverables -
+        # the same carve-out the raw-selector rules give them.
+        if ($rel -match '(^|[\\/])[A-Za-z0-9 _]+_System[\\/]' -and $props.Count -gt 0 -and
+            $x.Name -notlike '_*') {
+            if ('in_Config' -notin $argNames) {
+                Add-Finding warning 'system-workflow-no-config' $name `
+                    ("$rel is a _System workflow with no in_Config argument. project-layout.md's " +
+                     'contract is in_Config + coordinates in, plain values out. Without it the window ' +
+                     'title, timeouts and paths can only be hardcoded.')
+            }
+            if (-not ($argNames | Where-Object { $_ -like 'out_*' -or $_ -like 'io_*' })) {
+                Add-Finding warning 'system-workflow-no-outcome' $name `
+                    ("$rel is a _System workflow that returns nothing. A no-op is then " +
+                     'indistinguishable from success to its caller. Return an out_ outcome ' +
+                     '(out_Created, out_Moved, out_Status).')
+            }
+        }
+
+        # secret-argument-string: a SecureString demoted to String. ST-SEC-009 calls the cast a
+        # security breach, and the security skill forbids a plaintext secret crossing a
+        # workflow boundary at all.
+        #
+        # The carve-out matters as much as the rule. An ASSET NAME is legitimately a String, and
+        # this estate names those arguments after the credential: config-contents.md defines the
+        # Assets key as <Application>_System_Credential, so 'Credential(s)' in an argument name
+        # means the asset NAME here, not the secret. TKB-UC11's in_Avaloq_System_Credentials is
+        # a String only because it feeds GetRobotCredential
+        # AssetName="[in_Avaloq_System_Credentials]", while the secret stays in a local Password
+        # variable. A rule that cries wolf on correct estate code is a rule nobody keeps on, so
+        # 'credential' is excluded by name, and anything else used as an AssetName in this file
+        # is excluded by use.
+        foreach ($p in $props) {
+            if ($p.ArgName -notmatch '(?i)(password|passwort|secret|pwd|apikey|api_key|token)') { continue }
+            if ($p.ArgType -notmatch '\(\s*x:String\s*\)') { continue }
+            if ($text -match ('AssetName="\[\s*' + [regex]::Escape($p.ArgName) + '\s*\]"')) { continue }
+            Add-Finding warning 'secret-argument-string' $name `
+                ("$rel declares $($p.ArgName) as String. A secret crosses a workflow boundary as " +
+                 'SecureString or not at all - see the security skill, and analyzer rule ST-SEC-009. ' +
+                 "(If it holds an Orchestrator asset NAME rather than the secret, pass it to " +
+                 'GetRobotCredential/GetAsset AssetName so that is visible.)')
+        }
+
+        # logic-workflow-no-arguments: a Logic/ workflow with no arguments cannot be invoked
+        # with anything, so the caller reimplements the rule inline and the two drift apart.
+        if ($rel -match '(^|[\\/])Logic[\\/]' -and $x.Name -notlike '_*' -and $props.Count -eq 0) {
+            Add-Finding warning 'logic-workflow-no-arguments' $name `
+                ("$rel is a Logic/ workflow declaring no arguments. Nothing can be passed to it or " +
+                 'returned from it, so callers duplicate the rule inline instead of invoking it.')
+        }
     }
 
     if (@($xamls | Where-Object Name -eq 'Main.xaml').Count -gt 0) {

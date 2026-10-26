@@ -162,6 +162,44 @@ resolved in the `.xaml`.
 
 Follow the estate's structure, not a flat script:
 
+### The `_System` contract is mandatory, not a style preference
+
+`project-layout.md` states it: **in** = `in_Config` + coordinates; **out** = plain values;
+refusals = `BusinessRuleException`. A scaffold that ignores it compiles, looks right, and fails
+in ways nobody can see. Every one of these was found in a real scaffolded project:
+
+| Requirement | What its absence causes |
+|---|---|
+| Every `_System` workflow takes **`in_Config`** | Window titles, paths and timeouts can only be hardcoded |
+| Each one identifies its target by a **business-key argument** | An edit workflow with no identifier edits whatever happens to be focused |
+| Each one returns an **`out_` outcome** (`out_Created`, `out_Moved`, `out_Status`) | A silent no-op is indistinguishable from success to the caller |
+| A read workflow **returns what it read** | "Re-read and confirm the result" cannot be built at all |
+| Secrets are **`SecureString`**, never `String` | Analyzer `ST-SEC-009` calls the cast a security breach; see `security` |
+| Every `Logic/` workflow **declares arguments** | Nothing can be passed to it, so the caller reimplements the rule inline and the two drift |
+
+**One name per concept, across every workflow.** `cardTitle` in one and `in_CardTitle` in
+another is two arguments as far as a caller is concerned. Settle the name when the first
+workflow declares it.
+
+`validate-project` now enforces the first, third, fifth and sixth of these as **warnings**
+(`system-workflow-no-config`, `system-workflow-no-outcome`, `secret-argument-string`,
+`logic-workflow-no-arguments`). A warning here is not a style nit — it is the scaffold not yet
+meeting the contract.
+
+### Argument names vs Object Repository descriptor names
+
+An Object Repository descriptor parametrized as `{{cardTitle}}` binds to a **variable** of
+exactly that name. That does **not** make `cardTitle` the argument name:
+
+- the **argument** is `in_CardTitle`, per `standards/references/naming-conventions.md`
+- assign it to an internal **variable** `cardTitle`, which is what the descriptor binds to
+
+Do not rename the variable to satisfy the argument convention — the descriptor stops resolving.
+Do not rename the argument to satisfy the descriptor — it breaks the `in_` convention and the
+analyzer's `ST-NMG-002` regex. Both names are correct; they are just not the same name.
+
+### Structure
+
 - `<Application>_System/` for anything that touches the UI; `Logic/` for the decisions. The
   scaffold must not put an `If` about business meaning inside a `_System` workflow.
 - Thread `in_WinTitel` (Finnova) / the credential and path config keys (Avaloq) through —

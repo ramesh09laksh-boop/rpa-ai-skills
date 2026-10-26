@@ -136,6 +136,20 @@ The template is project-level scaffolding only. Three things still have to happe
    any error, so it drops straight into CI. An unreplaced marker is a review finding; this is
    what finds it.
 
+   **A `WARN` is not "pre-existing, therefore harmless".** `relative-persisted-path` is one of
+   the silent-failure traps the skills already document in full: at runtime the working
+   directory is the *extracted package*, so a relative config path writes into a folder that is
+   discarded on the next publish. In the case that produced that rule, the lost file was the
+   audit log providing idempotency, and losing it silently re-armed duplicate emails to external
+   parties. Fix it before the first real run, not after.
+
+   Four rules land as warnings on the **leaf-workflow contract** —
+   `system-workflow-no-config`, `system-workflow-no-outcome`, `secret-argument-string`,
+   `logic-workflow-no-arguments`. They are warnings because they are new, not because they are
+   optional: a scaffold that trips them does not meet the `_System` contract in
+   `standards/references/project-layout.md`. For calibration, the estate's reference-quality
+   project (UC39) reports **zero** of them, while the two older processes report several.
+
    A rule that is genuinely not applicable yet goes in a `validate-project.ignore` beside
    `project.json`, one `rule: reason` per line, indented lines continuing the reason:
 
