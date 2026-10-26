@@ -4,6 +4,11 @@ Source of truth: `../Finnova/Swisscom FinnovaLibrary/` (project `Swisscom Finnov
 published as NuGet `Swisscom.FinnovaLibrary`). Every activity listed here exists as a
 `.xaml` in that project. Argument names are exactly as declared.
 
+**Signatures re-diffed against the library source at `projectVersion 2026.1.0`** (82 workflow
+`.xaml` files, `x:Members` extracted and compared name-by-name). All 82 are named here. The
+corrections that diff produced are in *Gotchas* at the end — read that section before copying an
+argument name from memory.
+
 Namespaces as they appear in a consuming `.xaml`:
 
 | Prefix target | Activities |
@@ -268,8 +273,12 @@ Reads from an already-extracted DataTable — no UI access.
 `ExtractDataTable`, `GetRow`, `GetColumn` → `Value` (String).
 
 ### `Table/Get Cell Attribute`
-`ExtractDataTable`, `GetRow`, `GetColumn`, plus addressing → attribute value.
+`PanelName`, `WindowTitle`, `idx`, `PageTabName`, `GetRow`, `GetColumn`, `RowName`,
+`ColumnName`, **`Attribute`** (in, String — which attribute to read) → **`Value`** (out, String).
 Used to read cell colour/state (e.g. Börsenabrechnungen status).
+
+It takes **no `ExtractDataTable`** — this activity reads from the live grid, not from an
+extracted table. (An earlier revision of this file said it did.)
 
 ### `Table/Get Checkbox`
 Addressing + `RowName`/`ColumnName` → `Checked` (Boolean).
@@ -289,6 +298,11 @@ Addressing + `Column`, `Row`, `RowName`, `ColumnName` → `Items` (String[]).
 
 ### `Table/Click Cell`
 Addressing + `ClickRow`, `ClickColumn`, `RowName`, `ColumnName`, `ScrollBar*`.
+
+**`ScrollBar*` is shorthand for exactly these five, and they are not optional-looking
+guesses — copy the names:** `ScrollBarIdx` (String), `ScrollBarRole` (String),
+`ScrollBarPageTabName` (String), `ScrollBarPanelName` (String), `ScrollBarMax` (**Int32**, the
+only non-String of the five).
 
 ### `Table/Click Cell By Value`
 Finds the cell by its text instead of coordinates.
@@ -347,8 +361,21 @@ Mostly internal, but callable.
 
 ## Gotchas
 
-- **Spelling is inconsistent and load-bearing.** `Richt Click Text`, `TotlaColumns`,
-  `Mullti Row Click`, `ConfitmMessage`. Copy them exactly.
+- **Spelling is inconsistent and load-bearing — and the two kinds get copied into different
+  places.** Misspelled **workflow file names**, which you copy into an `Invoke Workflow`:
+  `Richt Click Text`, `Disable`/`Enable Mullti Row Click`, `Activities/Tree/ExtractTree`.
+  Misspelled **argument names**, which you copy into an activity property: `TotlaColumns`, and
+  `ExtractedDataTable` on `Table/Item Count By Column Index` where every other activity spells
+  it `ExtractDataTable`.
+
+  **`ConfitmMessage` is *not* a Finnova name.** It is Avaloq's, on its
+  `Execute Drop Down Menu`. It appeared in this list and does not exist anywhere in the Finnova
+  library — using it here gets you an argument that is not there. See the `avaloq-library` skill,
+  `references/activities.md`.
+- **`Idx` vs `idx` — the casing is load-bearing and splits cleanly by family.**
+  **Lowercase `idx`** in every `Table/*` activity and in `Tree/ExtractTree` (12 workflows).
+  **Capital `Idx`** in every top-level `Activities/*` activity (36 workflows). Getting it the
+  wrong way round is the same class of error as `TabName` vs `PageTabName` below.
 - **`TabName` vs `PageTabName`** differs between top-level and table activities.
 - **`Table/Search Item.SearchInColumn` is 0-based**, per the library's own annotation. Row and
   column arguments elsewhere are Strings, not Ints — pass `"3"`, not `3`.

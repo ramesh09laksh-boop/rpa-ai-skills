@@ -4,6 +4,11 @@ Source of truth: `../Avaloq/Swisscom.UiPath.UIAutomation.Avaloq/` (published as 
 `Swisscom.UiPath.UIAutomation.Avaloq`). Every activity listed here exists as a `.xaml` in
 that project. Argument names are exactly as declared.
 
+**Signatures re-diffed against the library source at `projectVersion 2025.9.1`** (73 workflow
+`.xaml` files, `x:Members` extracted and compared name-by-name). All 73 are named here; no
+documented argument was found missing from the source. The `CyberArk/*` internal helpers'
+arguments are deliberately not listed — see that section.
+
 Namespaces as they appear in a consuming `.xaml`:
 
 | Prefix target | Activities |
@@ -336,3 +341,15 @@ Internal helpers of the PHI flow. Not intended for direct use.
 - **No logout activity exists.** `Stop` kills the process; that is what the sample project
   does in both `CloseAllApplications` and `KillAllProcesses`.
 - **No activity reads mail, files or Excel** — see the `standards` skill, `references/systems/mail-system.md`, the `standards` skill, `references/systems/file-system.md`.
+- **This library declares higher dependency floors than the Avaloq Performer template pins.**
+  Measured, not assumed:
+
+  | | `UiPath.System.Activities` | `UiPath.UIAutomation.Activities` |
+  |---|---|---|
+  | library (`projectVersion 2025.9.1`) | `24.10.8` | `24.10.17` |
+  | `templates/REFramework-Performer-Avaloq` | `[24.10.7]` | `[24.10.10]` |
+
+  Both template pins are **below** the library's own floors, so a restore has to resolve a
+  conflict it was not asked about. Expect a NuGet downgrade warning; do not silence it by
+  lowering the library's floor. Raise the template pins to at least the library's floors, in the
+  same change as any library bump.

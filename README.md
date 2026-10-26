@@ -31,9 +31,16 @@ The library **sources** live one level above this repo (`../Finnova/Swisscom Fin
 `../Avaloq/Swisscom.UiPath.UIAutomation.Avaloq/`); having the source available is not the same as
 having the package on the feed, and only the latter makes a restore succeed.
 
-The skills' activity references are verified against the older sample pins. The template pins
-come from the reference projects and have not been re-checked against the library sources —
-see [`AGENTS.md`](AGENTS.md#deployment--review-rules).
+The skills' activity references have been **re-diffed at the argument level against the library
+sources** (Finnova `projectVersion 2026.1.0`, Avaloq `2025.9.1` — the versions the template pins
+correspond to), by extracting `x:Members` from all 155 workflow `.xaml` files and comparing
+name-by-name. The corrections it produced, including one misspelling attributed to the wrong
+library and an `Idx`/`idx` casing rule, are listed in
+[`AGENTS.md`](AGENTS.md#deployment--review-rules).
+
+One finding is not yet actioned: **the Avaloq library declares higher dependency floors than the
+Avaloq Performer template pins**, so a restore resolves a version conflict it was not asked
+about. Raise the template pins with the next library bump.
 
 ## Start a new project
 

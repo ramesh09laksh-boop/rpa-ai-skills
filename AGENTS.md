@@ -247,10 +247,28 @@ Only what the estate actually evidences. Do not add a rule here that no project 
   | Samples under `../Finnova/`, `../Avaloq/` | `[4.0.3]` / `[4.0.7]` | `[2.6.5]` | `[1.0.7]` |
   | `templates/`, from `../REFramework-*/` | `[2026.1.0]` | `[2025.9.1]` | `[24.10.0]` |
 
-  **The skills' `references/activities.md` are verified against the sample pins only.** The
-  newer template pins were taken from the reference projects, not re-derived from the library
-  sources. Treat an activity signature as unconfirmed on the newer packages until someone
-  checks it — that check is outstanding work, not a completed step.
+  **That check has now been done at the argument level**, against the library *sources* —
+  Finnova `projectVersion 2026.1.0`, Avaloq `2025.9.1`, which are the versions the template
+  pins correspond to. Method: extract `x:Members` from all 82 Finnova and 73 Avaloq workflow
+  `.xaml` files and compare name-by-name against the skills. Re-run it on the next library bump;
+  it is a diff, not a read-through.
+
+  What it found, now fixed in the skills:
+
+  - `ConfitmMessage` was listed as a **Finnova** load-bearing misspelling. It does not exist
+    anywhere in the Finnova library — it is Avaloq's, on `Execute Drop Down Menu`.
+  - `Idx` vs `idx` **casing splits by family** and was documented as `Idx` throughout:
+    lowercase in all 12 `Table/*` + `Tree/ExtractTree` workflows, capital in the 36 top-level
+    ones.
+  - `Table/Get Cell Attribute` was documented with an `ExtractDataTable` argument it does not
+    have, and without its actual `Attribute` / `Value` pair.
+  - The `ScrollBar*` shorthand was never expanded; the five real names are now written out,
+    including that `ScrollBarMax` alone is `Int32`.
+  - `Table/Item Count By Column Index` spells it `ExtractedDataTable` where every other
+    activity uses `ExtractDataTable`.
+  - **The Avaloq library declares higher dependency floors than the Avaloq template pins**
+    (library `System 24.10.8` / `UIA 24.10.17`; template `[24.10.7]` / `[24.10.10]`), so a
+    restore resolves a conflict nobody asked for. Raise the template pins with the next bump.
 - **The Workflow Analyzer is part of review, not an optional extra.** `uip rpa analyze` at Code
   Review and UAT, and the report names **which rule set actually ran** — a signed-in tenant's
   policy, a `Default` file type, or a rule id this Studio version does not recognise each
