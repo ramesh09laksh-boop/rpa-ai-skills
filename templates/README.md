@@ -49,16 +49,48 @@ leaves empty or gets wrong for this estate:
   Exceptions_Screenshots/
 ```
 
-**No `Main.xaml` and no `Framework/*.xaml`.** Those come from Studio's own
+**No `Main.xaml` and no `Framework/*.xaml`.** Those come from UiPath's own
 *Robotic Enterprise Process* template, which is the authoritative source for them and stays
 in step with your Studio version. Shipping a frozen copy here would rot, and nobody in this
 repo can verify a hand-written REFramework `.xaml` still opens. Each template's README lists
 the deltas to apply to the generated skeleton.
 
+Generate it either with the CLI (`uip rpa init --template-package-id
+UiPath.Template.REFramework …`) or from Studio. Both routes, and the full delta table, are in
+the `project-scaffolding` skill, `references/generating-the-skeleton.md`.
+
+### Version combinations: what has actually been verified
+
+Studio version, template package version and config format have to agree, and the combination
+drifts with every Studio release. **Add a row when you confirm one works** — that is what makes
+the next project cheaper than this one.
+
+| Template package | Version | Ships | `studioVersion` | `UiPath.UIAutomation.Activities` | Verified |
+|---|---|---|---|---|---|
+| `UiPath.Template.REFramework` | `26.10.1` | `Data/Config.json` (**JSON** `InitAllSettings`), queue-based `GetTransactionData`, **no `in_ENV`** in `Main.xaml`, no `designOptions.modernBehavior` | `26.10.0.0` | `[26.10.6]` | Generated and inspected via `uip rpa init` (uip 1.204.0) |
+| `templates/` here, from `../REFramework-*/` | — | `Config_TST/PRD.xlsx` | `23.10.8.0` | — | The estate's current baseline |
+
+Three consequences worth stating plainly:
+
+- **26.10.x ships the JSON config variant.** If the SDD chose `Config_<ENV>.xlsx` — the estate
+  default — request a 25.10.x template version instead, or you inherit an `InitAllSettings` that
+  reads the wrong format. `uip rpa templates search` returns only the latest version per
+  package, so an older one has to be named by exact version string.
+- **`in_ENV` is an estate addition, not stock REFramework.** The generated `Main.xaml` has no
+  `x:Members` at all, so the whole `Config_<ENV>` mechanism has to be added.
+- **The capture pin and the template pin disagree.** 26.10.1 brings
+  `UiPath.UIAutomation.Activities [26.10.6]`, while selector capture with `uip rpa uia` is
+  verified at `26.10.4` (see the `web` skill). Reconcile deliberately; do not let `init` decide it.
+
+**Never mix `Framework/` files across template versions.** The 25.10.1 xlsx-config
+`InitAllSettings.xaml` dropped into a 26.10 skeleton produced a `BC31424` compile error that
+both `validate-project` and `uip rpa build` reported as clean.
+
 #### If Studio is not available
 
-You do not have to hand-write the skeleton, and you should not. Seed `Main.xaml` and
-`Framework/*.xaml` by **copying them from an unmodified REFramework project** — the three
+You do not have to hand-write the skeleton, and you should not. Either use the CLI route above,
+or seed `Main.xaml` and `Framework/*.xaml` by **copying them from an unmodified REFramework
+project** — the three
 reference projects one level above this repo (`../REFramework-Dispatcher-Base/`,
 `../REFramework-Performer-Avaloq/`, `../REFramework-Performer-Finnova/`) are real Studio 23.10
 Windows projects and exist for exactly this. Any untouched REFramework in the estate works too.

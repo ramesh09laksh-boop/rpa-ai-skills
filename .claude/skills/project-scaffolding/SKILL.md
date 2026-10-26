@@ -28,22 +28,11 @@ only the Performer; do not invent a Dispatcher the process does not need.
 
 ### Non-queue REFramework
 
-Both Performer templates assume an Orchestrator queue in two places, and neither is flagged in
-their deltas. Fetch a Performer for a process that has no queue and it will run green having
-processed nothing — the same silent failure the repo warns about for a mismatched queue name.
-
-Three things must change together:
-
-| What | Stock | With no queue |
-|---|---|---|
-| `Framework/GetTransactionData.xaml` | Get Transaction Item against `in_Config("OrchestratorQueueName")` | Read the source **once** on the first pass (`in_TransactionNumber = 1`), hold it in a `DataTable`/collection, then hand out one item per call and `Nothing` when exhausted |
-| `Constants!MaxRetryNumber` | `0` — "must be 0 when working with Orchestrator queues" | **Non-zero.** With no queue there is no queue definition to carry the retry count, so `0` means a transient failure is never retried at all |
-| `Settings!OrchestratorQueueName` | `[UC-SPECIFIC — replace]` | `(not used - no queue)`. An explicit value shows the key is deliberately unused; an empty cell is indistinguishable from one nobody filled in |
-
-`in_TransactionItem` stops being a `QueueItem` and becomes whatever your source yields — a
-`DataRow`, a mail, a file path. `SetTransactionStatus.xaml` must lose its queue calls while
-keeping the retry and circuit-breaker counters and the failure screenshot. `validate-project`
-will not flag a non-zero `MaxRetryNumber`, but it *will* flag a queue name left at stock.
+A process with **no** Orchestrator queue needs three changes made together
+(`GetTransactionData`, `MaxRetryNumber`, `OrchestratorQueueName`), and neither Performer
+template flags them. Making one or two of the three is worse than making none, because the
+result looks wired and processes nothing. Full recipe:
+`references/non-queue-reframework.md`.
 
 **If `rpa-ai-skills` is already checked out locally, skip the script and copy the folder.**
 The script exists for the case where it isn't — it is not the only sanctioned route.
@@ -85,36 +74,45 @@ a mirror — GitHub returns "not found" for both. The scripts say so when they f
 
 ### Fetched files have CRLF line endings — this is expected
 
-A fetched template will differ from the source in `rpa-ai-skills` on **every text file** if you
-diff it naively:
-
-```
-$ diff -r rpa-ai-skills/templates/REFramework-Dispatcher-Base ./REFramework-Dispatcher-Base
-   ... every .md, .json and .uiproj reported as changed
-```
-
-**That is line endings, not content.** Git's `core.autocrlf` normalises LF to CRLF on checkout
-on Windows, so the fetched copy is CRLF where the repo stores LF. Confirm it before chasing it:
-
-```bash
-diff -r --strip-trailing-cr <source> <fetched>   # exits clean if only line endings differ
-md5sum <source>/Data/Config_TST.xlsx <fetched>/Data/Config_TST.xlsx   # binaries are untouched
-```
-
-Verified on the real repo: content identical, all three `.xlsx` workbooks match by md5. It has
-no effect on UiPath — Studio and the Excel activities do not care — so **there is nothing to
-fix here.** Do not add a `.gitattributes` to force LF or re-normalise a fetched template; the
-only cost is a noisy diff, and the two commands above settle it in seconds.
+A naive `diff -r` reports **every** text file as changed. That is `core.autocrlf`, not content:
+`diff -r --strip-trailing-cr` exits clean and the `.xlsx` files match by md5. Nothing to fix for
+markdown/JSON; `*.sh` is the one exception, and the repo's `.gitattributes` already handles it.
+Details: `references/fetched-files-crlf.md`.
 
 ## After fetching — this is not a finished project
 
 The template is project-level scaffolding only. Three things still have to happen, in order:
 
-1. **Generate `Main.xaml` and `Framework/*.xaml` from Studio.** File → New →
-   **Robotic Enterprise Process**, Compatibility: **Windows** (not *Windows – Legacy*). The
-   templates deliberately ship no `.xaml` — Studio is the authoritative source for those and
-   stays in step with your Studio version. Then copy the fetched `project.json`,
-   `project.uiproj`, `entry-points.json`, `Data/` and `Tests/` over what Studio produced.
+1. **Generate `Main.xaml` and `Framework/*.xaml`.** The templates deliberately ship no `.xaml`
+   — the REFramework skeleton comes from UiPath so it stays in step with your Studio version.
+   Two routes, both verified:
+
+   - **Route B — the CLI** (preferred; no Studio session needed):
+
+     ```bash
+     uip rpa templates search --query "REFramework" --output json
+     uip rpa init --name "ScratchREF" \
+       --template-package-id "UiPath.Template.REFramework" \
+       --template-package-version "26.10.1" \
+       --target-framework Windows --location "<scratch dir>" \
+       --skip-solution-registration
+     ```
+
+     Generate into a **scratch folder**, then copy `Main.xaml` + `Framework/` into the project.
+   - **Route A — Studio** (fallback): File → New → **Robotic Enterprise Process**,
+     Compatibility: **Windows** (not *Windows – Legacy*).
+
+   Either way, copy the fetched `project.json`, `project.uiproj`, `entry-points.json`, `Data/`
+   and `Tests/` over what was produced.
+
+   **The generated skeleton does not match this estate** — 26.10.1 ships a JSON
+   `Data/Config.json`, a `Main.xaml` with **no `in_ENV` at all**, no
+   `designOptions.modernBehavior`, and `studioVersion 26.10.0.0` against the templates'
+   `23.10.8.0`. Pick `--template-package-version` to match the SDD's config-format decision
+   (26.10.x = JSON `InitAllSettings`, 25.10.x = xlsx), and **never mix `Framework/` files across
+   template versions** — that is what produced the `BC31424` compile error that `validate-project`
+   and `uip rpa build` both missed. Full delta table and commands:
+   `references/generating-the-skeleton.md`.
 2. **Apply the "Deltas to apply to the generated skeleton" section** from the fetched
    template's own `README.md`. That section is what turns a stock REFramework skeleton into a
    Dispatcher or a Finnova/Avaloq Performer — it is the substance of the template, not an
@@ -136,33 +134,19 @@ The template is project-level scaffolding only. Three things still have to happe
    any error, so it drops straight into CI. An unreplaced marker is a review finding; this is
    what finds it.
 
-   **A `WARN` is not "pre-existing, therefore harmless".** `relative-persisted-path` is one of
-   the silent-failure traps the skills already document in full: at runtime the working
-   directory is the *extracted package*, so a relative config path writes into a folder that is
-   discarded on the next publish. In the case that produced that rule, the lost file was the
-   audit log providing idempotency, and losing it silently re-armed duplicate emails to external
-   parties. Fix it before the first real run, not after.
+   **A `WARN` is not "pre-existing, therefore harmless".** `relative-persisted-path` in
+   particular is a documented silent-failure trap — fix it before the first real run.
 
    Four rules land as warnings on the **leaf-workflow contract** —
    `system-workflow-no-config`, `system-workflow-no-outcome`, `secret-argument-string`,
-   `logic-workflow-no-arguments`. They are warnings because they are new, not because they are
-   optional: a scaffold that trips them does not meet the `_System` contract in
-   `standards/references/project-layout.md`. For calibration, the estate's reference-quality
-   project (UC39) reports **zero** of them, while the two older processes report several.
+   `logic-workflow-no-arguments`. They are warnings because the rules are new, not because the
+   contract is optional: a scaffold that trips them does not meet the `_System` contract in
+   `standards/references/project-layout.md`. Calibration — the estate's reference-quality
+   project (UC39) reports **zero** of them.
 
-   A rule that is genuinely not applicable yet goes in a `validate-project.ignore` beside
-   `project.json`, one `rule: reason` per line, indented lines continuing the reason:
-
-   ```
-   assets-parity: The credential Orchestrator assets do not exist yet, so the TST Assets sheet
-     carries only the rows that resolve today. InitAllSettings resolves every Assets row at
-     startup, so shipping rows for assets nobody has created fails Initialization.
-   ```
-
-   A suppressed finding is **still printed**, with its reason — it just stops failing the run.
-   That is the point: a rule you can switch off silently is a rule nobody trusts six months
-   later. `-SkipRule <name>` does the same thing ad hoc, without the written reason, and is
-   meant for experimenting rather than for committing.
+   A rule that genuinely does not apply yet goes in a `validate-project.ignore` beside
+   `project.json` **with a written reason**, and the finding is still printed. See
+   `references/suppressing-a-rule.md`.
 
 ## `validate-project` PASS is level 1 of 4 — say which level you reached
 
@@ -215,6 +199,17 @@ The queue name is the one that bites silently: `OrchestratorQueueName` must be
 **byte-identical** in both projects' `Settings` sheets. A mismatch throws nothing. The
 Dispatcher enqueues, the Performer polls a queue that is empty or does not exist, and both
 jobs finish green in Orchestrator with no work done.
+
+## References
+
+- `references/generating-the-skeleton.md` — Route A (Studio) and Route B (`uip rpa init`) for
+  `Main.xaml` + `Framework/`, what 26.10.1 actually produces, and the deltas against this estate
+- `references/evidence-ladder.md` — L1–L4, and why a PASS without a level is not a report
+- `references/cli-command-map.md` — the real `uip rpa` command names in 1.204.0, and the
+  Studio-IPC vs compiler split
+- `references/non-queue-reframework.md` — the three changes a queue-less process needs
+- `references/suppressing-a-rule.md` — `validate-project.ignore`, and what a suppression is not for
+- `references/fetched-files-crlf.md` — why a fetched template diffs on every text file
 
 ## Related skills
 
