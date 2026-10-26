@@ -1,0 +1,30 @@
+# Line-ending and diff policy.
+#
+# The default is deliberately hands-off: markdown, JSON and .uiproj files are checked out in
+# the platform's own line endings, which is why a fetched template diffs against the source on
+# every text file while being byte-identical in content. That costs a noisy diff and nothing
+# else -- see the project-scaffolding skill, references/fetched-files-crlf.md.
+#
+# Shell scripts are the exception, and not a cosmetic one. With core.autocrlf=true (the Git for
+# Windows default) a committed `#!/usr/bin/env bash\n` is checked out as `...bash\r\n`, and
+# `bash\r` is not the name of any interpreter. The script then fails to execute on Linux, macOS,
+# WSL and Git Bash with a message that names the whole shebang and explains nothing. Both
+# scripts in this repo ship with a shebang, so both need eol=lf.
+
+* text=auto
+
+# Executed by an interpreter named in the shebang -- must be LF everywhere.
+*.sh text eol=lf
+
+# Interpreted by PowerShell, which accepts either, but keep them consistent across platforms.
+*.ps1 text eol=crlf
+
+# Binary: never line-ending-converted, never diffed as text. An .xlsx is a zip; converting it
+# corrupts it.
+*.xlsx binary
+*.xlsm binary
+*.nupkg binary
+*.pdf binary
+*.pptx binary
+*.png binary
+*.jpg binary
