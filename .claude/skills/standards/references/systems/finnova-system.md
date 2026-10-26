@@ -1,5 +1,12 @@
 # `Finnova_System/` — Finnova core banking
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. Modern equivalent: `templates/`
+> (Windows / `modernBehavior: true`, Studio 23.10.8.0), plus `wiring-the-framework.md` in the
+> `standards` skill. Folder layout and the `_System`/`Logic` split carry over
+> unchanged; `project.json` values, activity choices and `Framework/` internals do not.
+
 UI interaction with the Finnova Java thin client. For the activity API of the underlying
 library, use the `finnova-library` skill.
 

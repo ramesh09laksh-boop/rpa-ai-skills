@@ -149,14 +149,53 @@ The template is project-level scaffolding only. Three things still have to happe
    any error, so it drops straight into CI. An unreplaced marker is a review finding; this is
    what finds it.
 
+   **`config-key-undefined` (error)** catches a workflow reading a config key no sheet defines.
+   A missing key returns `Nothing` from the Dictionary, the expression becomes `""`, and the run
+   continues with an empty path, queue name or timeout — no error, wrong behaviour. Keys the
+   project *assigns* into Config at runtime (stock REFramework does this for `ENV` in
+   `Main.xaml`) count as defined.
+
    **A `WARN` is not "pre-existing, therefore harmless".** `relative-persisted-path` in
    particular is a documented silent-failure trap — fix it before the first real run.
 
-   Four rules land as warnings on the **leaf-workflow contract** —
-   `system-workflow-no-config`, `system-workflow-no-outcome`, `secret-argument-string`,
-   `logic-workflow-no-arguments`. They are warnings because the rules are new, not because the
-   contract is optional: a scaffold that trips them does not meet the `_System` contract in
-   `standards/references/project-layout.md`. Calibration — the estate's reference-quality
+   **The three sample projects under `../Finnova/` and `../Avaloq/` are `targetFramework:
+   Legacy`** (`modernBehavior: false`, Studio 20.10–21.10). Running this checker on them is
+   **informational only** — the rules encode the modern estate's contract, which those projects
+   predate. Calibrate against the templates and modern UC projects instead, and **never tune a
+   rule to lower a Legacy sample's count**. See `README.md`.
+
+   ### The four leaf-workflow-contract rules
+
+   | Rule | Fires when |
+   |---|---|
+   | `system-workflow-no-config` | an `<App>_System/` workflow declares no `in_Config` |
+   | `system-workflow-no-outcome` | an `<App>_System/` workflow declares no `out_`/`io_` argument, so a no-op is indistinguishable from success |
+   | `secret-argument-string` | a password/secret/token-named argument is typed `String` rather than `SecureString` |
+   | `logic-workflow-no-arguments` | a `Logic/` workflow declares no arguments at all, so callers reimplement the rule inline |
+
+   They are warnings because the rules are new, not because the contract is optional: a scaffold
+   that trips them does not meet the `_System` contract in
+   `standards/references/project-layout.md`.
+
+   **Calibration on modern projects** (`targetFramework: Windows`), measured 2026-10-26 with
+   `grep -a`:
+
+   | Project | `no-config` | `no-outcome` | `logic-no-arguments` | `secret-argument-string` |
+   |---|---|---|---|---|
+   | all three `templates/` | 0 | 0 | 0 | 0 |
+   | Lanes (a real modern UC project) | **6** | **6** | **2** | **1** |
+
+   Zero on the templates, so the rules do not fire on conformant modern scaffolding. The Lanes
+   findings, by file — every one a defect the project's own review had already identified:
+
+   - `no-config` (6): `Lanes-Create_Card`, `Lanes-Edit_Card`, `Lanes-Open_Board`,
+     `Lanes-Read_Board`, `Lanes-SignIn`, `Lanes-Verify_Session`
+   - `no-outcome` (6): `Lanes-Create_Card`, `Lanes-Edit_Card`, `Lanes-Move_Card`,
+     `Lanes-Open_Board`, `Lanes-Read_Board`, `Lanes-SignIn`
+   - `logic-no-arguments` (2): `Logic-Classify_Exception`, `Logic-Validate_Title`
+   - `secret-argument-string` (1): `Lanes-SignIn` — `in_Password` declared `String`
+
+   Calibration — the estate's reference-quality
    project (UC39) reports **zero** of them.
 
    A rule that genuinely does not apply yet goes in a `validate-project.ignore` beside
@@ -174,16 +213,23 @@ Studio showed a compile error in `Framework/InitAllSettings.xaml` and every run 
 |---|---|---|
 | **L1** | Estate conformance (static) | `validate-project.sh` / `.ps1` |
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
+| **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A real run of `Main.xaml` on TST, with a log excerpt | Studio, or `uip rpa run` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
 
 Every report names the highest level reached **and the command that proved it**. A wiring or
 "project ready" stage is not done below **L3** — L1 and L2 both passed on a project Studio
-could not compile. Never write PASS without the level.
+could not compile. **L2b is separate because `validate` and `build` are not the last
+compile-time gate** — a missing assembly reference and `ST-SEC-008` both pass them and fail at
+`pack`. **A local `uip rpa run` is L3 evidence, not L4**: L4 is a real job in the Orchestrator
+folder on a robot. A mocked run reaches **L3 at most**. Never write PASS without the level.
 
 Full detail, the two traps in those commands, and why `validate` is not a superset of the
-analyzer: `references/evidence-ladder.md`. The command names changed in `uip` 1.204.0 —
-`run-file`, `get-analyzer-rules`, `search-templates` and `create-project` no longer exist; see
+analyzer: `references/evidence-ladder.md`. **Command names are per-tool and per-version** —
+`uip` is a host plus separately-versioned tools. On **rpa-tool 1.204.2** the earlier
+`run-file`, `get-analyzer-rules`, `search-templates`, `create-project` and `find-activities`
+are absent — the equivalents are `run --file-path`, `analyzer-rules list`, `templates search`,
+`init` and `activities find`. Check `uip tools list` and see
 `references/cli-command-map.md`.
 
 ## Three decisions to settle before the first publish

@@ -67,7 +67,7 @@ the next project cheaper than this one.
 
 | Template package | Version | Ships | `studioVersion` | `UiPath.UIAutomation.Activities` | Verified |
 |---|---|---|---|---|---|
-| `UiPath.Template.REFramework` | `26.10.1` | `Data/Config.json` (**JSON** `InitAllSettings`), queue-based `GetTransactionData`, **no `in_ENV`** in `Main.xaml`, no `designOptions.modernBehavior` | `26.10.0.0` | `[26.10.6]` | Generated and inspected via `uip rpa init` (uip 1.204.0) |
+| `UiPath.Template.REFramework` | `26.10.1` | `Data/Config.json` (**JSON** `InitAllSettings`), queue-based `GetTransactionData`, **no `in_ENV`** in `Main.xaml`, no `designOptions.modernBehavior` | `26.10.0.0` | `[26.10.6]` | Generated and inspected via `uip rpa init` (rpa-tool 1.204.2) |
 | `templates/` here, from `../REFramework-*/` | — | `Config_TST/PRD.xlsx` | `23.10.8.0` | — | The estate's current baseline |
 
 Three consequences worth stating plainly:

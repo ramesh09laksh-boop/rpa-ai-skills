@@ -1,5 +1,11 @@
 # `AI/` — LLM chat-completion endpoint
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. **No modern equivalent is known** for the
+> specific workflow inventories below — no modern UC project in this estate drives this
+> application yet. Treat the inventory as historical and re-verify before relying on it.
+
 An HTTP integration with a chat-completion model, used by
 `UC39_BPO_manuelle_Börsenaufträge` to derive commission adjustments from free-text
 backoffice messages that rule-based parsing could not handle.

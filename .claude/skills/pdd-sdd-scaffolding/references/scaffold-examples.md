@@ -1,5 +1,12 @@
 # Worked examples — screenshot to scaffold
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. Modern equivalent: `templates/`
+> (Windows / `modernBehavior: true`, Studio 23.10.8.0), plus `wiring-the-framework.md` in the
+> `standards` skill. Folder layout and the `_System`/`Logic` split carry over
+> unchanged; `project.json` values, activity choices and `Framework/` internals do not.
+
 Three cases, in the order you hit them: instruction text present, arrow only, and no app
 access. Notation matches the `finnova-library` skill, `references/usage-example.md` —
 activity name on the left, arguments indented.

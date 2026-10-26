@@ -70,6 +70,10 @@ Also available: `Wait For Dialog Vanish`, `Wait For Button Enabled`, `Window Exi
 
 ## References
 
+- `references/activities-signatures.md` — **generated** from the library source's
+  `x:Members`: every argument's name, direction and type, per workflow file. The
+  mechanical truth; `activities.md` carries the meaning. Regenerate on a version bump
+  with the `project-scaffolding` skill, `scripts/check-library-signatures.ps1`
 - `references/activities.md` — every activity, exact argument names, types and gotchas (exhaustive)
 - `references/selector-model.md` — how selectors are built, Citrix RemoteApp, window titles
 - `references/usage-example.md` — worked call sequences taken from the sample projects

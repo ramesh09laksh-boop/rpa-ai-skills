@@ -231,14 +231,166 @@ invocation). Both sets load, and they overlap.
 When the two disagree, **follow the estate and note the conflict in
 `Documentation/Progress.md`** — so it gets settled once rather than re-decided per project.
 
+## The three sample projects are Legacy — `validate-project` on them is informational
+
+`../Finnova/UC39_…`, `../Finnova/PJFVA-966_UC81_…` and `../Avaloq/TKB-UC11.…` are
+**`targetFramework: Legacy`**, `modernBehavior: false`, Studio 20.10–21.10. Verified from their
+`project.json`. New projects are **Windows / `modernBehavior: true`** — that is what `templates/`
+and the three `../REFramework-*/` reference skeletons ship.
+
+They are **evidence**, not conformance targets. So:
+
+- **Running `validate-project` on them is informational only.** The rules encode the modern
+  estate's contract; a Legacy project predates it and was never built to it. A finding there
+  tells you about the rule's reach, not about the project's quality.
+- **Never tune a rule to lower their counts.** A rule exists to catch a silent failure on a
+  *new* project. Relaxing it so an old Legacy project scores better removes that protection from
+  every future project in exchange for a number nobody should be reading. This happened once and
+  was reverted.
+- **Calibrate against modern projects**: the three templates and any Windows/modern UC project.
+  The templates currently report **zero** leaf-workflow-contract findings, which is the
+  calibration that matters.
+- **Do not migrate a Legacy project** as a side effect of anything. That is deliberate work, and
+  `AGENTS.md` says so.
+
+## Releasing
+
+`main` is what every UC project pulls on its next `npx skills update`, so a merge to `main` *is*
+a release. Treat it like one.
+
+1. **Work on a branch**, one commit per change, each with the command and output that prove it.
+2. **Open a PR and let CI pass** — [`.github/workflows/checks.yml`](.github/workflows/checks.yml)
+   runs the skill lint, `validate-project -TemplateMode` on all three templates, `bash -n` on
+   every shipped script, and a check that the template workbooks still regenerate.
+3. **Work [`evals/trigger-prompts.md`](evals/trigger-prompts.md)** on the agents the estate uses.
+   A skill that does not load is a skill that does not exist, and CI cannot test that.
+4. **Update [`CHANGELOG.md`](CHANGELOG.md)**, including a *Known open* entry for anything carried
+   deliberately rather than fixed.
+5. **Tag**, then **merge**. Annotated tag, `v<major>.<minor>.<patch>`.
+
+### Tags are pinnable — commits are not
+
+Tested against the current `skills` CLI, by installing the same skill from three different refs
+and diffing the result:
+
+| Form | Works? |
+|---|---|
+| `owner/repo` | yes — tracks the default branch |
+| `owner/repo#v0.2.0` (**tag**) | **yes** — verified: installing `#v0.2.0` omits a file that exists on the branch |
+| `owner/repo#some-branch` | **yes** — verified: installing `#chore/post-release-0.2.1` includes that file |
+| `owner/repo#<commit-sha>` | **no** — `fatal: Remote branch <sha> not found in upstream origin` |
+
+So `#ref` is handed to git as a **branch-or-tag**, not an arbitrary ref. That makes tagging worth
+doing: a UC project that needs to stay still can install `…#v0.2.0`, and a project testing an
+unmerged change can install `…#<branch>`. Pinning to a commit is not available.
+
+### `npx skills update` stays on a pinned ref — so pinning works
+
+Tested, because "tags are installable" would be worthless if `update` silently dragged a project
+back to `main`.
+
+**What `add` records.** Installing from `…#v0.2.0` writes the ref into `skills-lock.json`:
+
+```json
+"standards": { "source": "ramesh09laksh-boop/rpa-ai-skills", "ref": "v0.2.0", … }
+```
+
+**What `update` then does.** It respects that `ref` and does **not** move the install to the
+default branch. Verified with a content discriminator — installing from a branch that carries a
+file `main` does not have, then updating:
+
+| | |
+|---|---|
+| After `add …#<branch>` | the branch-only file is **present**; lock `ref` = the branch |
+| After `npx skills update -y` | *"All project skills are up to date"* — the file is **still present**, lock `ref` **unchanged** |
+
+So `update` compares against the **pinned ref**, not against `main`.
+
+- Pinned to a **tag** → the tag is immutable, so the project stays on that content until someone
+  changes the ref. *(Directly observed for a branch ref; for a tag this follows from the same
+  mechanism plus the tag being immutable — not separately observed, because `main` and `v0.2.0`
+  are currently identical and nothing could distinguish them.)*
+- Pinned to a **branch** → `update` follows that branch as it moves.
+- **No ref** → tracks the default branch, which is the current default and why a merge to `main`
+  is a release.
+
+#### Recommendation for UC projects
+
+**Pin a tag.** A UC project in UAT or production should not have its guidance change because
+someone merged a PR here:
+
+```bash
+npx skills add ramesh09laksh-boop/rpa-ai-skills#v0.2.0 --skill uc-delivery --skill standards …
+```
+
+Then move the pin deliberately — read the CHANGELOG, bump the ref, re-run `validate-project`.
+Leave the pin off only while a project is in active development and wants the latest guidance.
+
+### Rollback is a revert, not a retag
+
+A tag that has been pulled cannot be meaningfully moved — someone already has the old content
+under that name. To undo a release: **revert the offending commit on `main`** and cut a new
+patch release. Keep the bad tag in place as a record of what happened.
+
+### Branch protection
+
+**Recommended, not configured, and I have not checked whether this repository's plan supports
+it.** Private-repository branch protection depends on the GitHub plan, and nothing here should
+claim otherwise. If it is available, the settings worth having on `main` are: require the
+`checks` workflow to pass, require a PR, and disallow force-pushes. Until then the protection is
+procedural — step 2 above, honoured.
+
+## Upgrading from v0.1.x
+
+Three steps, and the third is the one that matters most. Do them in order.
+
+**1. Run the conformance checker.** New rules have been added since v0.1.x, so expect findings
+on a project that was clean before:
+
+```bash
+pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/validate-project.ps1 <project>
+```
+
+Likely new findings: `config-key-undefined`, `unresolved-mock`, `object-repository-not-shared`,
+and the four leaf-workflow-contract warnings. On an **existing** project the contract warnings
+are a backlog — a blanket suppression with a written reason in `validate-project.ignore` is
+legitimate. `config-key-undefined` and `object-repository-not-shared` are **errors** and are not.
+
+**2. If `object-repository-not-shared` fires, remove `.objects/` from the project's
+`.gitignore`.** A project instantiated before v0.2.0 inherited an ignore rule that hides its
+captured selectors — `npx skills update` cannot fix that, because the line lives in the
+project's own file. Delete it; keep `.local/` and `.settings/`.
+
+**3. Before you commit `.objects/`, read what is in it.** This is the step with real risk, and
+it only exists because of step 2. Object Repository descriptors are captured from a live
+application, and the capture records what was on screen:
+
+```bash
+# look before you add - the .content files hold the selectors verbatim
+grep -rliE "password|secret|token|apikey|bearer|@[a-z0-9.-]+\.[a-z]{2,}" .objects/
+```
+
+Check for, and strip or re-capture:
+
+- **credentials or tokens** in a `url`, `aaname` or `innertext` attribute — a session token in a
+  query string is the common one;
+- **email addresses and customer names** picked up from the page;
+- **account, contract or customer numbers** used as the business key during capture;
+- **`.images/` screenshots.** Each descriptor can carry a captured image of the element and its
+  surroundings, and those are screenshots of a logged-in session — the same data-protection
+  concern as `Exceptions_Screenshots/`.
+
+If a descriptor contains any of it, **re-capture against throwaway test data** rather than
+editing the file by hand. Then commit.
+
 ## Development lifecycle
 
-**Ten stages**, each a short prompt you can paste into Claude Code (or any agent with these
+**Eleven stages** (ten numbered, plus 7b), each a short prompt you can paste into Claude Code (or any agent with these
 skills installed). Every prompt routes to skills that already exist in this repo — none of them
 duplicate skill content, they just point the agent at the right ones for that stage.
 
 ```
-PDD → SDD → Project → Wire → Capture → Develop → Test → Review → UAT → Deploy
+PDD → SDD → Project → Wire → Capture → Develop → Test → Review → E2E run → UAT → Deploy
                                                                           ↑________|
                                                                     Change / Enhancement
 ```
@@ -249,6 +401,9 @@ Two stages are new, and both were missing for the same reason — they are the w
 - **Wire** — connecting the SDD's transactions to the Framework. Skipping it produces a project
   with good leaf workflows that runs green and processes **zero** transactions.
 - **Capture** — resolving every `TODO_SELECTOR` against the live application with `uip rpa uia`.
+- **End-to-end run** (7b) — the first time the automation runs as a **job in the Orchestrator
+  folder, on a robot**, rather than in a developer's session. This is **L4**, and nothing before
+  it proves the automation works.
 
 ### Working rules — paste this at the top of any stage prompt
 
@@ -258,10 +413,12 @@ stages 1 and 3. Rather than repeat it unreliably, it lives here as one block to 
 ```
 Working rules: never invent a selector, activity, argument, API, config value, credential or
 business rule — if the source is silent it is an Open Question / TODO. Report the highest
-check level reached (L1 validate-project, L2 uip rpa validate+build, L3 Studio Error List
-clean, L4 real run) with the command used. "Needs Studio" only with the exact command and its
-error. Commit locally after each item; keep Documentation/Progress.md updated. Do not stop
-between items — log a blocker and continue with the next.
+check level reached, with the command used: L1 validate-project, L2 uip rpa validate+build,
+L2b uip rpa pack, L3 Studio Error List clean, L4 a real job on TST in the Orchestrator folder
+on a robot with the SDD acceptance table. A local run or a mocked run is L3 at most, never L4.
+"Needs Studio" only with the exact command and its error. Commit locally after each item; keep
+Documentation/Progress.md updated. Do not stop between items — log a blocker and continue with
+the next.
 ```
 
 ### 1. PDD → SDD
@@ -373,6 +530,40 @@ that actually load — see `standards/references/code-quality.md`. Fix findings;
 rule to pass.
 ```
 
+### 7b. End-to-end run in the Orchestrator folder
+
+The first run that proves anything. Everything before this is a developer's session.
+
+```
+Load `standards` (end-to-end-run) and `security`. This estate is Automation Suite, not
+Automation Cloud — read the Environment block in the project's AGENTS.md for the Orchestrator
+host, tenant, folder path, robot machine and feed; if it is missing, create it first.
+
+1. Preflight: `preflight.sh <project> --skip-capture` plus
+   `preflight.ps1 -ProjectPath <project> -FolderPath <folder>`. Fix anything blocking. The
+   robot-side prerequisites are NOT scriptable — robot version vs the package pins, the robot's
+   own package sources, an interactive session, the browser extension for the service account,
+   the app being reachable from the robot machine. Confirm them with whoever owns the robot and
+   say which are unverified.
+2. Pack (L2b): `uip rpa pack <project> --output-path <dir>` from a clean checkout. Do not pass
+   --ignored-rules or --skip-analyze.
+3. Publish: `uip or packages upload <.nupkg>`, then `uip or packages versions <id>` to confirm.
+4. Confirm the folder: process bound to that version, credential asset, queue (if any), and a
+   TST config with no [UC-SPECIFIC — replace] and no undefined key.
+5. Start the job: `uip or jobs start <process-key> --folder-path <folder>
+   --input-arguments '{"in_ENV":"TST"}'`. Keep the job key.
+6. Read it back: `uip or jobs get`, `uip or jobs history`, `uip or jobs logs --level Warning`,
+   and the queue results via `uip or queue-items list --status Successful|Failed`.
+7. Complete the SDD acceptance table: SDD step → evidence → pass/fail, with the application
+   state read back INDEPENDENTLY of the robot's logs, per-transaction results compared with the
+   test data, negative-data rows producing the expected Business exceptions, no [MOCK] or
+   TODO_SELECTOR anywhere, and transaction count equal to input count.
+
+Report the level reached with the command that proved it. A Successful job that processed 0
+transactions is a failure, not a pass. If you could not start a job, say so and report L2b or
+L3 — do not describe a local run as L4.
+```
+
 ### 8. UAT Readiness
 
 ```
@@ -429,12 +620,17 @@ So "validated" on its own is not a claim. Name the level and the command:
 |---|---|---|
 | **L1** | Estate conformance (static) | `validate-project.sh` / `.ps1` |
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
+| **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A real run of `Main.xaml` on TST, with a log excerpt | Studio, or `uip rpa run` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
 
-A wiring or "project ready" stage is **not done below L3**; "tested" means **L4**, with the log
-excerpt attached. Detail and the Studio-IPC trap in those commands:
-[`evidence-ladder.md`](.claude/skills/project-scaffolding/references/evidence-ladder.md).
+A wiring or "project ready" stage is **not done below L3**. "Tested" means **L4** — a real job
+started in the Orchestrator folder on a robot, with job state, logs and the SDD acceptance table.
+**A local run of `Main.xaml` is L3 evidence, not L4**, and a **mocked** run reaches L3 at most.
+L2b is a rung of its own because a missing assembly reference and `ST-SEC-008` both pass
+`validate` and `build` and fail only at `pack`. Detail:
+[`evidence-ladder.md`](.claude/skills/project-scaffolding/references/evidence-ladder.md);
+procedure: [`end-to-end-run.md`](.claude/skills/standards/references/end-to-end-run.md).
 
 ## Definition of Done (UiPath project)
 
@@ -512,6 +708,34 @@ the result, update [`CHANGELOG.md`](CHANGELOG.md), and tag the release.
    No invented activities, no invented selectors.
 4. Opening `rpa-ai-skills` itself in Claude Code or Copilot picks the skills up
    automatically — `.claude/skills/` is auto-discovered, so you can test a change in place.
+
+### On a Finnova or Avaloq library version bump
+
+The library skills document exact argument names, and several are load-bearing — a misspelling
+that must be copied verbatim, an `Idx` vs `idx` casing split by activity family. Those are
+name/type/direction facts, and re-reading 155 workflows does not reliably catch a changed one.
+
+```bash
+# needs the library source projects checked out as siblings of this repo
+pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/check-library-signatures.ps1
+#   OK    -> signatures match the library source
+#   DRIFT -> re-run with -Generate and READ THE DIFF
+pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/check-library-signatures.ps1 -Generate
+```
+
+- `references/activities-signatures.md` in each library skill is **generated**. Do not hand-edit
+  it; change the library or re-run the script.
+- `references/activities.md` is **hand-written and stays that way.** Only 3 of 155 library
+  workflows carry any annotation, so what an argument is *for*, which activity to prefer, and
+  what a gotcha costs cannot be generated. The script never touches it.
+- **A changed argument name is a breaking change** for every workflow that calls it. Read the
+  diff; do not just commit it.
+- The script also lists real argument names that appear nowhere in `activities.md` —
+  informational, since some are deliberately undocumented internals (the Avaloq `CyberArk/*`
+  helpers are marked *"not intended for direct use"*).
+
+It runs in CI too, where the library sources are absent, so it prints an explicit
+`SKIPPED:` line and exits 0 — wired up and visible rather than passing vacuously.
 
 ### If Copilot doesn't pick a skill up when you open *this* repo
 

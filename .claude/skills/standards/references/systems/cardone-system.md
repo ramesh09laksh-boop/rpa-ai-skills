@@ -1,5 +1,11 @@
 # `CardOne_System/` — CardOne credit-card administration
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. Selectors depend on the **application**, not on the
+> project's target framework, so the selector content carries over unchanged. Only the
+> surrounding activity choices are Legacy — modern equivalents in the `web` skill.
+
 **Browser-based (Chrome).** CardOne is reached **from inside Avaloq** via a right-click
 context menu, then driven as an ordinary web application. Used by
 `../Avaloq/TKB-UC11.Kreditverletzung` to block credit cards for customers in credit-limit

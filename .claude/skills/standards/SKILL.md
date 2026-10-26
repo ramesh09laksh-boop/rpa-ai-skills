@@ -139,6 +139,12 @@ the `avaloq-library` skill.
 - `references/test-data.md` — ingesting a business test-data workbook: mapping its Config sheet
   onto Settings/Constants/Assets, why the provenance column matters more than the value, work
   items that depend on each other, and turning NegativeData into Business-exception tests
+- `references/mocking.md` — building against an application you cannot reach: mark it `[MOCK]`
+  in both the DisplayName and the annotation, what may and may not be mocked, and why a mocked
+  run reaches **L3 at most** and never L4
+- `references/end-to-end-run.md` — **L4**: the robot prerequisites (most not scriptable from a
+  developer machine, and marked as such), pack → publish → confirm the folder → start the job →
+  read state, logs and queue results, and the **SDD acceptance table** that makes it a pass
 - `references/deployment.md` — pack, publish, and the five things that must exist in the
   Orchestrator folder. TST first; PRD only with named approval. Does not duplicate Orchestrator
   mechanics — the official UiPath platform skill owns those

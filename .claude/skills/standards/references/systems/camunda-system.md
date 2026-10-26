@@ -1,5 +1,11 @@
 # `Camunda_System/` — Camunda DMN decision service
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. **No modern equivalent is known** for the
+> specific workflow inventories below — no modern UC project in this estate drives this
+> application yet. Treat the inventory as historical and re-verify before relying on it.
+
 An HTTP integration, not a UI one. Camunda hosts the **business decision tables** (DMN) that
 UC81 uses to map SIX iD values onto Finnova values. Present in
 `PJFVA-966_UC81_BPO_VD03_TK _Valoren` — one workflow.

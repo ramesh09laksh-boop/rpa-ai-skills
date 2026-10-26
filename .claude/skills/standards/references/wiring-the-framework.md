@@ -122,7 +122,7 @@ rules: the `security` skill.
 
 ## Authoring the XAML
 
-Author it with the CLI. Verified against `uip` **1.204.0**:
+Author it with the CLI. Verified against **rpa-tool 1.204.2**, 2026-10-26:
 
 ```bash
 uip rpa activities find --query "switch" --project-dir <project>
@@ -139,6 +139,29 @@ These are **Studio-IPC** commands and need a Studio instance with that project o
 
 **"Needs Studio" is only acceptable with the exact command you ran and the error it returned.**
 Without those it is a guess about the tool, and the tool is usually not the problem.
+
+## Reviewing a wired Framework
+
+A checklist says what should be true. This table says **where to look and what a failure looks
+like**, because every one of these passes inspection when it is wrong — that is why they are
+here rather than in the checklist.
+
+| File | Look for | Wrong looks like |
+|---|---|---|
+| `InitAllSettings.xaml` | Still stock (unless the SDD chose JSON config) | Edited to "just add one key" — the key belongs in the workbook, not the reader |
+| `GetTransactionData.xaml` | A real source call, and the 0-transaction guard | A `Log Message` where `Get Transaction Item` was. Yields `Nothing` on call 1, `Main` goes straight to End, job green, 0 transactions |
+| `InitAllApplications.xaml` | One `<App>-Login.xaml` invoke per application the SDD names | Empty, with the login moved into `Process.xaml` — then it re-authenticates per transaction. (UC81 does this deliberately; it is a decision, not a default) |
+| `Process.xaml` | A `Switch` on the transaction type, one arm per SDD type | An inline `If` about business meaning, or a UI activity directly in the file |
+| `SetTransactionStatus.xaml` | Business vs Application mapped from the classifier; retry and circuit-breaker counters intact | Queue calls removed **along with** the counters, when going queue-less. The circuit breaker goes with them, silently |
+| `CloseAllApplications.xaml` | Closes everything `InitAllApplications` opened, in reverse | Closes one application and leaves the rest. The next run's idempotent-login probe then finds a half-open session |
+| `KillAllProcesses.xaml` | Force-kills the same set | Empty, or `KillProcess chrome` — which takes down any other automation on the runner |
+
+Two cross-file checks that no single file reveals:
+
+- **Count the applications.** Every application opened in `InitAllApplications` appears in
+  **both** `CloseAllApplications` and `KillAllProcesses`. A mismatch leaks a session.
+- **Count the transaction types.** Arms in `Process.xaml` == transaction types in the SDD. Fewer
+  arms means a type falls through; more means one was invented.
 
 ## Done means
 

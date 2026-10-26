@@ -23,6 +23,45 @@ A decision nobody can trace gets re-litigated in review.
 
 ---
 
+## 0. The platform — this estate is Automation Suite, not Automation Cloud
+
+**Not a decision. A fact the skills must not get wrong**, listed first because everything below
+assumes it.
+
+This estate runs **UiPath Automation Suite** (self-hosted). It does **not** use Automation Cloud.
+Projects execute on a **UiRobot** through an **Orchestrator folder** — for example
+`Modern/RAP-Demo`.
+
+**Skills and agents must not assume Cloud.** Concretely:
+
+- The Orchestrator host is **your own** Automation Suite URL. It is not `cloud.uipath.com`, and
+  no instruction should hard-code or imply that host.
+- `uip login` targets it with **`--authority <url>`**. From the flag's own help text on this
+  machine:
+
+  > *Custom authority URL, e.g. `https://cloud.uipath.com` (default),
+  > `https://govcloud.uipath.us` (Public Sector), **or your Automation Suite host**.
+  > `https://` may be omitted*
+
+  So: `uip login --authority <automation-suite-host> --tenant <tenant>`. Keep TST and
+  production as separate **login profiles** (`uip login profiles list`, then `--profile <name>`
+  on any command) so a command cannot hit the wrong one by default.
+
+  **A non-interactive sign-in passes the secret by environment-variable reference only** —
+  `--client-secret env.UIPATH_CLIENT_SECRET`, never the value inline. The `security` skill owns
+  the rule; the mechanism is in the `standards` skill, `references/end-to-end-run.md`.
+- Cloud-only features are **not available by assumption.** If a skill or an agent proposes one,
+  that is a question for the team, not a step.
+- The package feed is the one the **folder** uses. Do not assume a tenant-wide cloud feed.
+
+### Record it per project, in the project's own `AGENTS.md`
+
+Each UC project carries an **Environment** block so an agent does not have to infer any of this.
+**Non-secret facts only** — names, hosts, paths and accounts; never a password, token, client
+secret or connection string. Template and field meanings: the `uc-delivery` skill.
+
+---
+
 ## 1. Config file format
 
 **What it is.** Where the robot reads its settings — URLs, paths, queue names, timeouts — for

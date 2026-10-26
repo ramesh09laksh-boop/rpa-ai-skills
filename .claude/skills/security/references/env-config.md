@@ -1,5 +1,11 @@
 # Environment configuration
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. The `Settings`/`Constants`/`Assets` model and the
+> asset-naming rules carry over unchanged. Modern equivalent for the workbooks themselves:
+> `templates/*/Data/Config_TST.xlsx`.
+
 ## There is no `.env` file
 
 This estate does not use `.env` files, `config.json`, or environment variables for

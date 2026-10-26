@@ -178,6 +178,14 @@ from a real run that lost time to it, not from a style guide.
    with no explanation, which is indistinguishable from an item being forgotten. A named blocker
    is useful; silence is not.
 6. **Do not assert a baseline you did not re-measure.** Re-run the same command and quote it.
+7. **Count findings binary-safely, and name the method.** Several projects in this estate have
+   non-ASCII names and content (`UC39_BPO_manuelle_Börsenaufträge`, `Auftrag Öffnen.xaml`).
+   Plain `grep` treats such a stream as binary, prints `Binary file (standard input) matches`
+   and **suppresses the matching lines**, so a count comes back as zero. That produced a false
+   "UC39 reports zero findings" claim that survived two commits.
+
+   Use `--output json` with `--output-filter` where the tool offers it, or `grep -a`, or the
+   exit code. And state which you used — a count without a method is not a measurement.
 
 **Keep going.**
 
@@ -198,17 +206,26 @@ no workflow would run at all.
 |---|---|---|
 | **L1** | Estate conformance (static) | `validate-project.sh` / `.ps1` |
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
+| **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A real run of `Main.xaml` on TST, with a log excerpt | Studio, or `uip rpa run` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
 
 - Every report names the **highest level reached and the command that proved it**.
 - A wiring or "project ready" stage is **not done below L3**.
-- "Tested" means **L4**, with a log excerpt. No excerpt, no L4.
+- **L2b is its own rung** — a used `xmlns` whose assembly is unreferenced, and `ST-SEC-008`,
+  both pass `validate` and `build` and fail at `pack`, which names no file.
+- **"Tested" means L4**: a real job in the Orchestrator folder, on a robot, with job state, logs
+  and the SDD acceptance table. A local `uip rpa run` or Studio Debug is **L3 evidence** — it is
+  the developer's session, not the robot's. A **mocked** run reaches L3 at most.
+- **A `Successful` job that processed 0 transactions is a failure, not an L4 pass.**
 - **Never write PASS without the level.** A bare PASS is what this ladder exists to stop.
 
 Detail, and the Studio-IPC trap in `uip rpa validate` / `run`: the `project-scaffolding` skill,
-`references/evidence-ladder.md`. Command names changed in `uip` 1.204.0 (`run-file`,
-`get-analyzer-rules`, `search-templates`, `create-project` are gone) —
+`references/evidence-ladder.md`. **`uip` is a host plus separately-versioned tools, so a
+command name is only meaningful with a tool and a version.** On **rpa-tool 1.204.2** the earlier
+`run-file`, `get-analyzer-rules`, `search-templates`, `create-project` and `find-activities`
+are absent. Never write that a command "does not exist" without naming the tool and version you
+checked. **`rpa-legacy` is for Legacy-framework projects; new projects don't use it** —
 `references/cli-command-map.md`.
 
 ## Deployment & review rules

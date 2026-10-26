@@ -1,5 +1,11 @@
 # Avaloq library — worked call sequences
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. The library **activity APIs** quoted here are
+> framework-independent and still apply; the surrounding project shape is not. Modern equivalent for
+> structure: `templates/`, plus `wiring-the-framework.md` in the `standards` skill.
+
 Patterns lifted from `../Avaloq/TKB-UC11.Kreditverletzung/Avaloq_System/`. These are library
 call sequences; for the surrounding project structure see
 the `standards` skill, `references/systems/avaloq-system.md`.

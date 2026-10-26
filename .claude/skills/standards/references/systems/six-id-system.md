@@ -1,5 +1,11 @@
 # `SIX_ID_System/` — SIX iD instrument reference data
 
+> **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
+> `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
+> what the estate does**, not conformance targets. Selectors depend on the **application**, not on the
+> project's target framework, so the selector content carries over unchanged. Only the
+> surrounding activity choices are Legacy — modern equivalents in the `web` skill.
+
 **Browser-based (Chrome).** The SIX Group financial-instrument reference portal. Used by
 `PJFVA-966_UC81_BPO_VD03_TK _Valoren` to look up instrument attributes that are then written
 into Finnova.
