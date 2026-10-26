@@ -1,6 +1,6 @@
 ---
 name: web
-description: Use for any browser-based step in a UiPath automation in this estate — SIX iD portal, CardOne, or the Avaloq Smart Client's embedded report browser — and for any new browser automation. Covers capturing targets live with the `uip rpa uia` CLI into the Object Repository, deriving and hardening selectors, choosing an input method, the idempotent login pattern, Application Card scoping, and handling error/interstitial pages. Trigger on SDD steps naming a URL, a web portal, Chrome, a login page, or when writing html/webctrl selectors.
+description: Use for any browser-based step in a UiPath automation — any browser-based application, including single-page apps, plus this estate's three known surfaces (SIX iD portal, CardOne, and the Avaloq Smart Client's embedded report browser). Covers capturing targets live with the `uip rpa uia` CLI into the Object Repository, deriving and hardening selectors, choosing an input method, the idempotent login pattern, Application Card scoping, handling error/interstitial pages, and the version precheck capture needs. Trigger on SDD steps naming a URL, a web portal, Chrome, a login page, on "Object Repository", "capture selectors" or "TODO_SELECTOR", or when writing html/webctrl selectors.
 ---
 
 # Browser automation
@@ -8,6 +8,10 @@ description: Use for any browser-based step in a UiPath automation in this estat
 Three browser-based surfaces exist in this estate. **None of them has a custom library** —
 all use raw UiPath UI Automation with hand-written selectors, which is why selector
 discipline matters more here than anywhere else.
+
+The capture loop below is **not specific to these three.** It has been run unchanged against a
+single-page application outside the estate; what differed was the environment, not the method.
+Use it for any browser-based target — see `references/capture-troubleshooting.md`.
 
 | Surface | Root selector | Real browser? |
 |---|---|---|
@@ -47,9 +51,26 @@ Repository. A Playwright snapshot could only ever tell you what a *different* en
 which you then re-typed by hand — and hand-typed selectors are the single largest source of
 breakage in this folder.
 
-**Prerequisite.** `UiPath.UIAutomation.Activities` and `UiPath.UIAutomation.CLI` must be
-present **at the same version** (26.10.4 works). A mismatch makes `uip rpa uia` list zero
-subcommands, which reads like the CLI being unavailable.
+### Prerequisite — read `project.json` before the first capture command
+
+Both packages must be present, **both at `26.10.4`**:
+
+```json
+"UiPath.UIAutomation.Activities": "[26.10.4]",
+"UiPath.UIAutomation.CLI":        "[26.10.4]"
+```
+
+**Precheck:** if either is missing, differs from `26.10.4`, or the two differ *from each other*,
+fix it and restore before anything else. A mismatch makes `uip rpa uia` list **zero
+subcommands**, which reads like the CLI being unavailable rather than a version problem. (Keep
+the estate's bracket style, `[26.10.4]`.)
+
+Verified: a project on the estate's standard Studio 23.10 shipped
+`UiPath.UIAutomation.Activities 23.10.13` — below the minimum `uip rpa uia` needs — and capture
+worked only once both packages were raised to `26.10.4` together. That project then ran
+`studioVersion 23.10.8.0` with UIA at `26.10.4`, which **diverges from `templates/`**; whether
+that divergence is the intended steady state is an open question for the team, not a per-project
+decision. See `references/capture-troubleshooting.md`.
 
 ### The rule
 
@@ -122,3 +143,6 @@ a credential into a prompt, a snapshot or a definition file. See `.claude/skills
 
 - `references/selector-strategy.md` — how to derive stable selectors for these applications
 - `references/verified-flows.md` — flow-by-flow record, with verification status
+- `references/capture-troubleshooting.md` — the version precheck, the stale-URL fix after a
+  client-side redirect, one work folder per screen, the 2–3-screens-per-run protocol, and
+  keeping parametrized descriptors out of literals
