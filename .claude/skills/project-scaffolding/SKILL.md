@@ -210,6 +210,9 @@ jobs finish green in Orchestrator with no work done.
 - `references/non-queue-reframework.md` — the three changes a queue-less process needs
 - `references/suppressing-a-rule.md` — `validate-project.ignore`, and what a suppression is not for
 - `references/fetched-files-crlf.md` — why a fetched template diffs on every text file
+- `references/object-repository-and-git.md` — **open decision:** `.objects/` is git-ignored as
+  "machine-specific", but it is the Object Repository store. Read this before the first project
+  that captures selectors, or it may commit its workflows without them
 
 ## Related skills
 
