@@ -158,6 +158,12 @@ The template is project-level scaffolding only. Three things still have to happe
    **A `WARN` is not "pre-existing, therefore harmless".** `relative-persisted-path` in
    particular is a documented silent-failure trap — fix it before the first real run.
 
+   **The three sample projects under `../Finnova/` and `../Avaloq/` are `targetFramework:
+   Legacy`** (`modernBehavior: false`, Studio 20.10–21.10). Running this checker on them is
+   **informational only** — the rules encode the modern estate's contract, which those projects
+   predate. Calibrate against the templates and modern UC projects instead, and **never tune a
+   rule to lower a Legacy sample's count**. See `README.md`.
+
    Four rules land as warnings on the **leaf-workflow contract** —
    `system-workflow-no-config`, `system-workflow-no-outcome`, `secret-argument-string`,
    `logic-workflow-no-arguments`. They are warnings because the rules are new, not because the

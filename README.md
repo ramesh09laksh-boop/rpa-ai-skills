@@ -231,6 +231,28 @@ invocation). Both sets load, and they overlap.
 When the two disagree, **follow the estate and note the conflict in
 `Documentation/Progress.md`** — so it gets settled once rather than re-decided per project.
 
+## The three sample projects are Legacy — `validate-project` on them is informational
+
+`../Finnova/UC39_…`, `../Finnova/PJFVA-966_UC81_…` and `../Avaloq/TKB-UC11.…` are
+**`targetFramework: Legacy`**, `modernBehavior: false`, Studio 20.10–21.10. Verified from their
+`project.json`. New projects are **Windows / `modernBehavior: true`** — that is what `templates/`
+and the three `../REFramework-*/` reference skeletons ship.
+
+They are **evidence**, not conformance targets. So:
+
+- **Running `validate-project` on them is informational only.** The rules encode the modern
+  estate's contract; a Legacy project predates it and was never built to it. A finding there
+  tells you about the rule's reach, not about the project's quality.
+- **Never tune a rule to lower their counts.** A rule exists to catch a silent failure on a
+  *new* project. Relaxing it so an old Legacy project scores better removes that protection from
+  every future project in exchange for a number nobody should be reading. This happened once and
+  was reverted.
+- **Calibrate against modern projects**: the three templates and any Windows/modern UC project.
+  The templates currently report **zero** leaf-workflow-contract findings, which is the
+  calibration that matters.
+- **Do not migrate a Legacy project** as a side effect of anything. That is deliberate work, and
+  `AGENTS.md` says so.
+
 ## Releasing
 
 `main` is what every UC project pulls on its next `npx skills update`, so a merge to `main` *is*

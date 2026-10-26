@@ -38,6 +38,18 @@ Not tagged. Branch `chore/post-release-0.2.1`, PR #3.
 
 ### Changed
 
+- **Reverted the leaf-contract rule tuning, and documented why.** The three sample projects
+  (UC39, UC81, TKB-UC11) are **`targetFramework: Legacy`**, `modernBehavior: false`, Studio
+  20.10–21.10 — verified from `project.json`. They are evidence, not conformance targets, so
+  tuning rules to lower their finding counts was the wrong move and is undone.
+
+  `validate-project` on a Legacy sample is now documented as **informational only**, and
+  "never tune a rule to lower their counts" is written into `README.md`. Calibration is against
+  modern projects: the three templates report **zero** leaf-contract findings; the Lanes project
+  (Windows/modern) reports 6 + 6 + 2, which are the defects the original review identified.
+
+  Two of the three reverted carve-outs would have suppressed genuine findings on Lanes.
+
 - **Evidence ladder gains L2b (pack) and L4 is redefined.** `validate` and `build` are not the
   last compile-time gate — a missing assembly reference and `ST-SEC-008` pass both and fail at
   `pack`. L4 is now a **real job in the Orchestrator folder, on a robot**, with job state, logs
