@@ -48,6 +48,10 @@ Three REFramework templates, split by role — see [`templates/`](templates/):
 A Dispatcher and its Performer **share one Orchestrator queue**, and a mismatched queue name
 throws nothing — both jobs go green and no work is done. Settle the queue name when you
 instantiate the pair: [the pairing contract](templates/README.md#the-queue-name-is-a-contract-between-the-pair).
+**The project name is an open question, not a default.** Three formats are live in the estate
+and none is minuted; the templates ship `"name": "<PROJECT-NAME-TBD-ask-team>"`, which fails
+the publishability check on purpose. Ask the team, then apply the answer —
+[`naming-conventions.md`](.claude/skills/standards/references/naming-conventions.md).
 
 ## Install and update
 
@@ -174,27 +178,38 @@ Pulling the right skills should not be something each developer remembers unprom
 the `npx skills add` line to whatever scaffolding/kickoff checklist new UC projects already
 follow, next to "create the repo" and "wire up Orchestrator".
 
-**The project name is an open question, not a default.** Three formats are live in the estate
-and none is minuted; the templates ship `"name": "<PROJECT-NAME-TBD-ask-team>"`, which fails
-the publishability check on purpose. Ask the team, then apply the answer —
-[`naming-conventions.md`](.claude/skills/standards/references/naming-conventions.md).
-
 ## Development lifecycle
 
-Eight stages, each a short prompt you can paste into Claude Code (or any agent with these
-skills installed). Every prompt routes to skills that already exist in this repo — none of
-them duplicate skill content, they just point the agent at the right ones for that stage.
+**Ten stages**, each a short prompt you can paste into Claude Code (or any agent with these
+skills installed). Every prompt routes to skills that already exist in this repo — none of them
+duplicate skill content, they just point the agent at the right ones for that stage.
 
 ```
-PDD → SDD → Project → Development → Testing → Code Review → UAT Readiness → Deployment Readiness
-                                                                                    ↑__________________|
-                                                                              Change / Enhancement
+PDD → SDD → Project → Wire → Capture → Develop → Test → Review → UAT → Deploy
+                                                                          ↑________|
+                                                                    Change / Enhancement
 ```
 
-**One rule holds across every stage, repeated in each prompt below so it survives a lone
-copy-paste:** never invent a selector, activity, API, configuration value, credential, or
-business rule. Where the source material doesn't say, write it down as a `TODO` / Open
-Question instead of a best guess.
+Two stages are new, and both were missing for the same reason — they are the work *between*
+"the project exists" and "the workflows are written":
+
+- **Wire** — connecting the SDD's transactions to the Framework. Skipping it produces a project
+  with good leaf workflows that runs green and processes **zero** transactions.
+- **Capture** — resolving every `TODO_SELECTOR` against the live application with `uip rpa uia`.
+
+### Working rules — paste this at the top of any stage prompt
+
+The old claim that the no-inventing rule was "repeated in each prompt below" was only true of
+stages 1 and 3. Rather than repeat it unreliably, it lives here as one block to paste:
+
+```
+Working rules: never invent a selector, activity, argument, API, config value, credential or
+business rule — if the source is silent it is an Open Question / TODO. Report the highest
+check level reached (L1 validate-project, L2 uip rpa validate+build, L3 Studio Error List
+clean, L4 real run) with the command used. "Needs Studio" only with the exact command and its
+error. Commit locally after each item; keep Documentation/Progress.md updated. Do not stop
+between items — log a blocker and continue with the next.
+```
 
 ### 1. PDD → SDD
 
@@ -210,21 +225,51 @@ which requires rebuilding `InitAllSettings.xaml` — see `standards/references/c
 Add an Open Questions / Assumptions section for anything else the PDD doesn't state. Do not
 invent a business rule, a credential name, a selector, or a config value — if the PDD is
 silent, it's an Open Question, not a guess.
+
+Also record whether the process has an Orchestrator queue, and whether it is
+Dispatcher+Performer, Performer-only, or a single self-contained run. Define every transaction
+type and the work-item columns each one uses — do not leave them to the test data.
 ```
 
 ### 2. SDD → Project
 
 ```
-Load `project-scaffolding`. Given <SDD file>, determine Dispatcher-only, Performer-only, or
-both, and fetch the matching template(s). Carry forward the config-format and credential
-decisions from the SDD — don't re-ask if they're already recorded there. Ask for the project
-name and the shared Orchestrator queue name if not already settled. Work the instantiation
-checklist in `templates/README.md` end to end (including rebuilding `InitAllSettings.xaml` in
-Studio if the SDD calls for JSON config) and run `validate-project` to zero errors before
-calling this stage done.
+Load `project-scaffolding`. Given <SDD file>, choose Dispatcher-only / Performer-only / both and
+fetch the matching template(s). Carry forward the config-format and credential decisions from
+the SDD — don't re-ask if they're already recorded there. Ask only for the project name and the
+shared Orchestrator queue name if unsettled. Generate Main.xaml + Framework via the CLI route
+(scratch folder, `--help` first, `--template-package-version` matching the config-format
+decision), apply the template README deltas, work the instantiation checklist in
+`templates/README.md`, then run `validate-project`, `uip rpa validate` per entry point, and
+`uip rpa build`. This stage is done at L3 — Studio opens the project with an empty Error List.
 ```
 
-### 3. SDD → Development
+### 3. Wire the Framework
+
+```
+Load `standards` (wiring-the-framework) and `security`. Wire the Framework from <SDD>, in
+order: Config, GetTransactionData, InitAllApplications, Process dispatch, SetTransactionStatus,
+CloseAllApplications. Author the XAML with the CLI (`uip rpa activities get-default-xaml`,
+`uip rpa activities find`). If a configured source yields 0 transactions, fail loudly.
+Credentials from the Orchestrator asset only. Transaction types come from the SDD; if it is
+silent, record an Assumption and ask. Leaf workflows must follow the `_System` contract —
+in_Config, an out_ outcome, SecureString secrets. Report which Framework files are wired and the
+level reached.
+```
+
+### 4. Capture targets (browser apps)
+
+```
+Load `web`. First read project.json: UiPath.UIAutomation.Activities and UiPath.UIAutomation.CLI
+must both be 26.10.4 — fix and restore before anything else. Capture targets for the workflows
+listed in the *.selectors-todo.md files, 2–3 screens per run, following
+`web/references/capture-troubleshooting.md`. After any page navigation: navigate explicitly,
+fresh snapshot, fresh work folder. `evaluate` must match only the target — if not, leave
+TODO_SELECTOR and record why. Identify list items by business key, never position. Commit
+`.objects/` — it holds the captured selectors. Update each todo file and Progress.md.
+```
+
+### 5. Develop leaf workflows
 
 ```
 Load `standards` for where each step belongs, plus the application skill(s) the SDD names —
@@ -236,18 +281,24 @@ activity, API, selector, or config value: mark it `TODO_SELECTOR` / `APPROX_SELE
 `pdd-sdd-scaffolding`) or a config `TODO` instead.
 ```
 
-### 4. Development → Testing
+### 6. Test data → tests
 
 ```
-Build or extend `Tests/Tests.xlsx` and `Tests/RunAllTests.xaml` — never invoked from
-`Process.xaml`. Cover: the happy path for each transaction type in the SDD, every named
-Business exception, every Application exception (file/Excel/Finnova/Avaloq/Orchestrator
-unavailable), and any edge case the SDD or `standards/references/silent-failure-traps.md`
-calls out. Run the suite and report pass/fail per the `Result` sheet — don't claim a test
-passed without running it.
+Load `standards` (test-data) and `security`. Read <TestData.xlsx> and <SDD>. Map the Config
+sheet onto Settings/Constants/Assets in BOTH Config_TST.xlsx and Config_PRD.xlsx; any row whose
+provenance is not "Observed" stays [UC-SPECIFIC — replace] and goes to Open Questions. Build
+Tests/Tests.xlsx from TestCases + NegativeData per the template schema — NegativeData rows
+become Business-exception tests asserting a correct refusal. Cover the happy path for each
+transaction type in the SDD, every named Business exception, every Application exception
+(file/Excel/Finnova/Avaloq/Orchestrator unavailable), and any edge case
+`standards/references/silent-failure-traps.md` calls out. Replace fixed dates with today ± N.
+Carry over "To verify"/BLOCKED statuses and do not mark a case passed without running it.
+`Tests/RunAllTests.xaml` is never invoked from `Process.xaml`. If work items depend on each
+other, describe the ordering risk and ask before choosing. Never copy a credential from a
+fixture file.
 ```
 
-### 5. Code Review
+### 7. Review
 
 ```
 Load `standards`, `security`, and the application skill(s) in use. Validate against
@@ -261,13 +312,15 @@ side effect of review — report it as a finding and let the team decide.
 
 Run the Workflow Analyzer and report its findings too:
 `uip rpa analyze <project> --governance-file-path "<ABSOLUTE path to the rule file>"
---governance-file-type Studio --detailed-log-path <log>`. Confirm which rule set actually ran
-(`standards/references/code-quality.md` — a tenant policy, a `Default` file type, or an
-unrecognised rule id all silently reduce the rule set), and cross-check the enabled ids against
-`uip rpa analyzer-rules list`. Fix findings; do not relax a rule to pass.
+--governance-file-type Studio --detailed-log-path <log>`, and
+`uip rpa analyzer-rules list --project-dir <project>` to confirm the rule set loaded. The path
+must be absolute and the file type must be `Studio`, or the file is ignored or crashes the run;
+a tenant policy also silently outranks it. Cross-check the ids your file enables against the ids
+that actually load — see `standards/references/code-quality.md`. Fix findings; do not relax a
+rule to pass.
 ```
 
-### 6. UAT Readiness
+### 8. UAT Readiness
 
 ```
 Confirm: every SDD requirement traces to a workflow and a test case; every
@@ -280,7 +333,7 @@ evidence ladder — a real run of `Main.xaml` on TST, with a log excerpt — and
 blocker, not a soft caveat.
 ```
 
-### 7. Deployment Readiness
+### 9. Deployment Readiness
 
 ```
 Confirm: `Config_PRD.xlsx` carries the same key set as `Config_TST.xlsx`, with no remaining
@@ -292,7 +345,7 @@ byte-identical `OrchestratorQueueName`; logging excludes secrets
 (`excludedLoggedData`). List anything unresolved as a blocker, not a note.
 ```
 
-### 8. Change / Enhancement
+### 10. Change / Enhancement
 
 ```
 Read the existing project and the change request together. Load `standards` and the
@@ -346,6 +399,13 @@ excerpt attached. Detail and the Studio-IPC trap in those commands:
 - [ ] `Tests/RunAllTests.xaml` passes, and nothing under `Tests/` is invoked from `Process.xaml`
 - [ ] Every Open Question/Assumption from the SDD is resolved or explicitly still open —
       never silently dropped
+- [ ] The Framework is **wired** — `GetTransactionData` yields real transactions, `Process.xaml`
+      dispatches on the SDD's transaction types, and a configured source yielding 0 transactions
+      fails loudly rather than finishing green
+- [ ] Every `_System` workflow meets the contract — `in_Config` in, an `out_` outcome back,
+      secrets as `SecureString` — and no `logic-workflow-no-arguments` warning remains
+- [ ] `.objects/` is **committed** if the project captured any selectors; a clone resolves every
+      target
 
 ## Why the library and sample projects are still kept
 
