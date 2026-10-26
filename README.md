@@ -49,33 +49,84 @@ A Dispatcher and its Performer **share one Orchestrator queue**, and a mismatche
 throws nothing — both jobs go green and no work is done. Settle the queue name when you
 instantiate the pair: [the pairing contract](templates/README.md#the-queue-name-is-a-contract-between-the-pair).
 
-## Install into a UC project
+## Install and update
 
-Run from the root of the UC project.
+Run from the root of the UC project. Needs **Node.js 22.20 or newer** (verified on v22.21.1).
 
-**Everything:**
+The `--agent` value is the CLI's own agent id, not the product name you'd say out loud. The
+ones this estate uses:
+
+| Agent | `--agent` id |
+|---|---|
+| Claude Code | `claude-code` |
+| GitHub Copilot | `github-copilot` |
+| Codex | `codex` |
+| OpenCode | `opencode` |
+| every agent the CLI detects | `'*'` |
+
+`--agent copilot` is **not** valid and fails with `Invalid agents: copilot`. The CLI prints its
+full id list in that error, so `npx skills add <repo> --agent x -y` is the quickest way to
+check an id you're unsure of.
 
 ```bash
-npx skills add ramesh09laksh-boop/rpa-ai-skills --agent claude-code
+# See what's in the repo without installing
+npx skills add ramesh09laksh-boop/rpa-ai-skills --list
+
+# Install everything, for the agents you actually use
+npx skills add ramesh09laksh-boop/rpa-ai-skills \
+  --agent claude-code --agent github-copilot --agent opencode
+
+# Install only what the UC needs
+npx skills add ramesh09laksh-boop/rpa-ai-skills \
+  --skill standards --skill project-scaffolding \
+  --skill finnova-library --skill security --agent github-copilot
 ```
 
-**Only what the project needs:**
+Keeping an installed set current:
 
 ```bash
-npx skills add ramesh09laksh-boop/rpa-ai-skills --skill finnova-library --skill security --agent claude-code
+npx skills list            # what is installed, and for which agents
+npx skills check           # which installed skills have updates
+npx skills update          # update all; name skills to limit it
+                           #   -p project scope, -g global, -y skip the scope prompt
+npx skills remove <skill> --agent <id>
 ```
-
-Swap `--agent claude-code` for the agent you use — `--agent copilot`, `--agent codex`, or
-`--agent '*'` for all of them.
 
 > **The `owner/repo` prefix is required.** `npx skills add rpa-ai-skills` fails with
 > `fatal: repository 'rpa-ai-skills' does not exist` — the CLI resolves a source as
 > `owner/repo` or a full URL, never as a bare package name. The full URL form
 > (`https://github.com/ramesh09laksh-boop/rpa-ai-skills`) works too.
 >
-> The repo is **private**, so git must be authenticated — a GitHub sign-in through VS Code, or
-> `gh auth login`, is enough. Verified working: all seven skills install, including
-> `project-scaffolding` with its fetch scripts intact.
+> **The repo is private, so git must be authenticated for `add` *and* `update`.** A GitHub
+> sign-in through VS Code, or `gh auth login`, is enough. A silent "nothing to update" on a
+> machine that was never signed in is an auth failure, not an up-to-date install.
+>
+> **`update` pulls the current `main`.** Whatever is on `main` is what every UC project gets on
+> its next update, so merge to `main` only once the change meets the Definition of Done below.
+>
+> **Let the CLI place the files.** Do not hand-copy a skill folder into `.claude/skills/` or
+> `.github/skills/` in a UC project — a hand-placed copy is invisible to
+> `skills list` / `check` / `update` and drifts silently.
+
+### Where the files land
+
+The CLI installs into the *agent's own* folder, and that folder differs per agent. Verified
+with the current CLI (`skills@latest`, probe install into an empty repo):
+
+| `--agent` | Folder written |
+|---|---|
+| `claude-code` | `.claude/skills/<skill>/` |
+| `github-copilot`, `codex`, `opencode` | `.agents/skills/<skill>/` (shared) |
+
+Older CLI versions wrote Copilot skills to `.github/skills/` instead. **Check which one your
+version actually wrote** — the install output prints the full target path, and
+`npx skills list` prints it again per skill. A `skills-lock.json` is written at the project
+root; commit it.
+
+Because the install folder is agent-dependent, skill content must never hard-code
+`.claude/skills/…`. Cross-skill references inside a skill name the skill
+(*"the `standards` skill, `references/systems/finnova-system.md`"*) or use a path relative to
+the skill's own folder (`scripts/…`, `assets/…`).
 
 ### Available skills
 
@@ -295,10 +346,18 @@ it does not clone the sample workflow files.
 4. Opening `rpa-ai-skills` itself in Claude Code or Copilot picks the skills up
    automatically — `.claude/skills/` is auto-discovered, so you can test a change in place.
 
-### If Copilot doesn't pick a skill up
+### If Copilot doesn't pick a skill up when you open *this* repo
 
-Claude Code and Copilot both auto-discover `.claude/skills/`. If Copilot doesn't surface a
-skill for a test prompt (try: *"implement a new Finnova commission workflow"* — it should
-reach for `standards` and `finnova-library` before writing code), mirror the tree to
-`.github/skills/` **in addition to** `.claude/skills/`, not instead of it. Keep
-`.claude/skills/` as the source; a mirror that drifts is worse than no mirror.
+This applies to working **inside `rpa-ai-skills` itself**, where the skills are discovered from
+the committed `.claude/skills/` tree rather than installed. In a UC project, use
+`npx skills add --agent github-copilot` and let the CLI place the files — a hand-made mirror
+there is the wrong fix.
+
+Claude Code auto-discovers `.claude/skills/`. If Copilot doesn't surface a skill for a test
+prompt (try: *"implement a new Finnova commission workflow"* — it should reach for `standards`
+and `finnova-library` before writing code), mirror the tree into whichever folder your Copilot
+version reads, **in addition to** `.claude/skills/`, not instead of it. Which folder that is
+depends on the version — `.github/skills/` on older ones, `.agents/skills/` on newer; run a
+throwaway `npx skills add … --agent github-copilot` in a scratch directory and copy whatever
+path it prints. Keep `.claude/skills/` as the source; a mirror that drifts is worse than no
+mirror.
