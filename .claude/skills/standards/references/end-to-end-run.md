@@ -65,21 +65,35 @@ project that works in Studio and fails unattended almost always fails on one of 
 | 3 | **Unattended robot with an interactive Windows session** | UI automation needs a real desktop session. A robot configured without one fails on the first UI activity, often as a selector timeout rather than a session error. **Unverified here** |
 | 4 | **Browser extension installed for the robot's user/profile** | The extension is per-user and per-browser-profile. Installed for *you* means nothing for the service account. **Unverified here** — a browser step will simply not find its element |
 | 5 | **The application is reachable from the robot machine** | Network path, firewall, proxy, certificate, and the host actually resolving. **Unverified here** — reachable from your laptop is not the test |
-| 6 | **The robot account has access to the folder, its assets and its queue** | **Scriptable** — see below. This is the one you can check |
+| 6 | **The robot account has access to the folder, its assets and its queue** | **Scriptable** — see below |
+| 7 | **The folder actually has an enabled robot with credentials** | **Scriptable** — `rpa remote targets` reports `enabled` and `hasCredentials` per robot |
 
 ### What is scriptable (requires `uip login` against the Automation Suite host)
 
 ```bash
-uip or folders list
+uip or folders   list
 uip or processes list --folder-path "Modern/RAP-Demo"
 uip or assets    list --folder-path "Modern/RAP-Demo"
 uip or queues    list --folder-path "Modern/RAP-Demo"
+uip or machines  list                                    # robot host definitions
+uip or sessions  list                                    # live host connections and their state
+
+# the robot side, as far as it can be reached from here (rpa-tool 1.204.2)
+uip rpa remote targets --folder-path "Modern/RAP-Demo"   # the folder's unattended robots:
+                                                         #   enabled, hasCredentials
+uip rpa remote status                                    # the configured remote connection
 ```
 
-`preflight.ps1 -FolderPath <path>` runs these four and reports what is missing. Note what that
-proves and what it does not: it confirms the objects exist and that **your** identity can see
-them. Whether the **robot's** account can is a folder-role question — `uip or roles list` and the
-folder's user assignments.
+**`rpa remote targets` is the one that reaches the robot side at all.** Its own help says it
+*"lists a folder's unattended robots (enabled, hasCredentials)"*, which settles two of the
+prerequisites above that would otherwise be a conversation: whether a robot exists and is
+enabled, and whether it has credentials attached. `uip or sessions list` adds whether a host is
+actually connected.
+
+`preflight.ps1 -FolderPath <path>` runs the `uip or` checks and reports what is missing. Note
+what that proves and what it does not: it confirms the objects exist and that **your** identity
+can see them. Whether the **robot's** account can is a folder-role question — `uip or roles list`
+and the folder's user assignments.
 
 ---
 
@@ -99,13 +113,23 @@ has no answer later.
 
 ### Step 2. Publish to the feed the folder uses
 
+Two routes, both real; they belong to different tools:
+
 ```bash
+# rpa-tool 1.204.2 - takes a PACKED .nupkg, not a project folder
+uip rpa publish <path-to-.nupkg> --folder-path "Modern/RAP-Demo"
+#   other flags it accepts: --feed-id, --folder-key, --personal-workspace,
+#   --shared-libraries, --allow-any-feed
+
+# orchestrator-tool 1.204.0 - upload straight to the folder's processes feed
 uip or packages upload <path-to-.nupkg>
 uip or packages versions <package-id>      # confirm the version landed
+uip or feeds list                          # which feeds exist, for --feed-id
 ```
 
-**The feed the folder uses**, not a tenant-wide cloud feed — this is Automation Suite. If the
-folder resolves from a specific feed, `uip or feeds` lists them.
+**The feed the folder uses**, not a tenant-wide cloud feed — this is Automation Suite. Prefer
+`--folder-path` over `--personal-workspace`: a package in a personal workspace is not visible to
+the folder's robots, and that failure looks like a missing process.
 
 ### Step 3. Confirm the folder is actually ready
 
@@ -113,10 +137,16 @@ Four things, and a missing one fails the job in a way that reads as a code probl
 
 | Must exist | Command | If missing |
 |---|---|---|
-| **Process**, bound to the version you just uploaded | `uip or processes list --folder-path <path>` | `uip or processes create`, or `update-version` to move an existing one |
+| **Process**, bound to the version you just uploaded | `uip or processes list --folder-path <path>` | `uip or processes create`, or `uip or processes update-version` to move an existing one |
 | **Credential asset**, exact name from the `Assets` sheet | `uip or assets list --folder-path <path>` | Create it — **a person, not an agent**, and never paste the value into a chat |
 | **Queue** (if the process uses one), byte-identical name | `uip or queues list --folder-path <path>` | Create it. A name mismatch throws nothing and leaves both jobs green |
 | **TST config** — `Config_TST.xlsx` has no `[UC-SPECIFIC — replace]` and every key the workflows read | `validate-project` (`config-key-undefined`, `template-default-left`) | Fix before starting; a missing key returns `Nothing` and the run continues with an empty value |
+
+> **There is no `uip or releases` subcommand** in orchestrator-tool 1.204.0. The help prose
+> calls a process a *"release binding"*, but the subcommand is **`processes`**: *"runnable
+> bindings of packages to folders. Processes are what you execute with `jobs start`."* Other
+> `processes` subcommands worth knowing: `get`, `resources` (what the package declares),
+> `version-history`, `rollback`, `update-version`.
 
 ### Step 4. Start the job
 
@@ -150,6 +180,43 @@ uip or queue-items get-history <item-key>          # retries, per item
 
 A Failed item's `Reason` / `Details` is where a Business exception's own message text ends up —
 which is why the classifier must carry the application's wording verbatim.
+
+### Driving the robot directly — `rpa remote`
+
+An alternative to starting a job, for *diagnosing* the robot rather than running the process:
+
+```bash
+uip rpa remote configure --folder-path "Modern/RAP-Demo" --machine <machine> --robot <robot>
+uip rpa remote status
+uip rpa remote start                       # bring the session up
+uip rpa run --file-path Main.xaml --remote # run/debug ON the configured remote agent
+uip rpa remote exec <command>              # run a command on the remote agent
+uip rpa remote upload-file / download-file # move a file to or from it
+uip rpa remote stop
+```
+
+This is how you answer "is the application reachable *from the robot machine*" and "is the
+extension installed for the *service account*" without logging into that box — `remote exec`
+runs there, not here.
+
+**It is not a substitute for L4.** `rpa run --remote` still runs under the CLI's own
+orchestration rather than as an Orchestrator job with a job record, queue results and a
+retention trail. Use it to diagnose; use `or jobs start` to establish L4.
+
+## What in this file is unverified
+
+Stated plainly, because the difference matters:
+
+| | Status |
+|---|---|
+| Every command name and flag above | **Verified** — read from `--help` on this machine, 2026-10-26, rpa-tool 1.204.2 / orchestrator-tool 1.204.0 |
+| That the **sequence** works end to end | **UNVERIFIED.** No live Orchestrator session exists on this machine: `uip login status` → `"Status": "Refresh Failed"`. Nothing in Part 1 or Part 2 has been executed against a real tenant, folder, feed, robot or job |
+| `rpa remote targets` output shape | **UNVERIFIED** — the `enabled` / `hasCredentials` fields are from its help text, not from a response |
+| Whether `--folder-path` on `rpa publish` is sufficient, or `--feed-id` is also needed | **UNVERIFIED** — depends on how the folder resolves its feed |
+
+So: **run this once against TST and correct whatever is wrong**, then mark the corrected steps
+verified with the date. Until then, treat the sequence as a plan derived from the tool's own
+help rather than a procedure someone has walked.
 
 ---
 
