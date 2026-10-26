@@ -231,6 +231,51 @@ invocation). Both sets load, and they overlap.
 When the two disagree, **follow the estate and note the conflict in
 `Documentation/Progress.md`** — so it gets settled once rather than re-decided per project.
 
+## Releasing
+
+`main` is what every UC project pulls on its next `npx skills update`, so a merge to `main` *is*
+a release. Treat it like one.
+
+1. **Work on a branch**, one commit per change, each with the command and output that prove it.
+2. **Open a PR and let CI pass** — [`.github/workflows/checks.yml`](.github/workflows/checks.yml)
+   runs the skill lint, `validate-project -TemplateMode` on all three templates, `bash -n` on
+   every shipped script, and a check that the template workbooks still regenerate.
+3. **Work [`evals/trigger-prompts.md`](evals/trigger-prompts.md)** on the agents the estate uses.
+   A skill that does not load is a skill that does not exist, and CI cannot test that.
+4. **Update [`CHANGELOG.md`](CHANGELOG.md)**, including a *Known open* entry for anything carried
+   deliberately rather than fixed.
+5. **Tag**, then **merge**. Annotated tag, `v<major>.<minor>.<patch>`.
+
+### Tags are pinnable — commits are not
+
+Tested against the current `skills` CLI, by installing the same skill from three different refs
+and diffing the result:
+
+| Form | Works? |
+|---|---|
+| `owner/repo` | yes — tracks the default branch |
+| `owner/repo#v0.2.0` (**tag**) | **yes** — verified: installing `#v0.2.0` omits a file that exists on the branch |
+| `owner/repo#some-branch` | **yes** — verified: installing `#chore/post-release-0.2.1` includes that file |
+| `owner/repo#<commit-sha>` | **no** — `fatal: Remote branch <sha> not found in upstream origin` |
+
+So `#ref` is handed to git as a **branch-or-tag**, not an arbitrary ref. That makes tagging worth
+doing: a UC project that needs to stay still can install `…#v0.2.0`, and a project testing an
+unmerged change can install `…#<branch>`. Pinning to a commit is not available.
+
+### Rollback is a revert, not a retag
+
+A tag that has been pulled cannot be meaningfully moved — someone already has the old content
+under that name. To undo a release: **revert the offending commit on `main`** and cut a new
+patch release. Keep the bad tag in place as a record of what happened.
+
+### Branch protection
+
+**Recommended, not configured, and I have not checked whether this repository's plan supports
+it.** Private-repository branch protection depends on the GitHub plan, and nothing here should
+claim otherwise. If it is available, the settings worth having on `main` are: require the
+`checks` workflow to pass, require a PR, and disallow force-pushes. Until then the protection is
+procedural — step 2 above, honoured.
+
 ## Upgrading from v0.1.x
 
 Three steps, and the third is the one that matters most. Do them in order.
