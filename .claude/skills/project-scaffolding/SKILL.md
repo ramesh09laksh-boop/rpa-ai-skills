@@ -9,6 +9,22 @@ description: Use when starting a new UC project — determines which Dispatcher/
 it along — that command carries skill folders only. This skill is the fetch step, wrapped so it
 travels like any other skill: install it, and `scripts/fetch-template.*` comes with it.
 
+## Before anything else: preflight
+
+Environment problems cost a real build run more time than the automation logic did. Run this
+first; it changes nothing and prints a one-line fix per failure:
+
+```bash
+scripts/preflight.sh [<project-dir>]
+pwsh -NoProfile -File scripts/preflight.ps1 -ProjectPath <project-dir>
+```
+
+It checks Node 22.20+, git and GitHub auth (the skills repo is private), PowerShell 7,
+`uip` and its login, Studio **and whether an instance has the project open**, the
+`UiPath.UIAutomation` 26.10.4 capture pin, that the Swisscom libraries actually restore from
+your feed, and a capture smoke test. Pass `-NoProfile` if you invoke the `.ps1` directly — a
+slow or prompting PowerShell profile makes it look like it has hung.
+
 ## What to fetch
 
 Ask, or read it off the SDD: **which application does this UC drive?**
