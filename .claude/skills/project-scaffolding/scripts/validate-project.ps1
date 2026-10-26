@@ -577,6 +577,52 @@ function Test-Project {
         }
     }
 
+    # --- object-repository-not-shared ---------------------------------------
+    # A workflow binding to an Object Repository target carries only a reference; the
+    # descriptor itself lives in .objects/. If that folder is missing, empty or git-ignored,
+    # the project's selectors do not travel - a clone gets the workflows and resolves every
+    # target to nothing. Found in a real project: 134 files under .objects/, zero tracked,
+    # ignored by a '.objects/' line inherited from this repo's own templates.
+    $usesRepo = @($xamls | Where-Object {
+            (Get-Content -LiteralPath $_.FullName -Raw) -match
+            'ObjectRepository|TargetAnchorable\b.*ReferenceId|uix:'
+        }).Count
+    if ($usesRepo -gt 0) {
+        $objDir = Join-Path $abs '.objects'
+        $descriptors = 0
+        if (Test-Path -LiteralPath $objDir) {
+            # .metadata/.type alone is the empty root Studio creates in every project.
+            $descriptors = @(Get-ChildItem -LiteralPath $objDir -Recurse -File -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -notin '.metadata', '.type' }).Count
+        }
+        if ($descriptors -eq 0) {
+            Add-Finding error 'object-repository-not-shared' $name `
+                ("$usesRepo workflow(s) reference the Object Repository but .objects/ holds no " +
+                 'descriptors. The selectors live in .objects/ - without it every target resolves ' +
+                 'to nothing. Capture them, or recover the folder.')
+        }
+        else {
+            # Present on disk is not the same as shared. Ask git.
+            $ignored = $false
+            try {
+                $probe = Get-ChildItem -LiteralPath $objDir -Recurse -File -Force -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -notin '.metadata', '.type' } | Select-Object -First 1
+                if ($probe) {
+                    git -C $abs check-ignore -q -- $probe.FullName 2>$null
+                    $ignored = ($LASTEXITCODE -eq 0)
+                }
+            }
+            catch { $ignored = $false }   # no git, or not a repo - nothing to assert
+            if ($ignored) {
+                Add-Finding error 'object-repository-not-shared' $name `
+                    (".objects/ holds $descriptors captured descriptor(s) but git IGNORES them. " +
+                     'The workflows will be committed without their selectors and a fresh clone ' +
+                     "resolves every target to nothing. Remove '.objects/' from .gitignore - it is " +
+                     'source, not Studio local state.')
+            }
+        }
+    }
+
     return [pscustomobject]@{
         Name     = $name
         Proj     = $proj

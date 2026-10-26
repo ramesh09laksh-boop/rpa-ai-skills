@@ -1,29 +1,56 @@
-# `.objects/` is git-ignored — and it probably should not be
+# `.objects/` was git-ignored, and that lost captured selectors
 
-**Status: open decision.** The evidence below is strong but one step short of conclusive, and the
-change it implies has not been made. Do not "fix" the `.gitignore` files on the strength of this
-page; finish the verification first (bottom of this file) and get the call made.
+**Status: CONFIRMED and fixed.** `.objects/` has been removed from the root `.gitignore` and all
+three `templates/*/.gitignore`, and `validate-project` now reports
+`object-repository-not-shared` as an **error**. This page records the evidence, because the
+ignore line looked entirely reasonable and will look reasonable again to the next person tidying
+up a `.gitignore`.
 
-## The claim
+## What was wrong
 
-All four `.gitignore` files in this repo — the root one and all three in `templates/*/` — list
-`.objects/` under this heading:
+All four `.gitignore` files listed `.objects/` under this heading:
 
 ```
 # UiPath Studio local state — machine-specific, never shared
 .local/
 .settings/
-.objects/
+.objects/      <- wrong list
 .project/
 .entities/
 .tmh/
 ```
 
-`.objects/` is the folder Studio uses for the **Object Repository**. If captured applications,
-screens and element descriptors are stored there, then a project started from these templates
-commits its workflows but **not its captured selectors**. A fresh clone, a teammate, or a new
-agent session would open activities whose element references resolve to nothing — and the
-failure would look like a selector problem rather than a source-control problem.
+`.objects/` is the folder Studio uses for the **Object Repository**: captured applications,
+screens and element descriptors. So a project started from these templates committed its
+workflows but **not its captured selectors**. A fresh clone, a teammate, or a new agent session
+opens activities whose element references resolve to nothing — and the failure looks like a
+selector problem rather than a source-control problem.
+
+## The confirming case
+
+A real project that had completed selector capture:
+
+```
+$ find .objects -type f | wc -l
+134
+$ git ls-files .objects | wc -l
+0
+$ git check-ignore -v ".objects/…/ObjectRepositoryTargetData/.content"
+.gitignore:6:.objects/   .objects/…/ObjectRepositoryTargetData/.content
+```
+
+134 files, **zero tracked**, every one matched by the `.objects/` line inherited from this
+repo's own templates. The tree held `ObjectRepositoryScreenData` and
+`ObjectRepositoryTargetData` nodes, and each `.content` file held the real captured selector:
+
+```xml
+<ObjectRepositoryTargetData ContentHash="…">
+  <TargetAnchorable ElementType="Button"
+    FullSelectorArgument="&lt;webctrl aria-label='To Do' tag='SECTION' /&gt;…" />
+```
+
+That is the selector itself, not a pointer to it. Days of capture work, present on one laptop
+and in no commit.
 
 ## What has been verified
 
@@ -34,46 +61,36 @@ failure would look like a selector problem rather than a source-control problem.
 | 3 | What `.objects/.metadata` holds | `{"Type":"Library","Id":"BThTHHGJhkW0u3ZKT2wLCQ","Created":…,"CreatedBy":["UiPath.Platform, Version=23.10.0.0"]}` |
 | 4 | Does the CLI treat it as project content? | **Yes.** `uip rpa get-object-repository` is documented as *"Return the **project's own** Object Repository as a JSON tree of applications, screens and elements. Excludes entries inherited from referenced libraries."* |
 | 5 | `get-object-repository` against the empty reference project | `"Data": []` — consistent with the empty root above |
-| 6 | Any populated `.objects/` anywhere in the local estate? | **No.** Neither library project, none of the three sample processes (which have no `.objects/` at all), and the reference projects have only the two marker files |
+| 6 | Why had nobody hit it? | **No older project uses the Object Repository at all.** Neither library project nor any of the three sample processes has a `.objects/` folder; the reference projects have only the two marker files. The capture workflow is new, so the first project to use it is the first that could lose work this way |
 
-**The "machine-specific" premise looks false for this folder.** `.metadata` is a content root
-with a *stable identity* (`Id`, `Created`, `CreatedBy`) — the root node of a tree, not a cache.
-`.local/` and `.settings/` genuinely are machine-specific; `.objects/` is in the wrong list.
+**The "machine-specific" premise was simply false for this folder.** `.metadata` is a content
+root with a *stable identity* (`Id`, `Created`, `CreatedBy`) — the root node of a tree, not a
+cache. `.local/` (264 files) and `.settings/` (18) genuinely are machine-specific; `.objects/`
+was in the wrong list.
 
-Finding 6 also explains why nobody has hit this: **no project in this estate has ever populated
-an Object Repository.** The capture workflow in the `web` skill is new. The first project to use
-it is the first project that can lose work this way.
+## What was changed
 
-## What is still missing
+1. `.objects/` removed from the root `.gitignore` and all three `templates/*/.gitignore`, each
+   with a comment saying it is **source** so it is not re-added as tidy-up. `.local/` and
+   `.settings/` stay ignored.
+2. New `validate-project` rule **`object-repository-not-shared`** (error), which fires when a
+   workflow references the Object Repository and either `.objects/` holds no descriptors, or it
+   holds descriptors that `git check-ignore` says are ignored. Verified: it reports the error on
+   the confirming project above (86 descriptors once the `.metadata`/`.type` markers are
+   excluded) and stays silent on the templates and the three reference projects.
 
-One step, and it needs a live capture session:
+## Still open
 
-```bash
-# in a project after capturing at least one element
-git check-ignore -v .objects/<some captured file>   # does the ignore rule actually match it?
-find .objects -type f                               # what did capture write, and where?
-```
-
-Then clone that project to a scratch folder, open it in Studio, and check whether the captured
-targets still resolve. If they do not, the hypothesis is confirmed.
-
-Why it cannot be settled here: `uip rpa uia` lists **zero subcommands** unless a project with
-matching `UiPath.UIAutomation.Activities` / `UiPath.UIAutomation.CLI` versions is open (that is
-the documented version-mismatch symptom — see the `web` skill), and no project in this checkout
-has a populated repository to inspect.
-
-## If confirmed, the change is
-
-1. Remove `.objects/` from the root `.gitignore` and all three `templates/*/.gitignore`. Keep
-   `.local/` and `.settings/` — those are genuinely local.
-2. Add a comment saying `.objects/` is **source**, so nobody re-adds it as tidy-up.
-3. Re-check `.entities/`, `.project/` and `.templates/` the same way, rather than assuming the
-   same answer. `.project/design.json` in particular carries test-case ids, which look like
-   content too.
-4. Add a `validate-project` rule: a XAML references the Object Repository while `.objects/` is
-   empty or ignored → **error**. That is a silent failure in the same family as every other rule
-   in that script.
-5. Commit the first real project's `.objects/`.
+- **The confirming project's `.objects/` is still uncommitted.** It lives in a different repo,
+  so committing it was not done here. Whoever owns that project should commit it now that the
+  ignore rule is gone — until they do, the capture work exists on one machine only.
+- **`.entities/`, `.project/` and `.templates/` have not been re-checked properly.** In the
+  confirming project `.entities/` and `.templates/` were empty and `.project/` held a single
+  untracked `design.json` — not enough to judge. `.project/design.json` carries test-case ids,
+  which look like content; treat it as an open question rather than settled by analogy.
+- **`.screenshots/` was tracked (24 files) in that project.** Not part of this change, but
+  screenshots of a logged-in session are a data-protection concern in this estate — see the
+  `security` skill, `references/prohibited-practices.md`.
 
 ## The counter-argument, stated fairly
 

@@ -1,13 +1,24 @@
 # UiPath Studio local state — machine-specific, never shared
 .local/
 .settings/
-.objects/
 .project/
 .entities/
 .tmh/
 .templates/
 *.nuget.props
 project.lock.json
+
+# .objects/ is DELIBERATELY NOT IGNORED. It is the Object Repository — captured
+# applications, screens and element descriptors. It is SOURCE, not local state.
+#
+# It used to be in the list above. A real project was found with 134 files under
+# .objects/ (ObjectRepositoryScreenData / ObjectRepositoryTargetData, each .content
+# holding the captured FullSelectorArgument) and ZERO of them tracked. A clone of that
+# repo gets the workflows without any of the selectors, and the breakage looks like a
+# selector problem rather than a source-control one.
+#
+# Do not re-add it as tidy-up. See
+# .claude/skills/project-scaffolding/references/object-repository-and-git.md
 
 # UiPath build output
 .nuget/

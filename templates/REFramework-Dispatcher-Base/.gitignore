@@ -3,13 +3,18 @@
 # template: a project instantiated from it inherits nothing from the repo root.
 .local/
 .settings/
-.objects/
 .project/
 .entities/
 .tmh/
 .templates/
 *.nuget.props
 project.lock.json
+
+# .objects/ is DELIBERATELY NOT IGNORED. It is the Object Repository - captured
+# applications, screens and element descriptors. It is SOURCE, not local state.
+# A real project was found with 134 files under .objects/ and zero of them tracked:
+# a clone got the workflows without any of the captured selectors. Do not re-add it.
+# See the project-scaffolding skill, references/object-repository-and-git.md
 
 # UiPath build output
 .nuget/
