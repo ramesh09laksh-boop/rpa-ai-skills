@@ -128,6 +128,9 @@ For the activity APIs of the two custom libraries, use `.claude/skills/finnova-l
 - `references/systems/*.md` — one file per application folder (table above)
 - `references/config-format.md` — `Config_<ENV>.xlsx` (stock) vs `Config_<ENV>.json`
   (requires rebuilding `InitAllSettings.xaml`) — ask which, during PDD → SDD
+- `references/test-data.md` — ingesting a business test-data workbook: mapping its Config sheet
+  onto Settings/Constants/Assets, why the provenance column matters more than the value, work
+  items that depend on each other, and turning NegativeData into Business-exception tests
 - `references/code-quality.md` — the Workflow Analyzer gate: `uip rpa analyze` /
   `analyzer-rules list`, the four ways a governance rule file is silently not applied, and how
   to read the result. Required at Code Review and UAT

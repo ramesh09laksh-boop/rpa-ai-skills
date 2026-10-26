@@ -33,6 +33,13 @@ Data/Temp/*
 Exceptions_Screenshots/*
 !Exceptions_Screenshots/.gitkeep
 
+# Credential and account fixtures. A test-data workbook or a scratch JSON holding sign-in
+# details is NOT a credential source - credentials come from the Orchestrator asset named in
+# the Assets sheet. This is the backstop for when one gets created anyway.
+test_data*.json
+.env
+.env.*
+
 # Excel lock files
 ~$*.xlsx
 

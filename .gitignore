@@ -37,6 +37,13 @@ packages/
 **/Exceptions_Screenshots/*
 !**/Exceptions_Screenshots/.gitkeep
 
+# Credential and account fixtures. A test-data workbook or a scratch JSON holding sign-in
+# details is NOT a credential source (see .claude/skills/standards/references/test-data.md);
+# this is the backstop for when one gets created anyway.
+test_data*.json
+.env
+.env.*
+
 # Excel lock files
 ~$*.xlsx
 
