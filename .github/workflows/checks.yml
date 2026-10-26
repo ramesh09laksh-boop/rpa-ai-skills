@@ -70,6 +70,22 @@ jobs:
           echo "$found script(s) checked"
           test "$found" -gt 0
 
+  library-signatures:
+    name: library signature drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The library SOURCE projects are siblings of this repo and are intentionally not
+      # published here (client and employer material), so on a CI runner they are absent and
+      # the script prints an explicit SKIPPED line and exits 0. That is the expected result
+      # here - the job exists so the check is wired up and visible, not so it can pass
+      # vacuously without saying so.
+      - name: Check library signatures against x:Members
+        shell: pwsh
+        run: |
+          ./.claude/skills/project-scaffolding/scripts/check-library-signatures.ps1
+
   workbooks:
     name: template workbooks are generated, not hand-edited
     runs-on: ubuntu-latest

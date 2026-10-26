@@ -709,6 +709,34 @@ the result, update [`CHANGELOG.md`](CHANGELOG.md), and tag the release.
 4. Opening `rpa-ai-skills` itself in Claude Code or Copilot picks the skills up
    automatically — `.claude/skills/` is auto-discovered, so you can test a change in place.
 
+### On a Finnova or Avaloq library version bump
+
+The library skills document exact argument names, and several are load-bearing — a misspelling
+that must be copied verbatim, an `Idx` vs `idx` casing split by activity family. Those are
+name/type/direction facts, and re-reading 155 workflows does not reliably catch a changed one.
+
+```bash
+# needs the library source projects checked out as siblings of this repo
+pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/check-library-signatures.ps1
+#   OK    -> signatures match the library source
+#   DRIFT -> re-run with -Generate and READ THE DIFF
+pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/check-library-signatures.ps1 -Generate
+```
+
+- `references/activities-signatures.md` in each library skill is **generated**. Do not hand-edit
+  it; change the library or re-run the script.
+- `references/activities.md` is **hand-written and stays that way.** Only 3 of 155 library
+  workflows carry any annotation, so what an argument is *for*, which activity to prefer, and
+  what a gotcha costs cannot be generated. The script never touches it.
+- **A changed argument name is a breaking change** for every workflow that calls it. Read the
+  diff; do not just commit it.
+- The script also lists real argument names that appear nowhere in `activities.md` —
+  informational, since some are deliberately undocumented internals (the Avaloq `CyberArk/*`
+  helpers are marked *"not intended for direct use"*).
+
+It runs in CI too, where the library sources are absent, so it prints an explicit
+`SKIPPED:` line and exits 0 — wired up and visible rather than passing vacuously.
+
 ### If Copilot doesn't pick a skill up when you open *this* repo
 
 This applies to working **inside `rpa-ai-skills` itself**, where the skills are discovered from
