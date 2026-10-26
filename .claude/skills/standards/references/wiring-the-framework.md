@@ -122,7 +122,7 @@ rules: the `security` skill.
 
 ## Authoring the XAML
 
-Author it with the CLI. Verified against `uip` **1.204.0**:
+Author it with the CLI. Verified against **rpa-tool 1.204.2**, 2026-10-26:
 
 ```bash
 uip rpa activities find --query "switch" --project-dir <project>

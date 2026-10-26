@@ -17,7 +17,8 @@ Use this when the CLI route fails, or when you want Studio's own wizard defaults
 
 ## Route B — the CLI
 
-Verified working against `uip` **1.204.0**. Run `--help` before relying on any flag.
+Verified working against **rpa-tool 1.204.2** on 2026-10-26. Run `--help` before relying on
+any flag — tool versions move independently of the `uip` host.
 
 ```bash
 # 1. Find the template and its version. Returns the LATEST version per package.

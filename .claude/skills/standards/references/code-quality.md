@@ -4,9 +4,10 @@ The analyzer is the one quality check in this estate that is **not** homegrown. 
 enforces our conventions; the analyzer enforces UiPath's, and it sees things no text rule can —
 SecureString scope, serialization prerequisites, container usage, unreachable activities.
 
-Everything below was verified by running it. `uip --version` → **1.204.0**, Studio rules
-**2026.10**. Re-run `--help` before using a flag; the command surface changed recently (see the
-`project-scaffolding` skill, `references/cli-command-map.md`).
+Everything below was verified by running it, on **rpa-tool 1.204.2** (host `cli` 1.204.0),
+Studio rules **2026.10**, 2026-10-26. Re-run `--help` before using a flag — **the tools version
+independently of the `uip` host** (`uip tools list`), and the verb names have already moved once
+under this repo. See the `project-scaffolding` skill, `references/cli-command-map.md`.
 
 ## Running it
 
@@ -28,8 +29,34 @@ uip rpa analyzer-rules list --project-dir <project-dir> --scope Workflow
 `uip rpa build` runs the analyzer by default and takes the same governance flags, plus
 `--ignored-rules`. `--skip-analyze` turns it off — never pass that to get a build green.
 
-**There is no `--result-path` and no `--stop-on-rule-violation` in this version.** Use
-`--detailed-log-path`, or `--output json` and redirect. Read the exit code.
+**Neither `--result-path` nor `--stop-on-rule-violation` is listed by `analyze --help` on
+rpa-tool 1.204.2.** Use `--detailed-log-path`, or `--output json` and redirect. Read the exit
+code.
+
+### The full flag set, and the alias pair that confuses everyone
+
+`analyze --help` lists: `--governance-file-path`, `--governance-file-type`,
+`--governance-product`, `--policy-file`, `--policy-file-type`, `--default-severity`,
+`--ignored-rules`, `--skip-analyze`, `--detailed-log-path`, `--repository-path`,
+`--feed-folder`, `--nuget-sources-config-path`, `--exclude-configured-sources`, `--format`,
+plus the globals.
+
+**`--policy-file` and `--policy-file-type` are aliases**, not alternatives:
+
+> `--policy-file <path>` — *Analyzer policy JSON file. **Alias for `--governance-file-path`**
+> (Pipeline Analyze parity).*
+
+So `--policy-file X` and `--governance-file-path X` are the same thing on `analyze`, `build` and
+`pack`. Pick one spelling and keep it; this file uses the `--governance-*` pair.
+
+**The trap:** `--policy-file` is *also* a **global** option on every `rpa` verb, where it means
+something else entirely — *"Governance policy to judge this invocation by where the signed-in
+tenant has none"*. Same flag name, two jobs, depending on the verb.
+
+`--governance-product` is the third piece and is easy to miss: *"Product whose published policy
+is resolved from AutomationOps, e.g. Development, Business, StudioWeb. **Defaults to
+Development**"*. If the tenant publishes policies per product, the default silently picks
+Development's.
 
 ## Four traps, all observed
 

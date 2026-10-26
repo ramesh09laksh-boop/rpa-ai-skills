@@ -5,7 +5,8 @@ file is the how. It deliberately does **not** duplicate Orchestrator mechanics: 
 `uipath-platform` / Orchestrator skill for those, and this file for the estate's rules around
 them.
 
-Commands verified against `uip` **1.204.0**. Run `--help` before relying on a flag.
+Commands verified against **rpa-tool 1.204.2** and **orchestrator-tool 1.204.0** on
+2026-10-26. Run `--help` before relying on a flag.
 
 ## Order
 

@@ -12,8 +12,9 @@ account, and often a package version Orchestrator has never seen. That is L3 evi
 Orchestrator host is the estate's own URL and `uip login` reaches it with `--authority <host>`.
 See `decisions.md` §0, and the project's own `AGENTS.md` Environment block.
 
-All commands below were taken from `--help` on `uip` **1.204.0**. Re-run `--help` before relying
-on a flag.
+All commands below were taken from `--help` on this machine, 2026-10-26, against
+**rpa-tool 1.204.2** and **orchestrator-tool 1.204.0**. Re-run `--help` before relying on a
+flag, and check `uip tools list` — the tools version independently of the `uip` host.
 
 ## How the client secret is supplied — and how it is not
 

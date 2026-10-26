@@ -213,8 +213,11 @@ no workflow would run at all.
 - **Never write PASS without the level.** A bare PASS is what this ladder exists to stop.
 
 Detail, and the Studio-IPC trap in `uip rpa validate` / `run`: the `project-scaffolding` skill,
-`references/evidence-ladder.md`. Command names changed in `uip` 1.204.0 (`run-file`,
-`get-analyzer-rules`, `search-templates`, `create-project` are gone) —
+`references/evidence-ladder.md`. **`uip` is a host plus separately-versioned tools, so a
+command name is only meaningful with a tool and a version.** On **rpa-tool 1.204.2** the earlier
+`run-file`, `get-analyzer-rules`, `search-templates` and `create-project` are absent;
+`find-activities` is not gone but now lives on **rpa-legacy-tool 1.204.0**. Never write that a
+command "does not exist" without naming the tool and version you checked —
 `references/cli-command-map.md`.
 
 ## Deployment & review rules
