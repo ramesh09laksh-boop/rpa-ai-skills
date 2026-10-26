@@ -84,16 +84,26 @@ jobs:
       # entries carry timestamps, so re-running the generator always produces different bytes
       # for identical content - verified. The contents.md files exist precisely so the
       # workbooks are diffable, and they are what a hand-edit would fail to reproduce.
+      # Compare with `git diff`, NOT `git status --porcelain`.
+      #
+      # status is line-ending-sensitive: it compares working-copy BYTES against the index, so
+      # the generator writing the platform newline (StringBuilder.AppendLine uses
+      # Environment.NewLine -- CRLF on Windows, LF on Linux) makes it report every rendering as
+      # modified even when the content is identical. diff applies .gitattributes normalisation
+      # first, which is the comparison actually wanted here.
+      #
+      # This is not hypothetical: the first two runs of this workflow failed exactly this way,
+      # with `git status` listing three config-contents.md files and `git diff` printing
+      # NOTHING. --ignore-cr-at-eol belts-and-braces it.
       - name: Re-run the generator and diff the renderings
         shell: pwsh
         run: |
           ./templates/tools/build-template-workbooks.ps1
-          $changed = git status --porcelain -- '*contents.md'
-          if ($changed) {
+          git --no-pager diff --exit-code --ignore-cr-at-eol -- '*contents.md'
+          if ($LASTEXITCODE -ne 0) {
             Write-Host '::error::Re-running build-template-workbooks.ps1 changed a committed rendering.'
-            Write-Host 'Either a workbook was hand-edited, or the generator changed without being re-run:'
-            $changed | ForEach-Object { Write-Host "  $_" }
-            git --no-pager diff -- '*contents.md'
+            Write-Host 'Either a workbook was hand-edited, or the generator changed without being re-run.'
+            Write-Host 'The diff above is the content change - line endings alone are ignored.'
             exit 1
           }
           Write-Host 'Generator output matches the committed renderings.'
