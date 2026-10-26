@@ -16,10 +16,40 @@ If you know exactly which stage you are on, go straight to that skill. This file
 ```bash
 # 1. environment -- read-only, prints a one-line fix per failure
 <project-scaffolding skill>/scripts/preflight.sh [<project-dir>]
+<project-scaffolding skill>/scripts/preflight.ps1 -ProjectPath <dir> -FolderPath <folder>
 
 # 2. is this a new project or a resumed one?
 cat Documentation/Progress.md        # exists -> resume from "next"; absent -> new, create it
 ```
+
+### Read the preflight result properly — `SKIP` is not `OK`
+
+Preflight prints four states, and the one that gets misread is `SKIP`:
+
+| | Means |
+|---|---|
+| `OK` | checked, and it passed |
+| `FAIL` | checked, and it failed — blocking, with the fix on the next line |
+| `WARN` | checked, and it is a problem you may proceed past knowingly |
+| **`SKIP`** | **not checked at all.** Nothing is known about it either way |
+
+**A `SKIP` is an open item that a person has to verify.** It is not a pass, and
+"0 blocking" in the summary does **not** mean the environment is good — it means nothing
+blocking was *found among the checks that ran*.
+
+This matters most for the robot-side prerequisites, which **cannot** be checked from a developer
+machine and therefore always `SKIP`: whether the robot version supports the package pins,
+whether the robot's own package sources reach both the UiPath packages and the Swisscom
+libraries, whether it is an unattended robot with an interactive Windows session, whether the
+browser extension is installed for the **service account's** profile, and whether the
+application is reachable from the **robot machine**. Every one of those has failed a real run
+somewhere, and each fails confusingly — usually as a selector timeout rather than a clear
+message.
+
+So: **list every `SKIP` back to the user as something they must confirm**, name who can confirm
+it (usually whoever owns the robot or the Orchestrator folder), and say that you are proceeding
+with it unverified. Do not report a preflight with SKIPs as "environment ready". Detail: the
+`standards` skill, `references/end-to-end-run.md` Part 1.
 
 **`Documentation/Progress.md` is the state of the build.** Update it after **every** item —
 done / blocked / next, with the command that proved "done". A restart then resumes instead of

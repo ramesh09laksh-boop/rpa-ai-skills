@@ -15,6 +15,37 @@ See `decisions.md` §0, and the project's own `AGENTS.md` Environment block.
 All commands below were taken from `--help` on `uip` **1.204.0**. Re-run `--help` before relying
 on a flag.
 
+## How the client secret is supplied — and how it is not
+
+`uip login` supports a **non-interactive** sign-in, and the only acceptable way to give it the
+secret is **by environment-variable reference**. From `--client-secret`'s own help text:
+
+> *Client Secret or Application Secret. **Use `env.ENV_NAME` to read from an environment
+> variable***
+
+So:
+
+```bash
+# the secret is set in the shell/CI secret store, and only its NAME is typed
+uip login --authority <automation-suite-host> --tenant <tenant> \
+          --client-id env.UIPATH_CLIENT_ID \
+          --client-secret env.UIPATH_CLIENT_SECRET
+```
+
+| | |
+|---|---|
+| **Do** | pass `env.UIPATH_CLIENT_SECRET` — the CLI reads the variable itself |
+| **Do** | let a **person** sign in interactively (`uip login --authority <host>`), which is the normal case |
+| **Never** | type the secret inline, as `--client-secret <the-actual-value>`. It lands in shell history, in the process list, and in an agent transcript |
+| **Never** | put it in a file in the repo — not `.env`, not a config sheet, not a fixture `.json` |
+| **Never** | paste it into a chat, a prompt, an issue or a commit message. An agent must not ask for it and must not accept it if offered |
+
+`--client-assertion` (federated/workload identity) takes the same `env.ENV_NAME` form and avoids
+a long-lived secret altogether — prefer it where the platform supports it.
+
+If a sign-in is needed and no variable is set, that is a **human checkpoint**: ask the person to
+run `uip login` themselves in their own terminal. Do not route it through an agent's shell.
+
 ---
 
 ## Part 1 — robot prerequisites

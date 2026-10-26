@@ -43,10 +43,13 @@ Projects execute on a **UiRobot** through an **Orchestrator folder** — for exa
   > `https://govcloud.uipath.us` (Public Sector), **or your Automation Suite host**.
   > `https://` may be omitted*
 
-  So: `uip login --authority <automation-suite-host> --tenant <tenant>`, plus
-  `--client-id` / `--client-secret` for a non-interactive sign-in. Keep TST and production as
-  separate **login profiles** (`uip login profiles list`, then `--profile <name>` on any
-  command) so a command cannot hit the wrong one by default.
+  So: `uip login --authority <automation-suite-host> --tenant <tenant>`. Keep TST and
+  production as separate **login profiles** (`uip login profiles list`, then `--profile <name>`
+  on any command) so a command cannot hit the wrong one by default.
+
+  **A non-interactive sign-in passes the secret by environment-variable reference only** —
+  `--client-secret env.UIPATH_CLIENT_SECRET`, never the value inline. The `security` skill owns
+  the rule; the mechanism is in the `standards` skill, `references/end-to-end-run.md`.
 - Cloud-only features are **not available by assumption.** If a skill or an agent proposes one,
   that is a question for the team, not a step.
 - The package feed is the one the **folder** uses. Do not assume a tenant-wide cloud feed.

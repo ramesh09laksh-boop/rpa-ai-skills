@@ -7,6 +7,69 @@ Tag each release (`git tag -a v<x.y> -m ...`) so a project can pin or roll back.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
+## [Unreleased] — v0.2.1 draft
+
+Not tagged. Branch `chore/post-release-0.2.1`, PR #3.
+
+### Added
+
+- **Platform stated: Automation Suite, not Automation Cloud.** The skills never said which
+  platform this estate runs on, so an agent had no way to know and would default to Cloud
+  assumptions. `decisions.md` §0, plus an **Environment** block template in `uc-delivery` for
+  each project's own `AGENTS.md` (platform, Orchestrator host, tenant, folder path, robot machine
+  and Windows account, package feed, TST vs production) — **non-secret facts only**.
+- **`standards/references/end-to-end-run.md`** — the L4 procedure: robot prerequisites, pack →
+  publish → confirm the folder → start the job → read state, logs and queue results, and the
+  **SDD acceptance table**. Five of the six robot prerequisites are marked **unverified from a
+  developer machine** rather than presented as checks.
+- **`standards/references/mocking.md`** — mark a stand-in `[MOCK]` in both the DisplayName and
+  the annotation; what may and may not be mocked; a mocked run reaches **L3 at most**.
+- **Wiring-review table** in `wiring-the-framework.md` — where to look and what wrong looks like,
+  per Framework file, plus the two cross-file counts no single file reveals.
+- **`config-key-undefined`** validate-project rule (error) — a workflow reading a config key no
+  sheet defines gets `Nothing` and continues with an empty value.
+- **`unresolved-mock`** validate-project rule (warning).
+- **`preflight -FolderPath`** — the scriptable part of L4 readiness (folder, process, assets,
+  queue), with the robot-side prerequisites reported as `SKIP`.
+- **README lifecycle stage 7b — end-to-end run in the Orchestrator folder.**
+- **How the client secret is supplied**, in `end-to-end-run.md` and `decisions.md`: by
+  environment-variable reference only (`--client-secret env.UIPATH_CLIENT_SECRET`), never inline,
+  never in a file, never pasted into a chat. An agent must not ask for it or accept it if offered.
+
+### Changed
+
+- **Evidence ladder gains L2b (pack) and L4 is redefined.** `validate` and `build` are not the
+  last compile-time gate — a missing assembly reference and `ST-SEC-008` pass both and fail at
+  `pack`. L4 is now a **real job in the Orchestrator folder, on a robot**, with job state, logs
+  and the SDD acceptance table; a local `uip rpa run` is **L3 evidence**, and a **mocked** run is
+  L3 at most. Propagated to all five places that state the ladder and both Working-rules blocks.
+- **`uc-delivery` explains the preflight result states**, because `SKIP` was being read as a
+  pass. A `SKIP` is *not checked at all* and is an open item a person must verify; "0 blocking"
+  does not mean the environment is good.
+
+### Fixed
+
+Two defects shipped in v0.2.0, both in `preflight.ps1`, both found by testing rather than review:
+
+- **`$deps.'UiPath.UIAutomation.CLI'` threw under `Set-StrictMode`** on any project without that
+  dependency — which is most of them. Absent properties throw rather than returning `$null`; now
+  read via `PSObject.Properties`.
+- **The capture-pin check keyed on `Activities`**, so the Dispatcher template (Activities
+  `23.10.13`, no CLI, never captures selectors) reported a **blocking** failure. `uip rpa uia`
+  needs the CLI package, so the skip now keys on that.
+
+And one in the CI added in v0.2.0:
+
+- **The workbooks job compared with `git status --porcelain`**, which is line-ending-sensitive;
+  the generator writes the platform newline, so on a Linux runner it reported three
+  `config-contents.md` files as modified while `git diff` printed **nothing**. Both of the
+  workflow's first two runs failed this way. Now `git diff --exit-code --ignore-cr-at-eol`.
+
+### Still open — unchanged from v0.2.0, awaiting a decision
+
+The analyzer rule file, the Avaloq dependency pins, capture-pin-vs-template-pin, and the worked
+example are deliberately untouched. See *Known open* below.
+
 ## [v0.2.0] - 2026-10-26
 
 ### Added
