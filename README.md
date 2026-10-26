@@ -233,12 +233,12 @@ When the two disagree, **follow the estate and note the conflict in
 
 ## Development lifecycle
 
-**Ten stages**, each a short prompt you can paste into Claude Code (or any agent with these
+**Eleven stages** (ten numbered, plus 7b), each a short prompt you can paste into Claude Code (or any agent with these
 skills installed). Every prompt routes to skills that already exist in this repo — none of them
 duplicate skill content, they just point the agent at the right ones for that stage.
 
 ```
-PDD → SDD → Project → Wire → Capture → Develop → Test → Review → UAT → Deploy
+PDD → SDD → Project → Wire → Capture → Develop → Test → Review → E2E run → UAT → Deploy
                                                                           ↑________|
                                                                     Change / Enhancement
 ```
@@ -249,6 +249,9 @@ Two stages are new, and both were missing for the same reason — they are the w
 - **Wire** — connecting the SDD's transactions to the Framework. Skipping it produces a project
   with good leaf workflows that runs green and processes **zero** transactions.
 - **Capture** — resolving every `TODO_SELECTOR` against the live application with `uip rpa uia`.
+- **End-to-end run** (7b) — the first time the automation runs as a **job in the Orchestrator
+  folder, on a robot**, rather than in a developer's session. This is **L4**, and nothing before
+  it proves the automation works.
 
 ### Working rules — paste this at the top of any stage prompt
 
@@ -373,6 +376,40 @@ must be absolute and the file type must be `Studio`, or the file is ignored or c
 a tenant policy also silently outranks it. Cross-check the ids your file enables against the ids
 that actually load — see `standards/references/code-quality.md`. Fix findings; do not relax a
 rule to pass.
+```
+
+### 7b. End-to-end run in the Orchestrator folder
+
+The first run that proves anything. Everything before this is a developer's session.
+
+```
+Load `standards` (end-to-end-run) and `security`. This estate is Automation Suite, not
+Automation Cloud — read the Environment block in the project's AGENTS.md for the Orchestrator
+host, tenant, folder path, robot machine and feed; if it is missing, create it first.
+
+1. Preflight: `preflight.sh <project> --skip-capture` plus
+   `preflight.ps1 -ProjectPath <project> -FolderPath <folder>`. Fix anything blocking. The
+   robot-side prerequisites are NOT scriptable — robot version vs the package pins, the robot's
+   own package sources, an interactive session, the browser extension for the service account,
+   the app being reachable from the robot machine. Confirm them with whoever owns the robot and
+   say which are unverified.
+2. Pack (L2b): `uip rpa pack <project> --output-path <dir>` from a clean checkout. Do not pass
+   --ignored-rules or --skip-analyze.
+3. Publish: `uip or packages upload <.nupkg>`, then `uip or packages versions <id>` to confirm.
+4. Confirm the folder: process bound to that version, credential asset, queue (if any), and a
+   TST config with no [UC-SPECIFIC — replace] and no undefined key.
+5. Start the job: `uip or jobs start <process-key> --folder-path <folder>
+   --input-arguments '{"in_ENV":"TST"}'`. Keep the job key.
+6. Read it back: `uip or jobs get`, `uip or jobs history`, `uip or jobs logs --level Warning`,
+   and the queue results via `uip or queue-items list --status Successful|Failed`.
+7. Complete the SDD acceptance table: SDD step → evidence → pass/fail, with the application
+   state read back INDEPENDENTLY of the robot's logs, per-transaction results compared with the
+   test data, negative-data rows producing the expected Business exceptions, no [MOCK] or
+   TODO_SELECTOR anywhere, and transaction count equal to input count.
+
+Report the level reached with the command that proved it. A Successful job that processed 0
+transactions is a failure, not a pass. If you could not start a job, say so and report L2b or
+L3 — do not describe a local run as L4.
 ```
 
 ### 8. UAT Readiness
