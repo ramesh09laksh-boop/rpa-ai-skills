@@ -720,8 +720,13 @@ function Test-Project {
                 Add-Finding error 'object-repository-not-shared' $name `
                     (".objects/ holds $descriptors captured descriptor(s) but git IGNORES them. " +
                      'The workflows will be committed without their selectors and a fresh clone ' +
-                     "resolves every target to nothing. Remove '.objects/' from .gitignore - it is " +
-                     'source, not Studio local state.')
+                     "resolves every target to nothing. Remove '.objects/' from this project's " +
+                     '.gitignore - it is source, not Studio local state. THEN, BEFORE COMMITTING ' +
+                     'IT: descriptors are captured from a live application and record what was ' +
+                     'on screen, so scan the .content files for credentials, tokens, email ' +
+                     'addresses and customer/account numbers, and check .images/ for screenshots ' +
+                     'of a logged-in session. Re-capture against throwaway data rather than ' +
+                     'hand-editing. See README.md "Upgrading from v0.1.x".')
             }
         }
     }

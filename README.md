@@ -231,6 +231,49 @@ invocation). Both sets load, and they overlap.
 When the two disagree, **follow the estate and note the conflict in
 `Documentation/Progress.md`** — so it gets settled once rather than re-decided per project.
 
+## Upgrading from v0.1.x
+
+Three steps, and the third is the one that matters most. Do them in order.
+
+**1. Run the conformance checker.** New rules have been added since v0.1.x, so expect findings
+on a project that was clean before:
+
+```bash
+pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/validate-project.ps1 <project>
+```
+
+Likely new findings: `config-key-undefined`, `unresolved-mock`, `object-repository-not-shared`,
+and the four leaf-workflow-contract warnings. On an **existing** project the contract warnings
+are a backlog — a blanket suppression with a written reason in `validate-project.ignore` is
+legitimate. `config-key-undefined` and `object-repository-not-shared` are **errors** and are not.
+
+**2. If `object-repository-not-shared` fires, remove `.objects/` from the project's
+`.gitignore`.** A project instantiated before v0.2.0 inherited an ignore rule that hides its
+captured selectors — `npx skills update` cannot fix that, because the line lives in the
+project's own file. Delete it; keep `.local/` and `.settings/`.
+
+**3. Before you commit `.objects/`, read what is in it.** This is the step with real risk, and
+it only exists because of step 2. Object Repository descriptors are captured from a live
+application, and the capture records what was on screen:
+
+```bash
+# look before you add - the .content files hold the selectors verbatim
+grep -rliE "password|secret|token|apikey|bearer|@[a-z0-9.-]+\.[a-z]{2,}" .objects/
+```
+
+Check for, and strip or re-capture:
+
+- **credentials or tokens** in a `url`, `aaname` or `innertext` attribute — a session token in a
+  query string is the common one;
+- **email addresses and customer names** picked up from the page;
+- **account, contract or customer numbers** used as the business key during capture;
+- **`.images/` screenshots.** Each descriptor can carry a captured image of the element and its
+  surroundings, and those are screenshots of a logged-in session — the same data-protection
+  concern as `Exceptions_Screenshots/`.
+
+If a descriptor contains any of it, **re-capture against throwaway test data** rather than
+editing the file by hand. Then commit.
+
 ## Development lifecycle
 
 **Eleven stages** (ten numbered, plus 7b), each a short prompt you can paste into Claude Code (or any agent with these

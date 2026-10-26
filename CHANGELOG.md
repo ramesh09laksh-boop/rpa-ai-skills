@@ -92,6 +92,17 @@ And one in the CI added in v0.2.0:
 The analyzer rule file, the Avaloq dependency pins, capture-pin-vs-template-pin, and the worked
 example are deliberately untouched. See *Known open* below.
 
+### Upgrading from v0.1.x
+
+1. Run `validate-project` — new rules mean new findings on a project that was clean before.
+2. If `object-repository-not-shared` fires, remove `.objects/` from the **project's own**
+   `.gitignore`; `npx skills update` cannot do it for you.
+3. **Before committing `.objects/`, scan the `.content` files for credentials, email addresses,
+   customer numbers and tokens, and check `.images/` for screenshots of a logged-in session.**
+   Descriptors are captured from a live application and record what was on screen. Re-capture
+   against throwaway data rather than hand-editing. Full text: `README.md` → *Upgrading from
+   v0.1.x*.
+
 ## [v0.2.0] - 2026-10-26
 
 ### Added
