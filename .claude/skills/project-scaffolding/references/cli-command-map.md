@@ -78,6 +78,54 @@ uip rpa studio start        # start one and wait until ready
 `packages` · `publish` · `remote` · `restore` · `run` · `settings` · `studio` · `templates` ·
 `test-data` · `tm` · `uia` · `validate` · `workflow-examples`
 
+## Unsolved: "The workflow cannot be found"
+
+**Status: not solved. Recorded so the next person starts further along.**
+
+On the Lanes run, **every** workflow failed to run — `Main.xaml` at the project root and
+`Lanes_System/Lanes-SignIn.xaml` in a subfolder, with and without `--project-dir`, with and
+without `--skip-build`:
+
+```
+The workflow cannot be found. Make sure that it is part of the project.
+```
+
+…while `uip rpa build` reported `"Success": true`. The run notes concluded it was a
+"compiled-assembly resolution" problem in the tool.
+
+### Two leads, in the order worth testing
+
+**1. There was a compile error the CLI did not surface.** The same project had
+`BC31424: System.Data.DataRow … forwarded to System.Data.Common` in
+`Framework/InitAllSettings.xaml`, visible only in Studio. `validate-project` said PASS and
+`build` said Success. A project that does not actually compile has no workflow to find, and
+"cannot be found" is exactly the shape that failure would take. **Clear L3 first** (Studio,
+empty Error List) and retry — see `evidence-ladder.md` and the `standards` skill's
+`silent-failure-traps.md`.
+
+**2. The command is Studio-IPC, and Studio may not have had the project open.** `run` is in the
+Studio-IPC family above: `--project-dir` means *"Project directory to match against running
+Studio instances"*, and the CLI resolves the file **relative to the project Studio has open**.
+With no matching instance there is nothing to resolve the path against. Evidence that this is
+how the family behaves: `analyzer-rules list` with no project open fails inside
+`IInteropProjectService.OpenProject`, and its internal handler is still named
+`[get-analyzer-rules]` — the CLI opens the project itself over IPC. A Studio instance can also
+be running with **no project loaded** (`uip rpa instances list` →
+`"ProjectDirectory": "(none)"`), which looks like a healthy environment and is not one.
+
+```bash
+uip rpa instances list        # is a Studio instance up, and is ProjectDirectory the right project?
+uip rpa studio start          # start one and wait until ready, then retry
+uip rpa run --project-dir <project> --file-path Main.xaml
+```
+
+**3. The command name.** The run used `uip rpa run-file`, which is not a command in 1.204.0 —
+it is `run --file-path`. That alone does not explain the error (an unknown command fails
+differently), but it does mean the run was on a different CLI version, so re-test on 1.204.0
+before trusting the old conclusion.
+
+**Whoever settles this writes the answer here**, and deletes this section.
+
 ## The CLI asks you to load the official UiPath skill
 
 Every `uip rpa` invocation prints:
