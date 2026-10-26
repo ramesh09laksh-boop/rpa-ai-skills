@@ -67,8 +67,10 @@ default. Detail: the `standards` skill, `references/decisions.md` §0.
 ## The ten stages, and the gate on each
 
 A stage is not done until its gate is met. Gates use the evidence ladder — **L1** static,
-**L2** compiles + analyzer, **L3** Studio Error List empty, **L4** a real TST run with a log
-excerpt (the `project-scaffolding` skill, `references/evidence-ladder.md`).
+**L2** compiles + analyzer, **L2b** packs, **L3** Studio Error List empty, **L4** a real job on
+TST in the Orchestrator folder, on a robot, with the SDD acceptance table (the
+`project-scaffolding` skill, `references/evidence-ladder.md`). A local run or a mocked run is
+**L3 at most**.
 
 | # | Stage | Load | Gate |
 |---|---|---|---|
@@ -79,8 +81,8 @@ excerpt (the `project-scaffolding` skill, `references/evidence-ladder.md`).
 | 5 | Develop leaf workflows | `standards` + the app skill(s), `pdd-sdd-scaffolding` | **L2**, `_System` contract met |
 | 6 | Test data → tests | `standards` (`references/test-data.md`), `security` | `Tests.xlsx` built; no case marked passed without a run |
 | 7 | Review | `standards`, `security`, app skill(s) | Analyzer clean, **and the report names which rule set ran** |
-| 8 | UAT readiness | all of the above | **L4** with a log excerpt |
-| 9 | Deployment readiness | `security` | TST first. PRD only with named approval |
+| 8 | UAT readiness | all of the above | **L4** — a real job, with state, logs and the SDD acceptance table |
+| 9 | Deployment readiness | `standards` (`references/deployment.md`), `security` | TST first, at **L2b** and **L4**. PRD only with named approval |
 | 10 | Change / enhancement | whatever the project already uses | Re-run 6–8 for what the change touches |
 
 Stages 3 and 4 are the ones most often skipped, and both fail silently: an unwired Framework
@@ -116,11 +118,14 @@ Studio blockers are a missing Studio *session*, which `uip rpa studio start` pro
 ## Working rules
 
 ```
-Never invent a selector, activity, argument, API, config value, credential or business rule —
-if the source is silent it is an Open Question / TODO. Report the highest check level reached
-(L1–L4) with the command used. "Needs Studio" only with the exact command and its error.
-Commit locally after each item; keep Documentation/Progress.md updated. Do not stop between
-items — log a blocker and continue with the next.
+Working rules: never invent a selector, activity, argument, API, config value, credential or
+business rule — if the source is silent it is an Open Question / TODO. Report the highest
+check level reached, with the command used: L1 validate-project, L2 uip rpa validate+build,
+L2b uip rpa pack, L3 Studio Error List clean, L4 a real job on TST in the Orchestrator folder
+on a robot with the SDD acceptance table. A local run or a mocked run is L3 at most, never L4.
+"Needs Studio" only with the exact command and its error. Commit locally after each item; keep
+Documentation/Progress.md updated. Do not stop between items — log a blocker and continue with
+the next.
 ```
 
 When something breaks, start at the `standards` skill, `references/troubleshooting.md` — the

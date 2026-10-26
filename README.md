@@ -258,10 +258,12 @@ stages 1 and 3. Rather than repeat it unreliably, it lives here as one block to 
 ```
 Working rules: never invent a selector, activity, argument, API, config value, credential or
 business rule — if the source is silent it is an Open Question / TODO. Report the highest
-check level reached (L1 validate-project, L2 uip rpa validate+build, L3 Studio Error List
-clean, L4 real run) with the command used. "Needs Studio" only with the exact command and its
-error. Commit locally after each item; keep Documentation/Progress.md updated. Do not stop
-between items — log a blocker and continue with the next.
+check level reached, with the command used: L1 validate-project, L2 uip rpa validate+build,
+L2b uip rpa pack, L3 Studio Error List clean, L4 a real job on TST in the Orchestrator folder
+on a robot with the SDD acceptance table. A local run or a mocked run is L3 at most, never L4.
+"Needs Studio" only with the exact command and its error. Commit locally after each item; keep
+Documentation/Progress.md updated. Do not stop between items — log a blocker and continue with
+the next.
 ```
 
 ### 1. PDD → SDD
@@ -429,12 +431,17 @@ So "validated" on its own is not a claim. Name the level and the command:
 |---|---|---|
 | **L1** | Estate conformance (static) | `validate-project.sh` / `.ps1` |
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
+| **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A real run of `Main.xaml` on TST, with a log excerpt | Studio, or `uip rpa run` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
 
-A wiring or "project ready" stage is **not done below L3**; "tested" means **L4**, with the log
-excerpt attached. Detail and the Studio-IPC trap in those commands:
-[`evidence-ladder.md`](.claude/skills/project-scaffolding/references/evidence-ladder.md).
+A wiring or "project ready" stage is **not done below L3**. "Tested" means **L4** — a real job
+started in the Orchestrator folder on a robot, with job state, logs and the SDD acceptance table.
+**A local run of `Main.xaml` is L3 evidence, not L4**, and a **mocked** run reaches L3 at most.
+L2b is a rung of its own because a missing assembly reference and `ST-SEC-008` both pass
+`validate` and `build` and fail only at `pack`. Detail:
+[`evidence-ladder.md`](.claude/skills/project-scaffolding/references/evidence-ladder.md);
+procedure: [`end-to-end-run.md`](.claude/skills/standards/references/end-to-end-run.md).
 
 ## Definition of Done (UiPath project)
 

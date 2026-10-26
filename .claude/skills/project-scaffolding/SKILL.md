@@ -180,12 +180,16 @@ Studio showed a compile error in `Framework/InitAllSettings.xaml` and every run 
 |---|---|---|
 | **L1** | Estate conformance (static) | `validate-project.sh` / `.ps1` |
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
+| **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A real run of `Main.xaml` on TST, with a log excerpt | Studio, or `uip rpa run` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
 
 Every report names the highest level reached **and the command that proved it**. A wiring or
 "project ready" stage is not done below **L3** — L1 and L2 both passed on a project Studio
-could not compile. Never write PASS without the level.
+could not compile. **L2b is separate because `validate` and `build` are not the last
+compile-time gate** — a missing assembly reference and `ST-SEC-008` both pass them and fail at
+`pack`. **A local `uip rpa run` is L3 evidence, not L4**: L4 is a real job in the Orchestrator
+folder on a robot. A mocked run reaches **L3 at most**. Never write PASS without the level.
 
 Full detail, the two traps in those commands, and why `validate` is not a superset of the
 analyzer: `references/evidence-ladder.md`. The command names changed in `uip` 1.204.0 —
