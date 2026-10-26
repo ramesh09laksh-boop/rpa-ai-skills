@@ -139,6 +139,9 @@ the `avaloq-library` skill.
 - `references/test-data.md` — ingesting a business test-data workbook: mapping its Config sheet
   onto Settings/Constants/Assets, why the provenance column matters more than the value, work
   items that depend on each other, and turning NegativeData into Business-exception tests
+- `references/deployment.md` — pack, publish, and the five things that must exist in the
+  Orchestrator folder. TST first; PRD only with named approval. Does not duplicate Orchestrator
+  mechanics — the official UiPath platform skill owns those
 - `references/code-quality.md` — the Workflow Analyzer gate: `uip rpa analyze` /
   `analyzer-rules list`, the four ways a governance rule file is silently not applied, and how
   to read the result. Required at Code Review and UAT

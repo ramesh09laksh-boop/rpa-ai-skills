@@ -213,6 +213,30 @@ analyzer's `ST-NMG-002` regex. Both names are correct; they are just not the sam
 - Credentials and asset names come from the `security` skill — never from the SDD text
   itself, even if it prints one.
 
+## An application with no library and no reference
+
+Finnova and Avaloq have libraries. SIX iD, CardOne and the Avaloq report browser have reference
+flows. A **desktop, Java, SAP or Citrix** application with neither is **outside what these skills
+cover**, and whether that stays out of scope is an open decision for the team — not something to
+settle inside one project.
+
+Until it is settled, the honest interim path, which this skill already supports:
+
+1. Create `<App>_System/` for it like any other application — the folder rule does not change.
+2. Scaffold the **sequence** from the PDD/SDD exactly as you would for Finnova. The structure is
+   fully derivable without the application; that is this skill's whole premise.
+3. Mark **every** target `TODO_SELECTOR` with the question it needs answered, and emit the
+   `.selectors-todo.md`. Not `APPROX_SELECTOR` — there is no library signature and no reference
+   flow to approximate from, so there is no evidence, and the line between the two markers is
+   evidence rather than confidence.
+4. Say plainly in the handover that resolving those needs a developer with the application
+   available, and that the capture route is unverified for this application type.
+
+**Do not** write raw selectors from a screenshot to fill the gap, and do not assume the
+`uip rpa uia` capture loop works here — it is verified for browsers only. Whether it captures
+desktop applications at all is **untested**; if someone tests it, that answer belongs in the
+`web` skill.
+
 ## References
 
 - `references/scaffold-examples.md` — worked examples: annotated screenshot → scaffold step,

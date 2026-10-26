@@ -384,6 +384,11 @@ blocker, not a soft caveat.
 ### 9. Deployment Readiness
 
 ```
+Load `standards` (deployment) and `security`. Pack, publish to TST, and confirm the process,
+queue, assets and trigger exist in the right Orchestrator folder — use the official UiPath
+platform skill for the Orchestrator mechanics. TST first; PRD only with named, explicit
+approval for this release, and the first PRD run is watched with a known rollback.
+
 Confirm: `Config_PRD.xlsx` carries the same key set as `Config_TST.xlsx`, with no remaining
 `[UC-SPECIFIC — replace]`; every `Assets` row is wired to a real Orchestrator asset in the
 right folder (`security` → `orchestrator-assets.md`); the Finnova/Avaloq `.nupkg`s are
