@@ -284,6 +284,48 @@ So `#ref` is handed to git as a **branch-or-tag**, not an arbitrary ref. That ma
 doing: a UC project that needs to stay still can install `…#v0.2.0`, and a project testing an
 unmerged change can install `…#<branch>`. Pinning to a commit is not available.
 
+### `npx skills update` stays on a pinned ref — so pinning works
+
+Tested, because "tags are installable" would be worthless if `update` silently dragged a project
+back to `main`.
+
+**What `add` records.** Installing from `…#v0.2.0` writes the ref into `skills-lock.json`:
+
+```json
+"standards": { "source": "ramesh09laksh-boop/rpa-ai-skills", "ref": "v0.2.0", … }
+```
+
+**What `update` then does.** It respects that `ref` and does **not** move the install to the
+default branch. Verified with a content discriminator — installing from a branch that carries a
+file `main` does not have, then updating:
+
+| | |
+|---|---|
+| After `add …#<branch>` | the branch-only file is **present**; lock `ref` = the branch |
+| After `npx skills update -y` | *"All project skills are up to date"* — the file is **still present**, lock `ref` **unchanged** |
+
+So `update` compares against the **pinned ref**, not against `main`.
+
+- Pinned to a **tag** → the tag is immutable, so the project stays on that content until someone
+  changes the ref. *(Directly observed for a branch ref; for a tag this follows from the same
+  mechanism plus the tag being immutable — not separately observed, because `main` and `v0.2.0`
+  are currently identical and nothing could distinguish them.)*
+- Pinned to a **branch** → `update` follows that branch as it moves.
+- **No ref** → tracks the default branch, which is the current default and why a merge to `main`
+  is a release.
+
+#### Recommendation for UC projects
+
+**Pin a tag.** A UC project in UAT or production should not have its guidance change because
+someone merged a PR here:
+
+```bash
+npx skills add ramesh09laksh-boop/rpa-ai-skills#v0.2.0 --skill uc-delivery --skill standards …
+```
+
+Then move the pin deliberately — read the CHANGELOG, bump the ref, re-run `validate-project`.
+Leave the pin off only while a project is in active development and wants the latest guidance.
+
 ### Rollback is a revert, not a retag
 
 A tag that has been pulled cannot be meaningfully moved — someone already has the old content
