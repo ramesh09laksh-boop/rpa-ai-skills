@@ -95,6 +95,7 @@ Load the skill that matches the work. App-specific detail lives in the skills, n
 
 | Skill | Use for |
 |---|---|
+| [`.claude/skills/uc-delivery/`](.claude/skills/uc-delivery/SKILL.md) | **The front door.** Driving a UC build end to end: preflight, the ten stages with a gate on each, the open decisions, the human checkpoints, and which skill owns what. Holds no estate knowledge of its own |
 | [`.claude/skills/standards/`](.claude/skills/standards/SKILL.md) | Project layout, where a new workflow belongs, naming, error handling, **and a reference per application folder** (Finnova, Avaloq, SIX iD, CardOne, Web Nav, UBS KeyTrader, Camunda, AI, Mail, File) |
 | [`.claude/skills/project-scaffolding/`](.claude/skills/project-scaffolding/SKILL.md) | Starting a new UC project — picking the right template(s) and fetching just those subfolders out of `templates/`. Carries the fetch scripts, since `templates/` itself does not travel with `npx skills add` |
 | [`.claude/skills/finnova-library/`](.claude/skills/finnova-library/SKILL.md) | Calling `Swisscom.FinnovaLibrary` activities |
@@ -103,8 +104,18 @@ Load the skill that matches the work. App-specific detail lives in the skills, n
 | [`.claude/skills/security/`](.claude/skills/security/SKILL.md) | Credentials, Orchestrator assets, config, never-do list |
 | [`.claude/skills/pdd-sdd-scaffolding/`](.claude/skills/pdd-sdd-scaffolding/SKILL.md) | Turning a PDD/SDD — including screenshots annotated only with an arrow — into a first-draft scaffold; and scaffolding when the target application is unavailable |
 
-Start with `.claude/skills/standards/` when translating an SDD into workflows — it routes to
-the right application reference and to the library skills.
+Start with `.claude/skills/uc-delivery/` when the task is "build this from the PDD" or
+"continue UC<NN>"; start with `.claude/skills/standards/` when translating a specific SDD step
+into workflows — it routes to the right application reference and to the library skills.
+
+### Official UiPath skills
+
+Teams install UiPath's own skills next to these (`npx skills add UiPath/skills --list`), and the
+`uip rpa` CLI prints a reminder to load `uipath-rpa` on every invocation. Both sets load.
+**Precedence: this repo wins for project creation, the estate's conventions, Finnova/Avaloq UI
+automation, REFramework structure and testing; the official skills own generic activity
+authoring, the CLI surface and Orchestrator operations.** When they disagree, follow the estate
+and record the conflict rather than re-deciding it per project. See `README.md`.
 
 ## Ground rules
 

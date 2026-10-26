@@ -82,7 +82,7 @@ npx skills add ramesh09laksh-boop/rpa-ai-skills \
 
 # Install only what the UC needs
 npx skills add ramesh09laksh-boop/rpa-ai-skills \
-  --skill standards --skill project-scaffolding \
+  --skill uc-delivery --skill standards --skill project-scaffolding \
   --skill finnova-library --skill security --agent github-copilot
 ```
 
@@ -136,6 +136,7 @@ the skill's own folder (`scripts/…`, `assets/…`).
 
 | `--skill` | Use for |
 |---|---|
+| `uc-delivery` | **Start here.** The front door: runs preflight, drives the ten stages with a gate on each, asks the decisions one at a time, and routes to the skill that owns each piece |
 | `standards` | Project layout, where a workflow belongs, naming, error handling, and a reference per application folder (Finnova, Avaloq, SIX iD, CardOne, Web Nav, UBS KeyTrader, Camunda, AI, Mail, File) |
 | `project-scaffolding` | Starting a new UC project — picks the right template(s) and fetches just those subfolders out of `templates/` |
 | `finnova-library` | Calling `Swisscom.FinnovaLibrary` activities |
@@ -144,14 +145,15 @@ the skill's own folder (`scripts/…`, `assets/…`).
 | `security` | Credentials, Orchestrator assets, config, never-do list |
 | `pdd-sdd-scaffolding` | PDD/SDD (incl. screenshots) → first-draft workflow scaffold; also covers scaffolding while the target application is unavailable |
 
-`standards` routes to the others — take it in every project.
+`uc-delivery` is the one to install if you install only one — it routes to everything else.
+`standards` routes to the application skills, so take it in every project too.
 
 Typical picks:
 
 | Project talks to | Skills |
 |---|---|
-| Finnova | `standards` `project-scaffolding` `finnova-library` `security` `pdd-sdd-scaffolding` |
-| Avaloq | `standards` `project-scaffolding` `avaloq-library` `security` `pdd-sdd-scaffolding` |
+| Finnova | `uc-delivery` `standards` `project-scaffolding` `finnova-library` `security` `pdd-sdd-scaffolding` |
+| Avaloq | `uc-delivery` `standards` `project-scaffolding` `avaloq-library` `security` `pdd-sdd-scaffolding` |
 | …plus any web portal (SIX iD, CardOne) | add `web` |
 
 ### `templates/` does not travel with `npx skills add`
@@ -177,6 +179,45 @@ run prints which one it used.
 Pulling the right skills should not be something each developer remembers unprompted. Add
 the `npx skills add` line to whatever scaffolding/kickoff checklist new UC projects already
 follow, next to "create the repo" and "wire up Orchestrator".
+
+## Not a UiPath specialist? Start here
+
+One prompt. `uc-delivery` runs preflight, works the stages in order, asks you the decisions one
+at a time in plain language, and tells you exactly what it needs at each point that needs a
+person:
+
+```
+Load `uc-delivery`. Build the UiPath project for <PDD file>. Run preflight, ask me the
+decisions one at a time in plain language, and tell me exactly what you need from me at each
+Studio checkpoint.
+```
+
+To pick a half-finished project back up:
+
+```
+Load `uc-delivery`. Read Documentation/Progress.md and continue from "next".
+```
+
+It will not touch PRD, will not use real customer data, and will never ask you to paste a
+credential into the chat.
+
+## Official UiPath skills — how they coexist
+
+Teams install UiPath's own skills alongside these (`npx skills add UiPath/skills --list` to see
+what is available; `uipath-rpa` is the one the `uip rpa` CLI itself asks for on every
+invocation). Both sets load, and they overlap.
+
+**Precedence, decided here:**
+
+| Owned by **this repo** | Owned by the **official** skills |
+|---|---|
+| Project creation and the estate's conventions | Generic activity authoring |
+| Finnova / Avaloq UI automation | The `uip` CLI surface |
+| REFramework structure and wiring | Orchestrator operations |
+| This estate's testing and review rules | Platform features generally |
+
+When the two disagree, **follow the estate and note the conflict in
+`Documentation/Progress.md`** — so it gets settled once rather than re-decided per project.
 
 ## Development lifecycle
 

@@ -129,9 +129,11 @@ foreach ($d in $skillDirs) {
             $lookStart = [Math]::Max(0, $m.Index - 80)
             $preceding = $body.Substring($lookStart, $m.Index - $lookStart)
             # Anchored at the END of the preceding text: the skill must be named immediately
-            # before the citation ("the `security` skill, `references/env-config.md`"), not
-            # merely somewhere earlier in the paragraph.
-            $named = [regex]::Match($preceding, '`([a-z][a-z0-9-]*)`\s+skill,?\s*$')
+            # before the citation, not merely somewhere earlier in the paragraph. Two forms
+            # occur, and both are legitimate:
+            #   prose       the `security` skill, `references/env-config.md`
+            #   table cell  `standards` (`references/wiring-the-framework.md`)
+            $named = [regex]::Match($preceding, '`([a-z][a-z0-9-]*)`(\s+skill,?|\s*\()\s*$')
             if ($named.Success) {
                 $otherDir = Join-Path $SkillRoot $named.Groups[1].Value
                 if (Test-Path -LiteralPath $otherDir) { $owner = $otherDir }
