@@ -7,7 +7,7 @@ Tag each release (`git tag -a v<x.y> -m ...`) so a project can pin or roll back.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
-## [Unreleased]
+## [v0.2.0] - 2026-10-26
 
 ### Added
 
