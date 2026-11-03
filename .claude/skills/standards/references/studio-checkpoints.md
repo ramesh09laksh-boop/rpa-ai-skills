@@ -123,18 +123,36 @@ checkpoint exists so it can ask correctly instead of working around the problem.
 **When:** resolving `TODO_SELECTOR` markers.
 
 **Why a person:** the application has to be open, reachable and signed in, on an environment and
-account you are authorised to use.
+account you are authorised to use — and **the account has to be at the role the robot will run
+as**. Only a person can create that account and hold its credential.
+
+**Who creates the application account — and who never sees it**
+
+| | |
+|---|---|
+| Creates the application account | **You**, or whoever administers that application. Never the agent. |
+| Chooses its role | **You**, with the application owner. It must be the **least-privilege** role that can complete the process — the same role the production robot signs in at. |
+| Holds the credential | **You**, until it is stored as an Orchestrator Credential asset (Checkpoint 4). |
+| Receives the credential | **Nobody else.** The agent never receives it, is never shown it, and never types it. It is not pasted into the chat, a prompt, a snapshot, a definition file or a config sheet. |
+
+An over-privileged account is not a harmless shortcut here. A higher role renders controls the
+robot will never see, those controls land in the selector's ancestor chain, and the capture then
+fails at runtime from the robot's session. **A capture made at a higher role is untrusted and is
+re-captured** — the `web` skill, *Prerequisite — capture under the role the robot runs as*.
 
 **Steps**
 
 1. Run preflight against the project: `scripts/preflight.sh <project>` (the
    `project-scaffolding` skill). Fix anything it flags — especially the 26.10.4 capture pin.
 2. Open Studio with the project, so the Studio-IPC commands have a session.
-3. Sign in to the target application yourself, in the browser the capture will drive.
-4. Hand over: *"signed in, on screen X, go ahead"*.
+3. Sign in to the target application yourself, in the browser the capture will drive, **using the
+   account at the robot's role** — not your own administrator account.
+4. Confirm the admin-only controls for that application are **absent** from the screen. If any is
+   visible, you are signed in above the robot's role; fix that before handing over.
+5. Hand over: *"signed in as `<role>`, on screen X, admin controls absent, go ahead"*.
 
-**Paste back:** which screen is showing, and anything unusual — a consent banner, an MFA prompt,
-a stale session warning.
+**Paste back:** which screen is showing, **which role the account holds**, and anything unusual —
+a consent banner, an MFA prompt, a stale session warning.
 
 **Never paste the credential**, and never paste a screenshot of a logged-in banking session —
 those contain customer data (`prohibited-practices.md`).

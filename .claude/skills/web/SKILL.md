@@ -51,6 +51,40 @@ Repository. A Playwright snapshot could only ever tell you what a *different* en
 which you then re-typed by hand — and hand-typed selectors are the single largest source of
 breakage in this folder.
 
+### Prerequisite — capture under the role the robot runs as
+
+**A selector captured as an administrator cannot resolve for the robot.** The production robot
+signs in at the **least-privilege** role, and a higher role renders controls the robot will never
+see: extra toolbar buttons, per-row option menus, an add-column affordance, admin-only panels.
+Those extra controls sit in the ancestor chain, so a selector hardened against them is
+unresolvable from the robot's session — and it fails at runtime, not at capture.
+
+This is not hypothetical. On the Lanes capture the live session turned out to be an **Owner**:
+the add-column control and the per-lane Options menus were both present, neither of which a
+Member can see. Every selector from that session had to be treated as suspect.
+
+**Before the first capture command, prove you are not over-privileged:**
+
+1. Ask which role the robot will run as, and get the answer written down (the SDD, or
+   `Documentation/Progress.md`). "The least-privilege role that can do the work" is the target,
+   not "whatever the test account has".
+2. Name the controls that role must **not** see — the admin-only affordances for this
+   application — and check each one is **absent** from the screen before you capture.
+3. If any of them is present, **stop**: you are signed in above the robot's role. Record it and
+   ask for an account at the right role.
+
+**A capture made under a higher role is untrusted and is re-captured** — not reviewed, not
+spot-checked, re-captured from a session at the robot's role. There is no way to tell from the
+descriptor which ancestors were role-dependent, so auditing it costs more than redoing it.
+
+Record the role next to each captured screen in `Documentation/Capture_Progress.md`, and in the
+`captured as <role>` column of `Documentation/Leaf_Ledger.md` (the `standards` skill). A capture
+with no role recorded is a capture nobody can trust later.
+
+**Who provides the account.** The application account is created by a person — see the
+`standards` skill, `references/studio-checkpoints.md`, Checkpoint 5. The agent never receives,
+types or is shown its credential.
+
 ### Prerequisite — read `project.json` before the first capture command
 
 Both packages must be present, **both at `26.10.4`**:
