@@ -464,12 +464,20 @@ decision), apply the template README deltas, work the instantiation checklist in
 ```
 Load `standards` (wiring-the-framework) and `security`. Wire the Framework from <SDD>, in
 order: Config, GetTransactionData, InitAllApplications, Process dispatch, SetTransactionStatus,
-CloseAllApplications. Author the XAML with the CLI (`uip rpa activities get-default-xaml`,
+CloseAllApplications, KillAllProcesses. All seven — KillAllProcesses force-kills the same set
+CloseAllApplications closes, and left empty it leaks a session that the next run's idempotent
+login probe then finds half-open. Never `KillProcess chrome`: it takes down any other automation
+on the runner. Author the XAML with the CLI (`uip rpa activities get-default-xaml`,
 `uip rpa activities find`). If a configured source yields 0 transactions, fail loudly.
 Credentials from the Orchestrator asset only. Transaction types come from the SDD; if it is
 silent, record an Assumption and ask. Leaf workflows must follow the `_System` contract —
-in_Config, an out_ outcome, SecureString secrets. Report which Framework files are wired and the
-level reached.
+in_Config, an out_ outcome, SecureString secrets.
+
+Count the applications: every application opened in InitAllApplications appears in BOTH
+CloseAllApplications and KillAllProcesses. Report which Framework files are wired and the level
+reached. This stage is "wired, gate open" — not done — until you have watched the 0-transaction
+guard fire (point the source at nothing). That needs a run, and a run needs the Orchestrator
+asset; if it is missing, say so and continue.
 ```
 
 ### 4–5. Capture and develop — one workflow at a time
