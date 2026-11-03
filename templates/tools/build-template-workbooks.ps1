@@ -307,7 +307,7 @@ writes to and whatever credential its source needs.
             @('Finnova_System_Launch_Cmd_<TOWER>', $TODO, '',
                 'Text asset — the command that starts the Finnova Java client for one tower. One row per tower; the key is built by concatenation with in_TOWER.'),
             @('Finnova_System_PHI_Account_Name_<TOWER>', $TODO, '',
-                'Text asset — the CyberArk object name for this tower (e.g. Bposecbot@FinnovaEntris). The object name is an identifier, not a secret. One row per tower.'),
+                'Text asset — the CyberArk object name for this tower (e.g. <ROBOT_ACCOUNT>@<FinnovaTower>). The object name is an identifier, not a secret. One row per tower.'),
             @('Finnova_System_Credential_<TOWER>', $TODO, '',
                 'Credential asset for the Finnova login. Estate convention: name the Orchestrator credential after the CyberArk vault object it mirrors, so switching between Get Credential and Get PHI Vault stays a config change. One row per tower.')
         ) + $mailAssetRows

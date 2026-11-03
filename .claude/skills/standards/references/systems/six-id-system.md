@@ -17,15 +17,21 @@ the `web` skill, `references/verified-flows.md` before changing any of them.
 
 ## Configuration
 
-| Config key | Value (PRD) |
-|---|---|
-| `SIX_ID_System_URL` | `https://portal.six-group.com` |
-| `SIX_ID_System_CustomerID` | `CH29358` |
-| `SIX_ID_System_Email` | `michael.sterchi@swisscom.com` |
-| `SIX_ID_System_PHI_Vault_Name_FIN` | `SMG3@SIXID` |
-| `SIX_ID_System_PHI_Vault_Name_AVQ` | `SMG2@SIXID` |
+**Keys and shapes only — read the values out of `Config_<ENV>.xlsx`.** The PRD values were
+previously written out here: a customer id, a named individual's work e-mail address and two
+CyberArk vault object names. A skill ships to every install and into every agent's context, so
+none of that belongs in one — and the workbook in front of you is the authority anyway.
 
-The password comes from the CyberArk PHI vault. Two Orchestrator assets also appear:
+| Config key | What it holds | Where the value comes from |
+|---|---|---|
+| `SIX_ID_System_URL` | the SIX Group portal entry URL | `Config_<ENV>.xlsx` → `Settings` |
+| `SIX_ID_System_CustomerID` | the bank's SIX customer identifier | `Config_<ENV>.xlsx` → `Settings` |
+| `SIX_ID_System_Email` | the sign-in address of the SIX account the robot uses. **A service account, not a person** — if your project has an individual's address here, that is a finding: raise it and get a service account | `Config_<ENV>.xlsx` → `Settings` |
+| `SIX_ID_System_PHI_Vault_Name_FIN` | CyberArk PHI vault **object name** for the Finnova-side account — an identifier, not a secret | `Config_<ENV>.xlsx` → `Settings`; the password comes from the vault |
+| `SIX_ID_System_PHI_Vault_Name_AVQ` | the same, for the Avaloq-side account | as above |
+
+The password comes from the CyberArk PHI vault and never from config. Two Orchestrator assets
+also appear:
 
 ```vb
 String.Format("{0}_UC81_SIX_System_AccountName", Environment.UserName)   ' per-robot account

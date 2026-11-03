@@ -21,6 +21,13 @@
                               fails. Name the skill, or use a path relative to the skill folder
       broken-reference        a `references/x.md` or `scripts/x` cited in text but not on disk
       credential-pattern      a password/secret/token assignment that looks like a real value
+      infra-identity-value    a real IP, e-mail address or customer id written into a skill.
+                              Not secrets - which is why they got written down - but a skill
+                              ships to EVERY install and into every agent's context, and the
+                              value is stale on arrival because Config_<ENV>.xlsx is the
+                              authority. Record the config key and the asset name instead.
+                              Asset and vault OBJECT names are fine: they are identifiers you
+                              must name to wire anything up
       install-simulation      a path the skill NAMES that does not exist in an installed
                               project. Each skill is copied ALONE to a temp directory - which
                               is what `npx skills add --skill <name>` actually delivers - and
@@ -175,6 +182,55 @@ foreach ($d in $skillDirs) {
             if (-not (Test-Path -LiteralPath (Join-Path $owner $cited))) {
                 $where = if ($owner -eq $d.FullName) { '' } else { " (resolved against $(Split-Path -Leaf $owner))" }
                 Add-Finding error 'broken-reference' $skill "$rel cites '$cited'$where which does not exist"
+            }
+        }
+
+        # --- infra-identity-value ------------------------------------------------
+        # A real host, mailbox, person or customer id written into a skill.
+        #
+        # These are not secrets, which is exactly why they got written down: a hostname is not
+        # a password, so nobody flagged it. But a skill ships to EVERY install and into every
+        # agent's context, so one real mail address here is published to all of them - and it
+        # is stale on arrival, because the authority is the Config_<ENV>.xlsx workbook in front
+        # of the reader. Record the KEY and the ASSET NAME; never the value.
+        #
+        # Asset and vault OBJECT names are deliberately fine - they are identifiers you have to
+        # name in order to wire anything up, and the security skill already draws that line.
+        foreach ($rule in @(
+                @{ Name = 'ip'; Why = 'an IPv4 address'
+                   Pattern = '\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b' }
+                @{ Name = 'email'; Why = 'an e-mail address'
+                   Pattern = '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b' }
+                @{ Name = 'customer-id'; Why = 'a customer/party identifier'
+                   Pattern = '\b(?:CH|LI)\d{5,}\b' }
+            )) {
+            foreach ($m in [regex]::Matches($body, $rule.Pattern)) {
+                $line = ($body.Substring(0, $m.Index) -split '\r?\n')[-1] +
+                        (($body.Substring($m.Index) -split '\r?\n')[0])
+
+                # A dotted quad is textually indistinguishable from a four-part version
+                # string, and this repo is full of those: 23.10.8.0, 26.10.0.0, 5.5.13.3.
+                # So an IPv4 is reported only when its line also reads like a host, and never
+                # when the line reads like a version. KNOWN GAP, stated rather than hidden: a
+                # PUBLIC infrastructure IP on a line with no host-ish word is not caught.
+                if ($rule.Name -eq 'ip') {
+                    if ($line -match '(?i)version|studio|nupkg|package|\[\d') { continue }
+                    $octet1 = [int] (($m.Value -split '\.')[0])
+                    $private = $octet1 -in 10, 127 -or $m.Value -match '^192\.168\.' -or
+                               $m.Value -match '^172\.(1[6-9]|2\d|3[01])\.'
+                    $hostish = $line -match '(?i)server|host|smtp|gateway|proxy|dns|relay|autodiscover|\bip\b'
+                    if (-not ($private -or $hostish)) { continue }
+                }
+
+                # Placeholders are the point of the fix, so they must not trip it.
+                if ($rule.Name -eq 'email' -and
+                    $m.Value -match '(?i)@(example|test|invalid|localhost|domain)\.|<|>|\{|\$') { continue }
+
+                Add-Finding error 'infra-identity-value' $skill `
+                    ("$rel contains what looks like $($rule.Why). Skills ship to every install " +
+                     'and into every agent context, and the value is stale on arrival - the ' +
+                     'Config_<ENV>.xlsx workbook is the authority. Write the config KEY and the ' +
+                     'Orchestrator ASSET NAME instead, or a <placeholder>.')
             }
         }
 

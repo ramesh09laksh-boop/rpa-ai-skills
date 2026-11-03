@@ -67,7 +67,7 @@ Launches and logs into the Smart Client.
 | `User` | in | String | |
 | `Password` | in | SecureString | |
 | `StringPassword` | in | String | Plaintext alternative — **do not use.** |
-| `SmartClientPath` | in | String | e.g. `C:\Program Files (x86)\AvaloqClient\TATG11\SmartClient.exe`. From an Orchestrator asset. |
+| `SmartClientPath` | in | String | e.g. `<program-files>\AvaloqClient\<SYSID>\SmartClient.exe`. From an Orchestrator asset — never a literal. |
 | `SmartClientArguments` | in | String | `-integrationServerHost … -integrationServerPort … -avaloqSystemId …`. From an Orchestrator asset. |
 | `SmartClientCitrixApp` | in | String | Citrix published-app name. |
 | `TimeOutInSeconds` | in | Int32 | Sample uses `60`. |

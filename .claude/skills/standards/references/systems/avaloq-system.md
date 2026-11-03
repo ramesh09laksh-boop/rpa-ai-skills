@@ -68,7 +68,7 @@ CyberArk — the opposite of the Swisscom Finnova projects. See the `security` s
 the integration-server coordinates:
 
 ```
--integrationServerHost sbttgavaint01.tgcorp.ch -integrationServerPort 10023 -avaloqSystemId TATG11
+-integrationServerHost <integration-server-host> -integrationServerPort 10023 -avaloqSystemId TATG11
 ```
 
 `Avaloq_System_Client_Path` (asset `Avaloq_SmartClient_Path`) holds the executable path.

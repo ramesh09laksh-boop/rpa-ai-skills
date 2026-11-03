@@ -19,7 +19,7 @@ Finnova, but a separate application with no custom library). Present in
 | Config key | Value (PRD) |
 |---|---|
 | `UBS_KeyTrader_Launch_Process` | `D:\Install\UBS KeyTrader\keytrader.exe` |
-| `UBS_KeyTrader_PHI_Vault_Name` | `UBSKeyTrader@UC81` |
+| `UBS_KeyTrader_PHI_Vault_Name` | `<KEYTRADER_ACCOUNT>@<UC>` |
 
 Credentials come from the CyberArk PHI vault. See the `security` skill.
 

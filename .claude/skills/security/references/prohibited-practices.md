@@ -19,7 +19,7 @@ patterns to copy**.
 into a `.xaml` literal, an argument default, or a config sheet.
 
 ✅ The estate is clean on this. Config holds only the *name* of a credential
-(`AVQ_Credential_1004`, `Bposecbot@FinnovaEntris`, `AI_System_Authorization`); the value
+(`AVQ_Credential_1004`, `<ROBOT_ACCOUNT>@<FinnovaTower>`, `AI_System_Authorization`); the value
 comes from an Orchestrator Credential asset or the CyberArk PHI vault at runtime.
 
 ```
@@ -218,22 +218,31 @@ the `standards` skill, `references/systems/ubs-keytrader.md`.
 
 Argument defaults set in Studio for debugging persist in the committed `.xaml`.
 
-⚠ Live examples — not secrets, but stale production paths and account names in source
-control:
+⚠ Four real occurrences in the estate — not secrets, but **production paths, hostnames, ports
+and account names sitting in source control as argument defaults**. The coordinates below are
+written as placeholders: the shape is the lesson, and reproducing a production hostname in a file
+that ships to every install would be committing the same mistake this section is about.
 
 ```
-Finnova-Login.xaml   in_FinnovaLaunchCmd = "D:\finnova\novusprd\jureclient\cmd\start_finnova_jure.cmd"
-                     in_ObjectName       = "TAATERPA@FinnovaNovus"
-                     in_TOWER            = "NOVUS"
-Avaloq_Login.xaml    in_Avaloq_System_Client_Path = "C:\Program Files (x86)\AvaloqClient\TATG11\SmartClient.exe"
-                     in_Avaloq_Systen_Arguments  = "-integrationServerHost sbttgavaint01.tgcorp.ch
-                                                    -integrationServerPort 10023 -avaloqSystemId TATG11"
-SIX_ID_Login.xaml    in_ObjectName = "SMG6@SIXID"   ' and this one disagrees with config
-                                                     ' (SMG3@SIXID / SMG2@SIXID)
+Finnova-Login.xaml   in_FinnovaLaunchCmd = "<drive>:\<finnova-install>\...\start_finnova_jure.cmd"
+                     in_ObjectName       = "<ROBOT_ACCOUNT>@<FinnovaTower2>"
+                     in_TOWER            = "<TOWER>"
+Avaloq_Login.xaml    in_Avaloq_System_Client_Path = "<program-files>\AvaloqClient\<SYSID>\SmartClient.exe"
+                     in_Avaloq_Systen_Arguments  = "-integrationServerHost <integration-server-host>
+                                                    -integrationServerPort <port> -avaloqSystemId <SYSID>"
+SIX_ID_Login.xaml    in_ObjectName = "<SIX_ACCOUNT_STALE>@SIXID"   ' and this one disagrees with config
+                                                     ' (<SIX_ACCOUNT_FIN>@SIXID / <SIX_ACCOUNT_AVQ>@SIXID)
 ```
 
 The last is the clearest argument for the rule: a default that has drifted out of sync with
-config is worse than no default. Leave defaults empty and supply values from `in_Config`.
+config is worse than no default — it works, against the wrong environment. Leave defaults empty
+and supply values from `in_Config`.
+
+Note the second-order point. Those defaults were committed because none of them is a secret, and
+that is also why they survived review. "Not a secret" is not the test; **"would I publish this?"
+is** — and an argument default in a committed `.xaml`, like a value written into a skill, is
+published. `validate-project`'s `hardcoded-connection` rule and `lint-skills`'s
+`infra-identity-value` rule both exist for this class.
 
 ---
 

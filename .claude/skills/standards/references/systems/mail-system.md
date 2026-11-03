@@ -24,37 +24,50 @@ custom library. Present in all three reference projects — with two different t
 | UC39, UC81 (Swisscom) | Exchange Web Services | `ExchangeScope`, `GetExchangeMailMessages`, `SendExchangeMail`, `MoveMessageToFolder`, `DeleteMail` |
 | TKB-UC11 (TKB) | SMTP + Exchange | `SendMail` (SMTP), `SendExchangeMail` |
 
-Check the project's `Config_*.xlsx` before writing mail code — `Mail_System_Server`
-(an HTTPS URL) means Exchange; `Mail_System_SMTP_Server` + `Mail_System_SMTP_Port` means SMTP.
+Check the project's `Config_*.xlsx` before writing mail code — a populated `Mail_System_Server`
+(an HTTPS URL) means Exchange; a populated `Mail_System_SMTP_Server` + `Mail_System_SMTP_Port`
+means SMTP.
 
 ## Configuration keys
 
-### Swisscom (Exchange)
+**Keys and shapes only — the values live in `Config_<ENV>.xlsx` and in Orchestrator assets.**
+This file deliberately records *which key to read* and *what shape of value it holds*, never a
+host, mailbox, vault object or address. A skill ships to every install and into every agent's
+context, so a real hostname or mail address written here is published to all of them, and it goes
+stale besides: the authority is the workbook in front of you. Read the value at runtime through
+`in_Config`; read it at design time out of your own project's workbook.
 
-| Key | Value |
-|---|---|
-| `Mail_System_Server` | `https://webmail.swisscom.com` |
-| `Mail_System_PHI_Account_Name` / `Mail_System_PHI_Vault_Name` | `BPOSEC.Robotics` |
-| `Mail_System_SharedMailbox[_FIN\|_AVQ]` | shared mailbox address |
-| `Mail_System_MailFolder_<System>` | source folder, e.g. `Posteingang` |
-| `Mail_System_ArchivFolder_<System>` | `Posteingang\Archiv Robotics` |
-| `Mail_System_Folder_<Counterparty>` | UC39 — `Trade Confirmations\UBS`, `…\Vontobel Neu`, … |
-| `Mail_System_Mail_To`, `_Exception_To`, `_Info_Cc`, `_Exception_Cc` | recipients |
-| `Mail_System_Exception_Template`, `_Info_Template` | `Data\Template\Exception.txt`, `Info.txt` |
+### Exchange transport
 
-### TKB (SMTP)
+| Key | What it holds | Where the value comes from |
+|---|---|---|
+| `Mail_System_Server` | Exchange Web Services endpoint (an HTTPS URL) | `Config_<ENV>.xlsx` → `Settings` |
+| `Mail_System_PHI_Account_Name` / `Mail_System_PHI_Vault_Name` | CyberArk PHI vault **object name** — an identifier, not a secret | `Config_<ENV>.xlsx`; the password comes from the vault |
+| `Mail_System_SharedMailbox[_FIN\|_AVQ]` | shared mailbox address the robot authenticates to | `Config_<ENV>.xlsx` → `Settings` |
+| `Mail_System_MailFolder_<System>` | source folder name, e.g. the inbox | `Config_<ENV>.xlsx` |
+| `Mail_System_ArchivFolder_<System>` | archive folder the workflow moves mail to on success | `Config_<ENV>.xlsx` |
+| `Mail_System_Folder_<Counterparty>` | one folder per counterparty, keyed by name | `Config_<ENV>.xlsx` |
+| `Mail_System_Mail_To`, `_Exception_To`, `_Info_Cc`, `_Exception_Cc` | recipients | prefer an Orchestrator **Text asset** — see below |
+| `Mail_System_Exception_Template`, `_Info_Template` | path to a body template under `Data\Template\` | `Config_<ENV>.xlsx` |
 
-| Key | Value |
-|---|---|
-| `Mail_System_SMTP_Server` | `10.189.52.149` |
-| `Mail_System_SMTP_Port` | `25` |
-| `Mail_System_Autodiscover` | `Buddy1004.UiPath@tkb.ch` |
-| `Mail_System_Info_To` | Orchestrator asset `Email_Recipients_Info` |
-| `Mail_System_Exception_To` | Orchestrator asset `Email_Recipients_Error` |
-| `Mail_System_Info_Template`, `_Info_Template_1`, `_Exception_Template` | `Data\Input\*.txt` |
+### SMTP transport
 
-Recipients are **Orchestrator assets** in TKB-UC11 and plain settings in the Swisscom
-projects. Assets are the better choice — distribution lists change without a redeploy.
+| Key | What it holds | Where the value comes from |
+|---|---|---|
+| `Mail_System_SMTP_Server` | SMTP relay host | `Config_<ENV>.xlsx` → `Settings`. **Never hardcode it in a workflow** — `validate-project`'s `hardcoded-connection` rule fires on `Server="…"` |
+| `Mail_System_SMTP_Port` | SMTP port | `Config_<ENV>.xlsx` → `Settings` |
+| `Mail_System_Autodiscover` | the sending account's address, used for autodiscover | `Config_<ENV>.xlsx` → `Settings` |
+| `Mail_System_Info_To` | info recipients | Orchestrator Text asset — the key's value is the **asset name**, e.g. `Email_Recipients_Info` |
+| `Mail_System_Exception_To` | exception recipients | Orchestrator Text asset, e.g. `Email_Recipients_Error` |
+| `Mail_System_Info_Template`, `_Info_Template_1`, `_Exception_Template` | paths to body templates under `Data\Input\` | `Config_<ENV>.xlsx` |
+
+**Asset names are identifiers and belong here; their values do not.** That is the same split the
+`security` skill applies to credentials: naming `Email_Recipients_Error` tells you what to wire
+up, and tells you nothing you should not know.
+
+Recipients are **Orchestrator assets** in the SMTP project and plain settings in the Exchange
+ones. Assets are the better choice — a distribution list changes without a redeploy, and the
+address never enters a committed file.
 
 ## The Exchange read pattern
 
