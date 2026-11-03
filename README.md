@@ -604,11 +604,19 @@ L3 — do not describe a local run as L4.
 Confirm: every SDD requirement traces to a workflow and a test case; every
 `APPROX_SELECTOR` / `TODO_SELECTOR` in every `*.selectors-todo.md` is resolved against the
 live application; `Config_TST.xlsx` has no remaining `[UC-SPECIFIC — replace]`;
-`validate-project` runs clean (or every suppressed rule has a written reason in
-`validate-project.ignore`); `Tests/RunAllTests.xaml` passes. Additionally require **L4** on the
-evidence ladder — a real run of `Main.xaml` on TST, with a log excerpt — and a clean
-`uip rpa analyze` result, naming which rule set ran. List anything still open as a named
-blocker, not a soft caveat.
+`Documentation/Leaf_Ledger.md` reads yes in every column of every row;
+`Tests/RunAllTests.xaml` passes. Run the checker in stage-8 mode, which promotes
+`leaf-body-stub` to an error — a leaf workflow whose body does nothing is not shippable:
+
+  validate-project.sh <project> --uat-readiness
+  pwsh -File validate-project.ps1 <project> -UatReadiness
+
+It must run clean, or every suppressed rule has a written reason in `validate-project.ignore`.
+Additionally require **L4** on the evidence ladder — a real run of `Main.xaml` on TST, with a log
+excerpt — and a clean `uip rpa analyze` result, naming which rule set ran. Read the application
+state back independently of the robot's logs: a green job with a non-zero transaction count is
+exactly what a stub-bodied automation produces. List anything still open as a named blocker, not
+a soft caveat.
 ```
 
 ### 9. Deployment Readiness

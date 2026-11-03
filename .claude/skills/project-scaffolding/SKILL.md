@@ -164,7 +164,7 @@ The template is project-level scaffolding only. Three things still have to happe
    predate. Calibrate against the templates and modern UC projects instead, and **never tune a
    rule to lower a Legacy sample's count**. See `README.md`.
 
-   ### The four leaf-workflow-contract rules
+   ### The four leaf-workflow-contract rules, and the body rule
 
    | Rule | Fires when |
    |---|---|
@@ -176,6 +176,31 @@ The template is project-level scaffolding only. Three things still have to happe
    They are warnings because the rules are new, not because the contract is optional: a scaffold
    that trips them does not meet the `_System` contract in
    `standards/references/project-layout.md`.
+
+   **All four check the *contract*. `leaf-body-stub` checks the *body*.**
+
+   | Rule | Fires when |
+   |---|---|
+   | `leaf-body-stub` | an `<App>_System/` or `Logic/` workflow's body contains **no activity that does the step** — only logging, only containers, or nothing at all |
+
+   This is the gap the four rules above leave: a file can satisfy every one of them and still be
+   a `Log Message` in a `Sequence`. A Framework correctly wired to workflows like that reads its
+   transactions, dispatches them, marks them Successful, and performs no work — and it passes
+   `validate`, `build`, `analyze`, `pack`, Studio's Error List, and a real Orchestrator job with
+   a non-zero transaction count. The official UiPath UIA docs name the same shape: *"That XAML
+   compiles, validates, runs — and does nothing. It is the most expensive kind of stub."*
+
+   Deliberately narrow — it fires only when there is **no** substantive activity at all, so a
+   workflow with one real activity and ten logs is not reported. Partial work is not its
+   business.
+
+   | Mode | `leaf-body-stub` is |
+   |---|---|
+   | default (mid-build) | **warning** — a stub body is honest work in progress |
+   | `--uat-readiness` / `-UatReadiness` (stage 8) | **error** — shipping a stub to UAT is not a backlog item |
+
+   Keep a `TODO_SELECTOR` on an unresolved *target* and author the real activity around it.
+   Replacing the activity with a log is the thing this rule exists to stop.
 
    **Calibration on modern projects** (`targetFramework: Windows`), measured 2026-10-26 with
    `grep -a`:
