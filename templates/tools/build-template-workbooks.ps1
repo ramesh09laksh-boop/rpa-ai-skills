@@ -280,7 +280,7 @@ $commonConstants = @(
 # Note the leading comma: without it PowerShell flattens a single-row array into four loose
 # strings and the row lands one cell per spreadsheet row.
 $mailAssetRows = @(, @('Mail_System_Exception_To', $TODO, '',
-        'Text asset — recipients of the exception mail. Wire to a real Orchestrator Text asset; see .claude/skills/security/references/orchestrator-assets.md.')
+        'Text asset — recipients of the exception mail. Wire to a real Orchestrator Text asset; see the `security` skill, references/orchestrator-assets.md.')
 )
 
 $templates = [ordered]@{

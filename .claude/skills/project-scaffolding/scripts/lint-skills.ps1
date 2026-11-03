@@ -21,6 +21,39 @@
                               fails. Name the skill, or use a path relative to the skill folder
       broken-reference        a `references/x.md` or `scripts/x` cited in text but not on disk
       credential-pattern      a password/secret/token assignment that looks like a real value
+      install-simulation      a path the skill NAMES that does not exist in an installed
+                              project. Each skill is copied ALONE to a temp directory - which
+                              is what `npx skills add --skill <name>` actually delivers - and
+                              every relative markdown link plus every repo-level path mention
+                              is resolved there. `templates/README.md`, `AGENTS.md`,
+                              `../Finnova/...` and friends exist in THIS repo and in no
+                              installed project, so a skill that sends the reader to one is
+                              sending them nowhere
+
+.NOTES
+    install-simulation and its two escape hatches
+    -------------------------------------------------------------------------
+    Two kinds of mention are legitimate, and both have to SAY SO in the passage itself:
+
+      1. Provenance - the skill is recording WHERE its content came from. Useful to a
+         maintainer, meaningless to a UC project.
+      2. Mechanics - the passage is explaining that the path is NOT delivered, which is
+         exactly the thing a reader needs to know.
+
+    Either is declared by a phrase in the same paragraph (a run of lines between blank lines,
+    or one table row):
+
+      "maintainer provenance"      for case 1
+      "not in your project"        for case 2
+
+    Or, file-wide, by an HTML comment <!-- maintainer-provenance: <reason> --> anywhere in the
+    file. That is for files whose whole subject is derived-from-the-estate evidence and whose
+    provenance framing already sits at the top, such as references/systems/*.md and the two
+    library skills' activity references.
+
+    An escape hatch that is not one of those does not exist. "It is obviously provenance" is
+    not checkable, which is the whole reason this rule exists - and the phrasing requirement
+    means the reader is told, not just the linter.
 
 .PARAMETER SkillRoot
     Defaults to the .claude/skills directory two levels above this script.
@@ -161,6 +194,128 @@ foreach ($d in $skillDirs) {
                 "$rel has '$($m.Groups[1].Value)' assigned a literal-looking value - confirm it is not real"
         }
     }
+}
+
+# ---------------------------------------------------------------------------
+# install-simulation
+#
+# Every rule above reads the skill where it sits in THIS repo, next to its siblings and next to
+# templates/, AGENTS.md and README.md. That is not the shape anyone consumes. `npx skills add
+# --skill standards` delivers one folder, and a reference to `templates/README.md` or
+# `../Finnova/...` resolves to nothing there - silently, because a markdown link to a missing
+# file renders as a link.
+#
+# So: copy each skill ALONE into a temp directory and resolve its references there.
+# ---------------------------------------------------------------------------
+
+# Repo-level paths that exist here and in no installed project.
+#
+# Two filenames are deliberately NOT in this list, because inside a skill they overwhelmingly
+# mean a file the project HAS rather than one this repo has:
+#   README.md   almost always "the fetched template's own README.md", which is delivered
+#   AGENTS.md   always the PROJECT's own AGENTS.md - the Environment block a UC project
+#               writes for itself. Checked: all five mentions across the skills are that,
+#               none points at this repo's AGENTS.md. Including it produced three findings
+#               that were all wrong.
+# Where either one really does mean this repo's copy, it is written as a markdown link, and
+# the link check below resolves it inside the one-skill install.
+#
+# `templates/` carries a negative lookbehind for a dot: `.templates/` is a Studio-generated
+# folder INSIDE a project, nothing to do with this repo's templates/. Without it, two correct
+# mentions in object-repository-and-git.md were reported.
+$repoLevelPattern = '\.\./Finnova[A-Za-z0-9/._-]*|\.\./Avaloq[A-Za-z0-9/._-]*|' +
+                    '\.\./REFramework[A-Za-z0-9/._-]*|(?<!\.)templates/[A-Za-z0-9/._<>-]*|' +
+                    '(?<![A-Za-z0-9/.-])docs/[A-Za-z0-9/._-]+|' +
+                    '(?<![A-Za-z0-9/.-])evals/[A-Za-z0-9/._-]+'
+
+$simRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("skill-install-sim-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
+New-Item -ItemType Directory -Path $simRoot -Force | Out-Null
+
+try {
+    foreach ($d in $skillDirs) {
+        $skill = $d.Name
+
+        # The install: this folder, alone, with nothing around it.
+        $installed = Join-Path $simRoot $skill
+        Copy-Item -LiteralPath $d.FullName -Destination $installed -Recurse -Force
+
+        foreach ($f in Get-ChildItem -LiteralPath $installed -Recurse -File -Include *.md) {
+            $rel = $f.FullName.Substring($installed.Length).TrimStart('\', '/')
+            $body = Get-Content -LiteralPath $f.FullName -Raw
+            if (-not $body) { continue }
+
+            # File-scope escape hatch.
+            if ($body -match '(?i)<!--\s*maintainer-provenance\b') { continue }
+
+            # Paragraphs: runs of lines separated by blank lines. A paragraph carrying the
+            # phrase is excused as a whole, which is the point - provenance is a statement
+            # about a passage, not about one path.
+            #
+            # Split on a genuinely blank line, NOT on '(?m)^\s*$'. These files are CRLF in the
+            # working copy, and \s matches \r, so '^\s*$' matches just before the \r\n of EVERY
+            # line - which splits the file into single lines and makes a marker only ever
+            # excuse the one line it sits on. That silently defeated most of the labels.
+            $paragraphs = [regex]::Split($body, '\r?\n[ \t]*\r?\n')
+
+            # A fenced code block is introduced by the prose above it, so the label on that
+            # prose covers the block. Merge a paragraph that opens a fence into the previous
+            # one; otherwise a labelled "here is the maintainer-side command:" paragraph fails
+            # to cover the command it is labelling.
+            $merged = [System.Collections.Generic.List[string]]::new()
+            foreach ($p in $paragraphs) {
+                if ($merged.Count -gt 0 -and $p -match '^\s*(```|~~~|\$ |    \S)') {
+                    $merged[$merged.Count - 1] = $merged[$merged.Count - 1] + "`n" + $p
+                }
+                else { $merged.Add($p) }
+            }
+            $paragraphs = $merged.ToArray()
+
+            # --- relative markdown links, code fences removed --------------------
+            # `[x](y)` inside a fenced block is not a link; a C# method signature can look
+            # exactly like one, and did.
+            $prose = $body -replace '(?s)```.*?```', '' -replace '(?s)~~~.*?~~~', ''
+            foreach ($m in [regex]::Matches($prose, '\[[^\]]*\]\(([^)\s]+)\)')) {
+                $target = $m.Groups[1].Value
+                if ($target -match '^(https?:|mailto:|#)') { continue }
+                $target = ($target -split '#')[0]
+                if (-not $target) { continue }
+
+                $resolved = Join-Path (Split-Path -Parent $f.FullName) $target
+                if (Test-Path -LiteralPath $resolved) { continue }
+
+                $para = @($paragraphs | Where-Object { $_ -like "*$($m.Value)*" }) | Select-Object -First 1
+                # Whitespace-tolerant: these files wrap at ~98 columns, so the phrase routinely
+                # straddles a line break ("**not in your\nproject**"). Matching the literal
+                # string silently failed on exactly the passages that had been labelled.
+                if ($para -and $para -match '(?is)maintainer\s+provenance|not\s+in\s+your\s+project') { continue }
+
+                Add-Finding error 'install-simulation' $skill `
+                    ("$rel links to '$target', which does not exist in a one-skill install. " +
+                     'Name the owning skill, use a path relative to this skill folder, or ' +
+                     'label the passage "maintainer provenance - not in your project".')
+            }
+
+            # --- repo-level path mentions ---------------------------------------
+            # Code fences are NOT stripped here: a command example telling someone to read
+            # templates/README.md is precisely the defect.
+            foreach ($m in [regex]::Matches($body, $repoLevelPattern)) {
+                $cited = $m.Value
+                $para = @($paragraphs | Where-Object { $_.Contains($cited) }) | Select-Object -First 1
+                # Whitespace-tolerant: these files wrap at ~98 columns, so the phrase routinely
+                # straddles a line break ("**not in your\nproject**"). Matching the literal
+                # string silently failed on exactly the passages that had been labelled.
+                if ($para -and $para -match '(?is)maintainer\s+provenance|not\s+in\s+your\s+project') { continue }
+
+                Add-Finding error 'install-simulation' $skill `
+                    ("$rel names '$cited', a path that exists in the rpa-ai-skills repo and in " +
+                     'no installed project. Either say what the reader should do instead, or ' +
+                     'label the passage "maintainer provenance - not in your project".')
+            }
+        }
+    }
+}
+finally {
+    Remove-Item -LiteralPath $simRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # --- report ---

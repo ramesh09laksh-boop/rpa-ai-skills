@@ -1,8 +1,11 @@
 # Generating `Main.xaml` and `Framework/` — the two routes
 
-The templates in `templates/` deliberately ship **no `.xaml`**. They carry `project.json`,
+A fetched REFramework template deliberately ships **no `.xaml`**. It carries `project.json`,
 `project.uiproj`, `entry-points.json`, `Data/` and `Tests/`; the REFramework skeleton itself
 comes from UiPath and has to be generated so it stays in step with your Studio version.
+
+*(Where this file says `templates/`, it means the folder in the rpa-ai-skills repo the fetch
+script copies from — **not in your project**. What you have is the fetched copy, as `<name>/`.)*
 
 Two routes. Both end in the same place: copy `Main.xaml` + `Framework/` into the project, then
 apply the fetched template's own *"Deltas to apply to the generated skeleton"* section.
@@ -57,7 +60,8 @@ Tests/*.xaml  Tests/Tests.xlsx  Exceptions_Screenshots/  LICENSE  README.md
 
 ## The deltas you must apply — and why you cannot skip them
 
-The generated skeleton does **not** match this estate. Measured against `templates/`:
+The generated skeleton does **not** match this estate. Measured against the REFramework
+templates (`templates/` in the skills repo — **not in your project**; see the note at the top):
 
 | What | 26.10.1 generates | This estate requires |
 |---|---|---|
@@ -65,7 +69,7 @@ The generated skeleton does **not** match this estate. Measured against `templat
 | `Main.xaml` arguments | **none at all** — no `x:Members`, so no `in_ENV` | `in_ENV`, which selects `Config_<ENV>.xlsx` |
 | `GetTransactionData` | queue-based (`GetQueueItem`) | queue-based, *or* the non-queue rewrite — see `non-queue-reframework.md` |
 | `designOptions.modernBehavior` | **absent** | `true` — `validate-project` reports an error otherwise |
-| `studioVersion` | `26.10.0.0` | `23.10.8.0` in `templates/`, from the reference projects |
+| `studioVersion` | `26.10.0.0` | `23.10.8.0`, the value the templates carry |
 | `UiPath.UIAutomation.Activities` | `[26.10.6]` | `[26.10.4]` if you intend to capture selectors — see the `web` skill |
 
 The missing `in_ENV` is the one that bites first: the whole `Config_<ENV>` mechanism this estate
@@ -105,5 +109,9 @@ If you must move a Framework file across versions, treat L3 as mandatory, not ad
 ## Record what worked
 
 Studio version, template package version and the config format have to agree, and the
-combination drifts with every Studio release. **When a pair is confirmed working, write it into
-`templates/README.md`** so the next project starts from evidence instead of repeating this.
+combination drifts with every Studio release. **When a combination is confirmed working, record
+it in `Documentation/Progress.md` and send it back to whoever maintains these skills**, so the
+next project starts from evidence instead of repeating this.
+
+The verified-combinations table lives in the skills repo's own `templates/README.md` — that is
+**not in your project**, which is exactly why reporting it back is the step that matters here.

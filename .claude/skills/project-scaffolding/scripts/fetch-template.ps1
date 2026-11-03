@@ -153,9 +153,12 @@ Write-Host "     (not 'Windows - Legacy'), then copy the fetched project.json, p
 Write-Host "     entry-points.json, Data/ and Tests/ over what Studio generated."
 Write-Host "  2. Apply the 'Deltas to apply to the generated skeleton' section in each fetched"
 Write-Host "     template's README.md."
-Write-Host "  3. Work the instantiation checklist in templates/README.md - project name, fresh"
-Write-Host "     GUIDs, every [UC-SPECIFIC - replace] in Config_TST.xlsx AND Config_PRD.xlsx,"
-Write-Host "     and the shared queue name."
+Write-Host "  3. Work the instantiation checklist in this skill's own"
+Write-Host "     references/instantiating-templates.md - project name, fresh GUIDs, in_ENV wired"
+Write-Host "     to Config_<ENV>.xlsx, every [UC-SPECIFIC - replace] in Config_TST.xlsx AND"
+Write-Host "     Config_PRD.xlsx, and the shared queue name."
+Write-Host "     (It is NOT templates/README.md: this script sparse-checks-out templates/<name>/"
+Write-Host "     only, so that file is never fetched. The checklist ships with this script.)"
 Write-Host ""
 Write-Host 'project.json ships "name": "<PROJECT-NAME-TBD-ask-team>", which fails the'
 Write-Host 'publishability check on purpose. Ask the team for the name before the first publish.'

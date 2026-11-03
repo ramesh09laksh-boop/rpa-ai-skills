@@ -10,7 +10,9 @@ The reusable UiPath library that wraps the Finnova Java thin client. This skill 
 error conventions) see the `standards` skill, `references/systems/finnova-system.md`.
 
 - NuGet: `Swisscom.FinnovaLibrary` (samples pin `[4.0.3]` / `[4.0.7]`)
-- Source: `../Finnova/Swisscom FinnovaLibrary/`
+- Source (maintainer provenance — not in your project): `../Finnova/Swisscom FinnovaLibrary/`,
+  a sibling of the skills repo on a maintainer's machine. You consume the package from the feed,
+  not the source
 - Depends on `UiPath.System.Activities` 23.10.5, `UiPath.UIAutomation.Activities` 23.10.9
 
 ## The one rule

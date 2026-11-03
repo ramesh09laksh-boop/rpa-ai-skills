@@ -46,7 +46,7 @@ production settings.
 **Create `Finnova_System/`.** Every workflow that touches a Finnova window lives here and
 nowhere else; `Logic/` decides, `Finnova_System/` acts. Workflow naming is
 `Finnova-<Subject>_<Verb>.xaml` — verb last. See
-[`systems/finnova-system.md`](../../.claude/skills/standards/references/systems/finnova-system.md).
+the `standards` skill, `references/systems/finnova-system.md`.
 
 **`Framework/InitAllApplications.xaml`** — launch the client and log in. Build the launch
 command and window title by concatenating the tower code:
@@ -60,7 +60,7 @@ Credentials come from `Get Credential` against the asset in the `Assets` sheet, 
 `Get PHI Vault`. The two are interchangeable by asset name — the estate names the Orchestrator
 credential after the CyberArk object it mirrors, which makes switching a config change.
 Keep the password a `SecureString` end to end;
-[`orchestrator-assets.md`](../../.claude/skills/security/references/orchestrator-assets.md).
+the `security` skill, `references/orchestrator-assets.md`.
 
 **`Framework/GetTransactionData.xaml`** — stock. `Get Transaction Item` against
 `in_Config("OrchestratorQueueName")` and `in_Config("OrchestratorQueueFolder")`. Do not change
@@ -72,7 +72,7 @@ Dispatcher's.
 the addressing arguments are `WindowTitle` / `PageTabName` / `PanelName` / `Idx` /
 `Virtualname`, and every activity returns `ErrorMsg` / `Warning` / `Info` out-arguments that
 you check rather than assume. Use the library's `Sync`, never a fixed `Delay`. Full API:
-[`finnova-library`](../../.claude/skills/finnova-library/SKILL.md).
+the `finnova-library` skill.
 
 **Exceptions** — `BusinessRuleException` when Finnova refused the transaction (carry its own
 `ErrorMsg` text into the message), `ApplicationException` for technical failure. The
@@ -114,7 +114,7 @@ Nothing in `Tests/` may be invoked from `Process.xaml`.
 
 ## Related skills
 
-- [`finnova-library`](../../.claude/skills/finnova-library/SKILL.md) — activity API, addressing arguments, `Sync`
-- [`standards`](../../.claude/skills/standards/SKILL.md) — where each workflow goes, naming, error handling
-- [`security`](../../.claude/skills/security/SKILL.md) — credentials, assets, the never-do list
-- [`pdd-sdd-scaffolding`](../../.claude/skills/pdd-sdd-scaffolding/SKILL.md) — scaffolding from an SDD when Finnova isn't reachable
+- the `finnova-library` skill — activity API, addressing arguments, `Sync`
+- the `standards` skill — where each workflow goes, naming, error handling
+- the `security` skill — credentials, assets, the never-do list
+- the `pdd-sdd-scaffolding` skill — scaffolding from an SDD when Finnova isn't reachable

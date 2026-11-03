@@ -102,8 +102,9 @@ the estate's bracket style, `[26.10.4]`.)
 Verified in the estate: a project on the standard Studio 23.10 shipped
 `UiPath.UIAutomation.Activities 23.10.13` and capture worked only once both packages were raised
 to `26.10.4` together. That project then ran `studioVersion 23.10.8.0` with UIA at `26.10.4`,
-which **diverges from `templates/`**; whether that divergence is the intended steady state is an
-open question for the team, not a per-project decision. See
+which **diverges from what the REFramework templates pin** (maintainer provenance: `templates/`
+in the skills repo, not in your project). Whether that divergence is the intended steady state is
+an open question for the team, not a per-project decision. See
 `references/capture-troubleshooting.md`.
 
 **How this relates to the official minimum.** The official `uipath-rpa` skill states one

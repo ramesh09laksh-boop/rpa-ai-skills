@@ -3,8 +3,9 @@
 > **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
 > `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
 > what the estate does**, not conformance targets. The `Settings`/`Constants`/`Assets` model and the
-> asset-naming rules carry over unchanged. Modern equivalent for the workbooks themselves:
-> `templates/*/Data/Config_TST.xlsx`.
+> asset-naming rules carry over unchanged. Modern equivalent for the workbooks themselves: the
+> `Data/Config_TST.xlsx` a REFramework template ships (maintainer provenance -- `templates/` is
+> in the rpa-ai-skills repo, not in your project).
 
 ## There is no `.env` file
 

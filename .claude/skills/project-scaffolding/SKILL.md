@@ -6,8 +6,14 @@ description: Use when starting a new UC project — determines which Dispatcher/
 # Fetching a project template
 
 `templates/` in `rpa-ai-skills` has no `SKILL.md` of its own, so `npx skills add` never brings
-it along — that command carries skill folders only. This skill is the fetch step, wrapped so it
-travels like any other skill: install it, and `scripts/fetch-template.*` comes with it.
+it along — that command carries skill folders only, which means **`templates/` is not in your
+project** and no path starting with it will resolve there. This skill is the fetch step, wrapped
+so it travels like any other skill: install it, and `scripts/fetch-template.*` comes with it.
+
+Read every `templates/<name>/` below as *"the folder the fetch script copies into your project
+as `<name>/`"* — the `templates/` prefix names a path in the skills repo and is **not in your
+project**. Anything this skill tells you to open is either under this skill (`references/…`,
+`scripts/…`) or inside a template you have already fetched.
 
 ## Before anything else: preflight
 
@@ -65,8 +71,10 @@ scripts\fetch-template.ps1 -Template REFramework-Dispatcher-Base,REFramework-Per
 ```
 
 Both do a blobless, depth-1 sparse checkout of only the matched `templates/<name>/` paths, then
-move them into place. Neither will overwrite an existing folder — that is deliberate, so a
-re-run cannot silently discard work in progress. `-d` / `-Destination` sets where they land
+move them into place as `<name>/`. Nothing else from the repo comes with them — **the rest of
+`templates/` is not in your project**, which is why the instantiation checklist ships in this
+skill rather than there. Neither script will overwrite an existing folder — that is deliberate,
+so a re-run cannot silently discard work in progress. `-d` / `-Destination` sets where they land
 (default: the current directory); `-b` / `-Ref` pins a branch or tag.
 
 ### Pointing at a fork or an internal mirror
@@ -132,9 +140,13 @@ The template is project-level scaffolding only. Three things still have to happe
    template's own `README.md`. That section is what turns a stock REFramework skeleton into a
    Dispatcher or a Finnova/Avaloq Performer — it is the substance of the template, not an
    appendix.
-3. **Work the instantiation checklist** in `templates/README.md` — project name, fresh GUIDs,
-   every `[UC-SPECIFIC — replace]` in `Config_TST.xlsx` *and* `Config_PRD.xlsx`, and the shared
-   queue name.
+3. **Work the instantiation checklist** — `references/instantiating-templates.md`. Project name,
+   fresh GUIDs, `in_ENV` wired to `Config_<ENV>.xlsx`, every `[UC-SPECIFIC — replace]` in
+   `Config_TST.xlsx` *and* `Config_PRD.xlsx`, and the shared queue name.
+
+   It is **not** in the templates repo's `README.md`, which is what this step used to say.
+   `scripts/fetch-template.*` sparse-checks-out `templates/<name>/` only, so that README is
+   **not in your project** — the step pointed at a file you never received.
 4. **Run the conformance checker and get it to zero errors.**
 
    ```bash
@@ -158,8 +170,10 @@ The template is project-level scaffolding only. Three things still have to happe
    **A `WARN` is not "pre-existing, therefore harmless".** `relative-persisted-path` in
    particular is a documented silent-failure trap — fix it before the first real run.
 
-   **The three sample projects under `../Finnova/` and `../Avaloq/` are `targetFramework:
-   Legacy`** (`modernBehavior: false`, Studio 20.10–21.10). Running this checker on them is
+   **The three sample projects are `targetFramework: Legacy`** — maintainer provenance, not in
+   your project: they live under `../Finnova/` and `../Avaloq/`, siblings of the skills repo on a
+   maintainer's machine (`modernBehavior: false`, Studio 20.10–21.10). Running this checker on
+   them is
    **informational only** — the rules encode the modern estate's contract, which those projects
    predate. Calibrate against the templates and modern UC projects instead, and **never tune a
    rule to lower a Legacy sample's count**. See `README.md`.
@@ -205,9 +219,9 @@ The template is project-level scaffolding only. Three things still have to happe
    **Calibration on modern projects** (`targetFramework: Windows`), measured 2026-10-26 with
    `grep -a`:
 
-   | Project | `no-config` | `no-outcome` | `logic-no-arguments` | `secret-argument-string` |
+   | Project (maintainer provenance — measured here, not in your project) | `no-config` | `no-outcome` | `logic-no-arguments` | `secret-argument-string` |
    |---|---|---|---|---|
-   | all three `templates/` | 0 | 0 | 0 | 0 |
+   | all three REFramework templates | 0 | 0 | 0 | 0 |
    | Lanes (a real modern UC project) | **6** | **6** | **2** | **1** |
 
    Zero on the templates, so the rules do not fire on conformant modern scaffolding. The Lanes
@@ -288,6 +302,8 @@ jobs finish green in Orchestrator with no work done.
 
 ## References
 
+- `references/instantiating-templates.md` — the eight-step instantiation checklist, which ships
+  with this skill because the fetch script does not deliver the templates repo's own README
 - `references/generating-the-skeleton.md` — Route A (Studio) and Route B (`uip rpa init`) for
   `Main.xaml` + `Framework/`, what 26.10.1 actually produces, and the deltas against this estate
 - `references/evidence-ladder.md` — L1–L4, and why a PASS without a level is not a report

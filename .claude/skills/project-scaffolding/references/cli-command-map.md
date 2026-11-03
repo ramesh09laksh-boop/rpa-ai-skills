@@ -120,9 +120,11 @@ names survive that identically is **unverified**, because the Swisscom packages 
 feed reachable from this machine and no local `.nupkg` was available for `--nupkg-path`.
 
 So for library signature re-verification the demonstrated method is still reading `x:Members`
-from the library **source** project (155 workflows across both libraries — see
-`docs/feasibility-generated-activity-tables.md`). If someone gets a Swisscom `.nupkg` locally,
-`rpa packages inspect --nupkg-path` is the first thing to try, and the answer belongs here.
+from the library **source** project — 155 workflows across both libraries. That is **maintainer
+provenance**: the feasibility write-up lives at `docs/feasibility-generated-activity-tables.md`
+in the rpa-ai-skills repo, the library sources are siblings of it, and neither is in your
+project. If someone gets a Swisscom `.nupkg` locally, `rpa packages inspect --nupkg-path` is the
+first thing to try, and the answer belongs here.
 
 `init --help` also still says *"Use search-templates to discover available packages"* — stale
 help text inside the current tool. The command is `rpa templates search`.

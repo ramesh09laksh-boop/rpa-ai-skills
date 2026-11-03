@@ -2,7 +2,7 @@
 
 > **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
 > `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
-> what the estate does**, not conformance targets. Modern equivalent: `templates/`
+> what the estate does**, not conformance targets. Modern equivalent: the REFramework templates (maintainer provenance -- `templates/` lives in the rpa-ai-skills repo, not in your project; the `project-scaffolding` skill fetches one)
 > (Windows / `modernBehavior: true`, Studio 23.10.8.0), plus `wiring-the-framework.md` in the
 > `standards` skill. Folder layout and the `_System`/`Logic` split carry over
 > unchanged; `project.json` values, activity choices and `Framework/` internals do not.
@@ -24,10 +24,12 @@ against `UC39_BPO_manuelle_Börsenaufträge`, `PJFVA-966_UC81_BPO_VD03_TK _Valor
 
 ### `targetFramework`
 
-The three reference skeletons (`../REFramework-Dispatcher-Base/`,
-`../REFramework-Performer-Avaloq/`, `../REFramework-Performer-Finnova/`) and everything in
-`templates/` are `"targetFramework": "Windows"` with `"modernBehavior": true`, on
+Every REFramework template is `"targetFramework": "Windows"` with `"modernBehavior": true`, on
 `"studioVersion": "23.10.8.0"`. The three sample processes predate that and are `"Legacy"`.
+
+*(Maintainer provenance — not in your project: those values were read off the three reference
+skeletons `../REFramework-Dispatcher-Base/`, `../REFramework-Performer-Avaloq/` and
+`../REFramework-Performer-Finnova/`, siblings of the skills repo, rather than hand-written.)*
 
 **Start new work on Windows; leave an existing Legacy project alone** unless migrating it is
 the task. A published process carries its framework — flipping the value in `project.json`
