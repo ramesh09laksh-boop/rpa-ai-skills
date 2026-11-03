@@ -87,7 +87,7 @@ types or is shown its credential.
 
 ### Prerequisite — read `project.json` before the first capture command
 
-Both packages must be present, **both at `26.10.4`**:
+The estate pins **both** packages at `26.10.4`:
 
 ```json
 "UiPath.UIAutomation.Activities": "[26.10.4]",
@@ -95,55 +95,133 @@ Both packages must be present, **both at `26.10.4`**:
 ```
 
 **Precheck:** if either is missing, differs from `26.10.4`, or the two differ *from each other*,
-fix it and restore before anything else. A mismatch makes `uip rpa uia` list **zero
+fix it and restore before anything else. A too-old package makes `uip rpa uia` list **zero
 subcommands**, which reads like the CLI being unavailable rather than a version problem. (Keep
 the estate's bracket style, `[26.10.4]`.)
 
-Verified: a project on the estate's standard Studio 23.10 shipped
-`UiPath.UIAutomation.Activities 23.10.13` — below the minimum `uip rpa uia` needs — and capture
-worked only once both packages were raised to `26.10.4` together. That project then ran
-`studioVersion 23.10.8.0` with UIA at `26.10.4`, which **diverges from `templates/`**; whether
-that divergence is the intended steady state is an open question for the team, not a per-project
-decision. See `references/capture-troubleshooting.md`.
+Verified in the estate: a project on the standard Studio 23.10 shipped
+`UiPath.UIAutomation.Activities 23.10.13` and capture worked only once both packages were raised
+to `26.10.4` together. That project then ran `studioVersion 23.10.8.0` with UIA at `26.10.4`,
+which **diverges from `templates/`**; whether that divergence is the intended steady state is an
+open question for the team, not a per-project decision. See
+`references/capture-troubleshooting.md`.
+
+**How this relates to the official minimum.** The official `uipath-rpa` skill states one
+requirement — `UiPath.UIAutomation.Activities` at **26.10.2 or newer** — and adds *"Do not
+hardcode the version from memory; this section is the only source of truth."* It does not mention
+`UiPath.UIAutomation.CLI` at all. So:
+
+| | |
+|---|---|
+| Official **minimum** | `UiPath.UIAutomation.Activities` ≥ `26.10.2` |
+| This estate's **pin** | both packages exactly `26.10.4` |
+
+The pin is a stricter local standard, not a contradiction — it is the combination this estate has
+actually run a capture on. **Re-read the official section rather than trusting the number above**
+when the minimum may have moved; if it has risen past `26.10.4`, the estate pin is what needs
+changing. `UiPath.UIAutomation.CLI` is a real package (`26.10.4` and `26.10.6` exist on the
+feed); why the official docs do not name it is **unverified**.
 
 ### The rule
 
-**Never hand-write or hand-edit a selector.** Every selector comes from
-`target-anchorable resolve-defaults`, is hardened only with `selector-intelligence`, and is
-confirmed by `selector-intelligence evaluate` before it is registered. Authoring a
-`<webctrl …>` from a DOM inspection, a screenshot or a reference document is out of bounds —
-the reference documents in this estate have been caught wrong, and so has the shipped UC81
-XAML.
+**Never hand-write or hand-edit a selector**, and **never hand-call the selector-building CLIs
+either.** Both halves matter, and the second one is the half this skill used to get wrong.
 
-### The loop
+> **Never manually call internal selector-building `uip rpa uia` CLIs.** Direct calls bypass
+> improvement and OR registration, leaving fragile unregistered selectors. Only SKILL.md flow is
+> valid.
+>
+> — `UiPath.UIAutomation.Activities` 26.10.4, its own `uia-configure-target-guide`
 
-Per screen, finish the whole loop before advancing the application — **complete-then-advance**.
-Advancing can destroy the elements you have not captured yet.
+Authoring a `<webctrl …>` from a DOM inspection, a screenshot or a reference document is equally
+out of bounds — the reference documents in this estate have been caught wrong, and so has the
+shipped UC81 XAML.
 
-| Step | Command |
+### The loop — follow the official capture flow, do not re-type it
+
+**This skill no longer carries a command table, and that is the correction.** It used to list ten
+`uip rpa uia` steps naming `target-app resolve-defaults`, `target-anchorable resolve-defaults`,
+`selector-intelligence get-ancestors` / `get-selector-attributes` / `evaluate`, and
+`object-repository create-elements` / `replace-elements` / `link-elements`. Those are exactly the
+internal CLIs the rule above forbids calling by hand. A table of them here is an instruction to
+do the forbidden thing, and it rots: the official docs state that
+*"`uip rpa uia --help` deliberately exposes no standard subcommands — the UIA CLI surface is
+owned and co-versioned by the `UiPath.UIAutomation.Activities` package."* Pinning those names in
+this file guaranteed drift against the package the robot actually runs.
+
+**Where the commands live now:**
+
+1. Load the official **`uipath-rpa`** skill (`uip skills install`, or the CLI prints the reminder
+   on every `uip rpa` invocation). Its UIA starter guide is the entry point.
+2. From there, read the package's own guide **in full** —
+   `{PROJECT_DIR}/.local/docs/packages/UiPath.UIAutomation.Activities/ui-automation-guide.md`.
+   It ships with the package, so it is co-versioned with what the robot runs and **outranks
+   anything written here** on command syntax.
+3. Capture through the package's `uia-configure-target` flow. It owns the window baseline, the
+   target-generation gate, selector improvement and Object Repository registration as one
+   operation. If the file is absent, the installed package predates it — treat that as below the
+   minimum version.
+
+Three things the official flow needs that are easy to get wrong, verified against the
+co-versioned docs and worth stating once:
+
+| | |
 |---|---|
-| 1. Window baseline | `uip rpa uia snapshot capture --folder-path "$W"` → read `window-tree.yml` |
-| 2. Open the page | `uip rpa uia interact browser open <url> --browser Chrome` |
-| 3. Read the page tree | `uip rpa uia snapshot capture <bN> --folder-path "$W"` → read `tree.yml` |
-| 4. Resolve the window | `uip rpa uia target-app resolve-defaults --refs '[…]' --name "<Screen>"` |
-| 5. Resolve elements | `uip rpa uia target-anchorable resolve-defaults --refs '[…]'` |
-| 6. Harden | `selector-intelligence get-ancestors` / `get-selector-attributes` |
-| 7. **Confirm** | `selector-intelligence evaluate --selector … --refs …` |
-| 8. Register | `object-repository create-elements` (new) / `replace-elements` (existing) |
-| 9. Advance | `uip rpa uia interact click\|type\|select <eN> --input-method …` |
-| 10. Attach to XAML | `object-repository link-elements` by `WorkflowViewState.IdRef` |
+| **Every ref is paired with its definition file** | The JSON array arguments take `{"ref": …, "definitionFilePath": …}` per entry — a bare ref is not the shape. Same for `--elements`, `--screens`, `--targets`, `--anchors`. |
+| **Paths are absolute, native-host, forward-slash** | `C:/path/to/work`. **Not** a relative path, **not** git-bash/MSYS `/c/...`, **not** WSL `/mnt/c/...`, **not** bare `pwd`. In git-bash use `pwd -W` or `cygpath -m` and check the drive letter. An invalid path may silently write artifacts elsewhere, or fail with a misleading *path not found*. |
+| **A doc file name is not a class name** | `CheckAppState.md` documents the class `UiPath.UIAutomationNext.Activities.NCheckState`. Look the class name up in the activity's doc; do not derive it from the filename. |
 
-`evaluate` is the gate, not a formality: accept a selector only when **Matching candidates
-lists your target and nothing else** (except a deliberate set — see below).
+**The discipline rules still live here**, because they are estate decisions rather than CLI
+mechanics:
+
+- **Complete-then-advance.** Per screen, finish capture *before* advancing the application.
+  Advancing can destroy the elements you have not captured yet.
+- **The registration gate is a gate, not a formality.** Accept a target only when it matches
+  **your target and nothing else** — except a deliberate, documented set. If it will not, leave
+  `TODO_SELECTOR` with what you tried and what it matched instead.
+- **One fresh work folder per screen**, created empty (`references/capture-troubleshooting.md`).
+- **Repair in place.** Never delete-and-re-add an element; the activity binding is
+  identity-based, so re-creating the same name still breaks every activity bound to it. The
+  official docs make this MANDATORY too.
+- **Business key, never position** — see the rule below.
+- **Capture at the robot's role** — see the prerequisite above.
+
+### The probe trap — a check inside the card that can never fire
+
+The idempotent-login pattern (rule 1) puts a short-timeout probe for a logged-in marker ahead of
+authenticating. Put that probe **inside an Application Card whose `TargetApp` is the sign-in
+screen, with `OpenMode = IfNotOpen`, and it can never fire.**
+
+Why, from the documented semantics of `NAppOpenMode.IfNotOpen` — *"Open a new application
+instance or browser window, **if the selector does not match any existing instance**"*:
+
+| State | What the card does | What the probe sees |
+|---|---|---|
+| Not signed in | sign-in selector matches → attaches | the sign-in screen. Probe correctly says "not logged in" |
+| **Already signed in** | sign-in selector **no longer matches** → opens a **new** window at the URL | the sign-in screen **again** — because the card just produced one |
+
+So the probe reports "not logged in" in both branches. The workflow re-authenticates every run,
+which is precisely the failure rule 1 exists to prevent, and the card has also abandoned the live
+session rather than attaching to it.
+
+**Fix: scope the card to a screen that matches *any* page of the application** — a persistent
+shell, header, nav frame or title pattern that is present signed-in and signed-out alike — and
+probe for the logged-in marker *inside* that. The sign-in screen is a **state** to detect, never
+the card's `TargetApp`.
+
+Corollary: a probe can only observe a state the card did not just destroy. Any `IfNotOpen` card
+targeting a transient screen has the same defect.
 
 ### What this estate learned the hard way
 
 1. **Wildcard `rowName`.** Measured padding is *two* trailing spaces
    (`rowName="Versammlungsdatum  "`) where the reference docs say one. Write
    `rowName='Versammlungsdatum*'` and stop counting.
-2. **Repair in place with `replace-elements`.** Never delete-and-re-add an element: the
-   activity binding is identity-based, so every activity bound to it breaks even if you
-   re-create the same name.
+2. **Repair a broken descriptor in place.** Never delete-and-re-add an element: the activity
+   binding is identity-based, so every activity bound to it breaks even if you re-create the
+   same name. Re-running the capture flow from scratch on an existing element registers a
+   *second* entry and orphans the link — the official docs route repair through their own
+   recover-selector guide, which is the procedure to follow.
 3. **Carry the proven input method into the workflow.** `Simulate` drives accessibility APIs
    and **never dispatches a DOM click**, so a control whose behaviour is a JavaScript
    `onclick` silently no-ops while the activity reports success — and the run then fails at
@@ -157,17 +235,26 @@ lists your target and nothing else** (except a deliberate set — see below).
 5. **A `{{var}}`-parametrized descriptor needs a workflow variable of exactly that name.**
    The repository stores it as a `string.Format` over that variable; rename it and the
    descriptor stops resolving, with a timeout as the only symptom.
-6. **Validate the literal before you parametrize.** `target-anchorable validate` prints a
+6. **Validate the literal before you parametrize.** The capture flow's validate step prints a
    cropped screenshot of the match — look at it. A stored `string.Format` selector no longer
-   validates against the live app.
-7. **Read a value before you trust a Get Text.** `interact get <eN> text` shows what the
-   activity will actually extract. A container cell can return its children concatenated with
-   no separator, which looks like a value and is unsplittable.
+   validates against the live app, so there is no second chance after parametrizing.
+7. **Read a value before you trust a Get Text.** Read the element's text through the capture
+   flow's interaction CLI first: it shows what the activity will actually extract. A container
+   cell can return its children concatenated with no separator, which looks like a value and is
+   unsplittable.
 8. **Interstitials arrive *after* the click, not before.** Probe-then-click can only clear an
    error page that was already showing. Wrap the landing in a bounded retry.
 
 Record what you confirmed in `references/verified-flows.md`, and see
 `references/selector-strategy.md` for the attribute-reliability rules.
+
+---
+
+**Last verified against `rpa-tool 1.204.2`, official `uipath-rpa` skill `1.204.1`, and
+`UiPath.UIAutomation.Activities` / `.CLI` `26.10.4`** (2026-11-03). The CLI surface is owned by
+the UIA package and changes with it. When this file and the package's own
+`ui-automation-guide.md` disagree, **the package wins** — it is co-versioned with what the robot
+runs, and this file is not. Re-verify on any package bump and update this line.
 
 **Authorisation:** SIX iD, CardOne and Avaloq are authenticated production banking systems.
 Only drive them against an environment and account you are authorised to use, and never paste

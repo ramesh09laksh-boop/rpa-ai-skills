@@ -301,19 +301,28 @@ Only what the estate actually evidences. Do not add a rule here that no project 
 
 Web selectors are captured and validated with the **UiPath UI Automation CLI**, `uip rpa uia`.
 It explores the page through the same UI Automation engine the robot runs and writes the
-result straight into the Object Repository, so no selector is ever re-typed by hand:
+result straight into the Object Repository, so no selector is ever re-typed by hand.
 
-```bash
-uip rpa uia snapshot capture --folder-path "$W"        # window baseline
-uip rpa uia interact browser open <url> --browser Chrome
-uip rpa uia snapshot capture <bN> --folder-path "$W"   # page tree -> pick eN refs
-uip rpa uia target-anchorable resolve-defaults --refs '[...]'
-uip rpa uia selector-intelligence evaluate --selector ... --refs ...
-uip rpa uia object-repository create-elements --screen-reference-id ... 
-```
+**Do not list the subcommands here, and do not call the selector-building ones by hand.** This
+section used to carry a six-line command sketch naming `target-anchorable resolve-defaults`,
+`selector-intelligence evaluate` and `object-repository create-elements`. The official
+co-versioned UIA package docs forbid exactly that:
+
+> **Never manually call internal selector-building `uip rpa uia` CLIs.** Direct calls bypass
+> improvement and OR registration, leaving fragile unregistered selectors. Only SKILL.md flow is
+> valid.
+>
+> — `UiPath.UIAutomation.Activities` 26.10.4, `references/uia-configure-target-guide.md`
+
+and state that *"`uip rpa uia --help` deliberately exposes no standard subcommands — the UIA CLI
+surface is owned and co-versioned by the `UiPath.UIAutomation.Activities` package"*. A command
+list in this repo therefore both instructs the forbidden thing and drifts against the package the
+robot runs. Route capture through the package's own `uia-configure-target` flow, reached from the
+official `uipath-rpa` skill; the discipline rules and the role precheck are in the `web` skill.
 
 Requires `UiPath.UIAutomation.Activities` and `UiPath.UIAutomation.CLI` **at the same
-version** (26.10.4 verified) — a mismatch makes `uip rpa uia` list zero subcommands.
+version** (26.10.4 verified in this estate; the official minimum for Activities is 26.10.2) — a
+too-old package makes `uip rpa uia` list zero subcommands.
 
 **Playwright MCP is no longer used.** It inspected pages with a different engine than the
 robot runs, and its output had to be hand-translated into selectors — which is the largest

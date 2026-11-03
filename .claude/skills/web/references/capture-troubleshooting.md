@@ -29,13 +29,12 @@ together and capture then worked. Note what that project then looked like:
 whether that is the intended steady state is **an open question for the team**, not something to
 settle silently per project.
 
-## 1. A stale URL makes `evaluate` reject every selector
+## 1. A stale URL makes the registration gate reject every selector
 
 **Symptom.** After the application navigates on its own — a post-sign-in redirect, a client-side
-route change in a single-page app — `target-app resolve-defaults` emits a window selector whose
-`url` attribute is the **previous** page. Every subsequent
-`selector-intelligence evaluate` then fails, because it is matching against a window that is not
-the one on screen.
+route change in a single-page app — the capture flow derives a **window** selector whose `url`
+attribute is the **previous** page. Every element it then gates against that window fails,
+because it is matching inside a window that is not the one on screen.
 
 It looks like the selectors are wrong. They are fine; the window is wrong.
 
@@ -44,13 +43,16 @@ captured before the redirect still resolves, so nothing errors — it just descr
 
 **Fix, in this order — all four steps, or it comes back:**
 
-```bash
-uip rpa uia interact browser navigate <tab-ref> "<target url>"   # 1. navigate EXPLICITLY
-sleep 2                                                          # 2. let it settle
-uip rpa uia snapshot capture --folder-path "$W"                  # 3. fresh top-level snapshot
-                                                                 #    -> a NEW tab ref; use it
-# 4. a FRESH work folder, then re-run target-app resolve-defaults
-```
+1. **Navigate explicitly** with the interaction CLI, even though the page is already showing the
+   right thing. The point is not to move the browser; it is to make the extension re-read where
+   it is.
+2. **Let it settle** — a couple of seconds.
+3. **Take a fresh top-level snapshot.** This yields a **new** tab ref. Use the new one; the old
+   ref still resolves and still describes the old page, which is the whole trap.
+4. **Use a fresh work folder**, then re-run the capture flow for this screen.
+
+Exact command names come from the UIA package's own `ui-automation-guide.md` (co-versioned with
+the package), reached via the `web` skill, *The loop*.
 
 Do not skip the explicit `navigate` because the page is already showing the right thing. The
 point is not to move the browser; it is to make the extension re-read where it is.
