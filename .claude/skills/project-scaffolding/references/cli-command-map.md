@@ -71,9 +71,7 @@ Subcommands, where the verb is a group:
 
 ### `rpa-legacy`
 
-**`rpa-legacy` is for Legacy-framework projects; new projects don't use it.** New projects are
-Windows / `modernBehavior: true`, where `rpa` owns everything. Nothing in these skills should
-reach for `rpa-legacy`, and it is not a prerequisite — `preflight` does not check for it.
+**Not used — new projects are Windows/modern.**
 
 ## The renames — old name → current, with confidence
 
