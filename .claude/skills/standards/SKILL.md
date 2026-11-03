@@ -118,6 +118,11 @@ the `avaloq-library` skill.
   `GetTransactionData` / `InitAllApplications` / `Process` / `SetTransactionStatus`, in order.
   A project with good leaf workflows and a stock Framework runs green and processes nothing —
   read this before authoring the first leaf workflow
+- `references/leaf-ledger.md` — the `Documentation/Leaf_Ledger.md` template: one row per leaf
+  workflow, seven columns (*body real*, *contract met*, *captured as `<role>`*, *matched only
+  the target*, *parametrized by business key*, *run once*, *CONFIRMED*). The capture-and-develop
+  stage is gated on the whole ledger reading `yes`, with each workflow run once against the live
+  application and the command recorded — not on the count of files that exist
 - `references/where-does-it-go.md` — decision rules for placing a new workflow
 - `references/naming-conventions.md` — workflow and argument naming
 - `references/error-handling.md` — exception types and the retry idiom used across all projects

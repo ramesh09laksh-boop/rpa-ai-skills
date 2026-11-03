@@ -385,22 +385,27 @@ editing the file by hand. Then commit.
 
 ## Development lifecycle
 
-**Eleven stages** (ten numbered, plus 7b), each a short prompt you can paste into Claude Code (or any agent with these
-skills installed). Every prompt routes to skills that already exist in this repo — none of them
-duplicate skill content, they just point the agent at the right ones for that stage.
+**Ten stages** (4 and 5 are one loop; 7b sits between 7 and 8), each a short prompt you can paste
+into Claude Code (or any agent with these skills installed). Every prompt routes to skills that
+already exist in this repo — none of them duplicate skill content, they just point the agent at
+the right ones for that stage.
 
 ```
-PDD → SDD → Project → Wire → Capture → Develop → Test → Review → E2E run → UAT → Deploy
-                                                                          ↑________|
-                                                                    Change / Enhancement
+PDD → SDD → Project → Wire → Capture+Develop → Test → Review → E2E run → UAT → Deploy
+                                                                      ↑________|
+                                                                Change / Enhancement
 ```
 
-Two stages are new, and both were missing for the same reason — they are the work *between*
-"the project exists" and "the workflows are written":
+Three stages carry the work that used to fall between "the project exists" and "the workflows are
+written":
 
-- **Wire** — connecting the SDD's transactions to the Framework. Skipping it produces a project
-  with good leaf workflows that runs green and processes **zero** transactions.
-- **Capture** — resolving every `TODO_SELECTOR` against the live application with `uip rpa uia`.
+- **Wire** (3) — connecting the SDD's transactions to the Framework. Skipping it produces a
+  project with good leaf workflows that runs green and processes **zero** transactions. A
+  Framework wired to stubs is a skeleton, not a process.
+- **Capture + Develop** (4–5) — **one loop, per workflow**: capture the targets, author the real
+  activity against them, run the workflow once, pack, write the ledger row. These were two
+  stages; separating them is what let a project with a live session ship `TODO_SELECTOR`
+  placeholders and no capture at all.
 - **End-to-end run** (7b) — the first time the automation runs as a **job in the Orchestrator
   folder, on a robot**, rather than in a developer's session. This is **L4**, and nothing before
   it proves the automation works.
@@ -467,35 +472,58 @@ in_Config, an out_ outcome, SecureString secrets. Report which Framework files a
 level reached.
 ```
 
-### 4. Capture targets (browser apps)
+### 4–5. Capture and develop — one workflow at a time
+
+**These were two stages and are now one loop.** Capturing every screen first and authoring
+afterwards is what produced the failure this stage exists to prevent: on a project that *had* a
+live session, the agent scaffolded `TODO_SELECTOR` placeholders for whole workflows and captured
+nothing. Capture and authoring are the same unit of work, per workflow, and the unit ends with a
+run and a ledger row — not with a file that exists.
+
+Per workflow: **capture → author → run once → pack → ledger row → commit → next workflow.**
+
+Before the first capture command, two prechecks the `web` skill owns: `project.json` must carry
+`UiPath.UIAutomation.Activities` and `UiPath.UIAutomation.CLI` both at `26.10.4` (fix and restore
+first), and the signed-in account must be at the **least-privilege role the robot runs as**, with
+the admin-only controls absent from the screen. A capture made at a higher role is untrusted and
+is re-captured. Commit every 2–3 screens and keep going.
 
 ```
-Load `web`. First read project.json: UiPath.UIAutomation.Activities and UiPath.UIAutomation.CLI
-must both be 26.10.4 — fix and restore before anything else. Confirm the signed-in account is at
-the role the robot will run as, and that the admin-only controls are absent — a capture made at a
-higher role is untrusted and is re-captured. Capture targets for the workflows listed in the
-*.selectors-todo.md files, following `web/references/capture-troubleshooting.md`. After any page
-navigation: navigate explicitly, fresh snapshot, fresh work folder. The registration gate must
-match only the target — if not, leave TODO_SELECTOR and record why. Identify list items by
-business key, never position. Commit `.objects/` — it holds the captured selectors.
+Load `standards` for where each step belongs, plus the application skill(s) the SDD names
+(`finnova-library`, `avaloq-library`, `web`) and, for CLI mechanics, the official `uipath-rpa`
+skill (estate rules win on structure, naming and security). Use modern activities only — this
+is a Windows/modernBehavior project: no classic Excel write activities, no raw selector outside
+`Tests/` or Avaloq's `Web_Nav_System/`. Never invent an activity, API, selector, argument or
+config value.
 
-**Commit every 2–3 screens, then continue to the next batch.** Do not end the run after three
-screens. Stop only when the ledger is complete, or when a row needs something only I can do — and
-then say exactly what. Update each todo file, `Documentation/Capture_Progress.md` (with the role
-each screen was captured under) and Progress.md.
+Step 0 — choose the mode and say which you chose:
+  LIVE:    a live application session exists. State the URL and, if there is a login, the
+           account role (it must be the least-privilege role the robot will run as).
+  OFFLINE: no session. Scaffold per `pdd-sdd-scaffolding` with TODO_SELECTOR / APPROX_SELECTOR
+           and tell me plainly that capture is still needed.
+In LIVE mode never defer a whole workflow to TODO_SELECTOR. Use TODO_SELECTOR only for a target
+that fails the registration gate (it must match only the target), and record why.
+
+For each leaf workflow, in order, one commit per workflow:
+ 1. Contract: in_Config, a business-key argument, an out_ outcome, SecureString for secrets. Fail
+    visibly: an unconfirmed step must throw or return False with a Warn — never pass silently.
+ 2. LIVE: capture each target (`web`: navigate explicitly, fresh snapshot, fresh work folder per
+    screen), then author the real activity and link the captured element through the `uia`
+    object-repository verbs (names per `--help`). No typed selectors.
+ 3. Run the workflow once against the live application, then run validate-project,
+    `uip rpa validate` and `build`, and `pack`.
+ 4. Update Documentation/Leaf_Ledger.md and the *.selectors-todo.md.
+Continue to the next workflow without asking. Stop only when every ledger row is yes, or a row
+needs something only I can do (say exactly what).
+
+Report the highest level reached with the command used: L1 validate-project, L2 build, L2b pack,
+L3 Studio Error List (I check this), L4 a real job. Never write PASS without the command.
 ```
 
-### 5. Develop leaf workflows
-
-```
-Load `standards` for where each step belongs, plus the application skill(s) the SDD names —
-`finnova-library`, `avaloq-library`, `web`. Use `pdd-sdd-scaffolding` for any screenshot-driven
-step, or anything that can't be confirmed against a live application yet. Use modern
-activities only — this is a Windows/modernBehavior project, so no classic Excel write
-activities and no raw selector outside `Tests/` or Avaloq's `Web_Nav_System/`. Never invent an
-activity, API, selector, or config value: mark it `TODO_SELECTOR` / `APPROX_SELECTOR` (per
-`pdd-sdd-scaffolding`) or a config `TODO` instead.
-```
+**The gate on this stage is the ledger, not the file count:** every row in
+`Documentation/Leaf_Ledger.md` reads `yes` in every column, **and** each workflow has been run
+once against the live application with the command recorded. Template and column meanings:
+[`leaf-ledger.md`](.claude/skills/standards/references/leaf-ledger.md).
 
 ### 6. Test data → tests
 

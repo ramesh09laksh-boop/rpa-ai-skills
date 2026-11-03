@@ -107,16 +107,24 @@ TST in the Orchestrator folder, on a robot, with the SDD acceptance table (the
 | 1 | PDD → SDD | `standards`, `security` | Every transaction type and its work-item columns defined; Open Questions listed |
 | 2 | SDD → Project | `project-scaffolding` | **L3** |
 | 3 | Wire the Framework | `standards` (`references/wiring-the-framework.md`), `security` | **L3**, and the 0-transaction guard observed firing |
-| 4 | Capture targets | `web` | Every `TODO_SELECTOR` resolved or recorded with a reason; `.objects/` committed |
-| 5 | Develop leaf workflows | `standards` + the app skill(s), `pdd-sdd-scaffolding` | **L2**, `_System` contract met |
+| 4–5 | Capture **and** develop, one workflow at a time | `web` + `standards` + the app skill(s); `pdd-sdd-scaffolding` only in OFFLINE mode | Every row of `Documentation/Leaf_Ledger.md` reads `yes`, **and** each workflow was run once against the live application with the command recorded. `.objects/` committed |
 | 6 | Test data → tests | `standards` (`references/test-data.md`), `security` | `Tests.xlsx` built; no case marked passed without a run |
 | 7 | Review | `standards`, `security`, app skill(s) | Analyzer clean, **and the report names which rule set ran** |
+| 7b | End-to-end run in the Orchestrator folder | `standards` (`references/end-to-end-run.md`), `security` | **L4** — a real job on a robot. A Successful job that processed 0 transactions is a failure |
 | 8 | UAT readiness | all of the above | **L4** — a real job, with state, logs and the SDD acceptance table |
 | 9 | Deployment readiness | `standards` (`references/deployment.md`), `security` | TST first, at **L2b** and **L4**. PRD only with named approval |
 | 10 | Change / enhancement | whatever the project already uses | Re-run 6–8 for what the change touches |
 
-Stages 3 and 4 are the ones most often skipped, and both fail silently: an unwired Framework
+**Stages 4 and 5 are one loop, not two stages.** Per workflow: capture → author → run once →
+pack → ledger row → commit → next workflow. Capturing every screen first and authoring afterwards
+is what let a project with a live session ship `TODO_SELECTOR` placeholders and no capture at all.
+In LIVE mode a whole workflow is never deferred to `TODO_SELECTOR`; only an individual target that
+fails the registration gate is, with the reason recorded. Ledger template and column meanings:
+the `standards` skill, `references/leaf-ledger.md`.
+
+Stages 3 and 4–5 are the ones most often skipped, and both fail silently: an unwired Framework
 runs green on **zero** transactions, and an unresolved selector fails only when the robot runs.
+A Framework wired to leaf workflows whose bodies are stubs does both at once.
 
 ## Ask the decisions one at a time, in plain language
 
