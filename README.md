@@ -260,8 +260,9 @@ a release. Treat it like one.
 
 1. **Work on a branch**, one commit per change, each with the command and output that prove it.
 2. **Open a PR and let CI pass** — [`.github/workflows/checks.yml`](.github/workflows/checks.yml)
-   runs the skill lint, `validate-project -TemplateMode` on all three templates, `bash -n` on
-   every shipped script, and a check that the template workbooks still regenerate.
+   runs the skill lint, `validate-project -TemplateMode` on all three templates, **the rule
+   fixtures** ([`tests/`](tests/) — one bad/good pair per rule, both directions asserted),
+   `bash -n` on every shipped script, and a check that the template workbooks still regenerate.
 3. **Work [`evals/trigger-prompts.md`](evals/trigger-prompts.md)** on the agents the estate uses.
    A skill that does not load is a skill that does not exist, and CI cannot test that.
 4. **Update [`CHANGELOG.md`](CHANGELOG.md)**, including a *Known open* entry for anything carried
@@ -741,10 +742,17 @@ it does not clone the sample workflow files.
 ```bash
 pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/lint-skills.ps1
 pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/validate-project.ps1   templates/REFramework-Dispatcher-Base templates/REFramework-Performer-Finnova   templates/REFramework-Performer-Avaloq -TemplateMode
+pwsh -NoProfile -File tests/run-fixtures.ps1
 ```
 
-Both run in CI ([`.github/workflows/checks.yml`](.github/workflows/checks.yml)) alongside
+All three run in CI ([`.github/workflows/checks.yml`](.github/workflows/checks.yml)) alongside
 `bash -n` on every shipped script and a check that the template workbooks still regenerate.
+
+**The three check different things, and the third is the one that was missing.** The lint checks
+the skills; `-TemplateMode` checks that the rules do not *false-positive* on conformant
+scaffolding; [`tests/run-fixtures.ps1`](tests/README.md) checks that each rule still *fires* at
+all. Without it, a rule whose pattern stopped matching would report nothing and CI would stay
+green — which is how a conformance checker becomes a no-op without anyone noticing.
 
 Then work [`evals/trigger-prompts.md`](evals/trigger-prompts.md) — a skill that does not load is
 a skill that does not exist, and trigger reliability is what a user actually experiences. Record

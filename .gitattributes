@@ -19,6 +19,13 @@
 # Interpreted by PowerShell, which accepts either, but keep them consistent across platforms.
 *.ps1 text eol=crlf
 
+# Test fixture config (tests/fixtures/**/Config*.tsv). TAB-separated, and the tab is the field
+# separator -- a column that becomes spaces makes the fixture silently build an empty workbook,
+# which reads as "the rule stopped firing". Pinned to LF so the file is byte-identical on every
+# platform; the tabs themselves are not line endings and are not converted, but pinning removes
+# one way for an editor to be helpful about it.
+*.tsv text eol=lf
+
 # Binary: never line-ending-converted, never diffed as text. An .xlsx is a zip; converting it
 # corrupts it.
 *.xlsx binary

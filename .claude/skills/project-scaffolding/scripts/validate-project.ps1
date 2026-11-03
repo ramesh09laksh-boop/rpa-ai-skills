@@ -433,7 +433,12 @@ function Test-Project {
     $bankingLib = $false
     $deps = Get-Prop $proj 'dependencies'
     if ($deps) {
-        foreach ($d in $deps.PSObject.Properties.Name) {
+        # Enumerate the property objects, not `.Properties.Name`. An empty "dependencies": {}
+        # deserializes to a PSCustomObject with an EMPTY property collection, and member
+        # enumeration over an empty collection throws under StrictMode - so a project with no
+        # dependencies at all aborted the whole run with "The property 'Name' cannot be found
+        # on this object". Same class of bug as the Get-Prop cases above, one level deeper.
+        foreach ($d in @($deps.PSObject.Properties | ForEach-Object { $_.Name })) {
             if ($d -match 'Finnova|Avaloq|Swisscom\.PHI') { $bankingLib = $true }
         }
     }

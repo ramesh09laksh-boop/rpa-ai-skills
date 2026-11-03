@@ -1,0 +1,10 @@
+{
+  "name": "Performer",
+  "description": "Fixture: one half of a Dispatcher/Performer pair.",
+  "main": "Main.xaml",
+  "projectId": "22222222-2222-2222-2222-222222222222",
+  "targetFramework": "Windows",
+  "designOptions": { "modernBehavior": true },
+  "runtimeOptions": { "isAttended": false, "requiresUserInteraction": false },
+  "dependencies": {}
+}

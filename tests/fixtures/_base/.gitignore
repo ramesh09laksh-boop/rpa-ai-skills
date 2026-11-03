@@ -1,0 +1,6 @@
+# Fixture base. Present so the missing-gitignore rule is silent by default; its own
+# bad/ fixture removes this file via fixture.json "remove".
+#
+# .objects/ is deliberately NOT listed - it is the Object Repository and it is source.
+.local/
+.settings/

@@ -1,0 +1,6 @@
+# No Assets rows at all. The sheet is still created (header only), which is what the rule
+# distinguishes from a missing sheet.
+Settings	OrchestratorQueueName	UC99_Fixture_Queue
+Settings	logF_BusinessProcessName	UC99_Fixture
+Constants	MaxConsecutiveSystemExceptions	3
+Constants	ShouldMarkJobAsFaulted	True

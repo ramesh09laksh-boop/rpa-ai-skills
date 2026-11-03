@@ -1,0 +1,5 @@
+Settings	OrchestratorQueueName	UC99_Fixtrue_Queue
+Settings	logF_BusinessProcessName	UC99_Fixture
+Constants	MaxConsecutiveSystemExceptions	3
+Constants	ShouldMarkJobAsFaulted	True
+Assets	Mail_System_Exception_To	Email_Recipients_Error

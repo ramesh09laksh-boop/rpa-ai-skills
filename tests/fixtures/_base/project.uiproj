@@ -1,0 +1,6 @@
+{
+  "Name": "Proj",
+  "Description": "Fixture base: a minimal conformant Windows REFramework project.",
+  "ProjectType": "Process",
+  "MainFile": "Main.xaml"
+}

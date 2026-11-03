@@ -1,0 +1,10 @@
+{
+  "name": "Proj",
+  "description": "Fixture: unattended, but asks for user interaction.",
+  "main": "Main.xaml",
+  "projectId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "targetFramework": "Windows",
+  "designOptions": { "modernBehavior": true },
+  "runtimeOptions": { "isAttended": false, "requiresUserInteraction": true },
+  "dependencies": {}
+}

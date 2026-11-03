@@ -1,0 +1,12 @@
+{
+  "name": "Proj",
+  "description": "Fixture: references a banking library.",
+  "main": "Main.xaml",
+  "projectId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "targetFramework": "Windows",
+  "expressionLanguage": "VisualBasic",
+  "studioVersion": "23.10.8.0",
+  "designOptions": { "modernBehavior": true },
+  "runtimeOptions": { "isAttended": false, "requiresUserInteraction": false },
+  "dependencies": { "Swisscom.FinnovaLibrary": "[2026.1.0]" }
+}

@@ -45,6 +45,23 @@ jobs:
             ./templates/REFramework-Performer-Avaloq `
             -TemplateMode
 
+  rule-fixtures:
+    name: every validate-project rule still fires
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The `templates` job above proves the rules do not FALSE-POSITIVE. It proves nothing
+      # about whether they still WORK: a rule whose regex stopped matching would report
+      # nothing and that job would stay green, leaving a 42 KB no-op in place of a checker.
+      #
+      # This job asserts both directions per rule - bad/ must fire, good/ must be silent - and
+      # fails if a rule has no fixture directory at all. See tests/README.md.
+      - name: bad -> finding, good -> none, for all 31 rules
+        shell: pwsh
+        run: |
+          ./tests/run-fixtures.ps1
+
   shell:
     name: shell scripts parse
     runs-on: ubuntu-latest
