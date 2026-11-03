@@ -178,9 +178,54 @@ Not decisions, and not negotiable:
 - **Never type or paste a credential** — not into a prompt, a snapshot, a definition file or a
   chat. Credentials come from the Orchestrator asset. If one is missing, that is a checkpoint.
 - **Destructive actions only on data you have been told is throwaway.**
+- **Ask before anything that authenticates to, or changes, Orchestrator.** See below.
 
-Stop and ask before any action that touches data outside TST throwaway data, or needs a
-credential you were not given. Those are the only two reasons to stop mid-run.
+### Ask before touching the tenant
+
+The line is not read-versus-write. It is *"does this authenticate to Orchestrator, or change
+it?"* — a read still signs in, under whoever's identity the local token holds, and lands in the
+tenant's audit log under their name.
+
+**Always fine, never ask:** reading files; `--help` at any depth; `uip --version`,
+`uip tools list`, `uip login status` (reads the **local** token, authenticates nothing);
+`validate-project`, `lint-skills`, the rule fixtures, `preflight` without `-FolderPath`;
+`uip rpa validate` / `build` / `pack` / `analyze`; `UiRobot version`, `UiRobot pack`.
+
+**Ask first, naming the exact command and why:** `uip login` · **any** `uip or …`, including a
+pure read like `or folders list` · `uip rpa publish` / `uip or packages upload` ·
+`uip or jobs start` · creating or updating a process, asset, queue, trigger or folder ·
+`UiRobot connect` / `disconnect` (this rebinds **the machine's** robot service) ·
+`uip rpa restore` where the feed is Orchestrator-hosted · `uip skills install` /
+`npx skills add` · anything else that reaches the tenant.
+
+Name the command verbatim, say whether it only reads or also changes something, say what you
+need it for, and **wait**. Do not run it and report afterwards: "I ran it and it was fine" is
+not consent, and on a bank tenant it is not recoverable either.
+
+`preflight -FolderPath` runs `uip or …` reads — **passing the switch is the asking.** Its
+library-feed check runs `uip rpa restore`, an authenticated read against an Orchestrator-hosted
+feed; `-SkipFeedCheck` turns it off. Full list: `AGENTS.md` in this repo.
+
+### The official `uipath-rpa` skill
+
+Every `uip rpa` invocation asks for it, and this estate's skills now route CLI mechanics there
+on purpose — the `web` skill deliberately carries no `uia` command table. `preflight` reports
+whether it is installed for this agent, and warns when a copy's `targetCli` does not match the
+installed host.
+
+**If it is missing: ask once, then install it.** Installing software is on the ask-first list.
+
+```bash
+npx skills add https://github.com/uipath/skills --skill uipath-rpa --agent <id> -y
+```
+
+Confirm `<id>` with `npx skills add --help` — `claude-code`, `github-copilot`, `codex`,
+`opencode`, or `'*'`; **`copilot` is not valid**. `uip skills install` is the alternative and
+keeps itself updated. Record which route was used and the version it landed, in
+`Documentation/Progress.md`.
+
+Stop and ask before any action that touches data outside TST throwaway data, needs a credential
+you were not given, or authenticates to the tenant.
 
 ## Working alongside the official UiPath skills
 

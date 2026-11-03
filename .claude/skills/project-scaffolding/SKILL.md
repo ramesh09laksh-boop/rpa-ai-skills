@@ -26,10 +26,40 @@ pwsh -NoProfile -File scripts/preflight.ps1 -ProjectPath <project-dir>
 ```
 
 It checks Node 22.20+, git and GitHub auth (the skills repo is private), PowerShell 7,
-**.NET SDK 8.0**, `uip` and its login, Studio **and whether an instance has the project open**,
-the `UiPath.UIAutomation` 26.10.4 capture pin, that the Swisscom libraries actually restore from
-your feed, and a capture smoke test. Pass `-NoProfile` if you invoke the `.ps1` directly — a
-slow or prompting PowerShell profile makes it look like it has hung.
+**.NET SDK 8.0**, `uip` and its login, **the official `uipath-rpa` skill**, Studio **and whether
+an instance has the project open**, the `UiPath.UIAutomation` 26.10.4 capture pin, that the
+Swisscom libraries actually restore from your feed, and a capture smoke test. Pass `-NoProfile`
+if you invoke the `.ps1` directly — a slow or prompting PowerShell profile makes it look like it
+has hung.
+
+**Two checks reach the tenant, and both are opt-in** — see `AGENTS.md`, *Ask before anything
+that authenticates to, or changes, Orchestrator*:
+
+| | |
+|---|---|
+| `-FolderPath "<folder>"` | runs `uip or folders/processes/assets/queues list`. **Passing the switch is the asking.** Omitted, they are skipped |
+| the library-feed check | runs `uip rpa restore`. On Automation Suite the feed is Orchestrator-hosted, so that is an authenticated read — it changes nothing, but it signs in. `-SkipFeedCheck` / `--skip-feed-check` turns it off |
+
+**On the official-skill check.** Every `uip rpa` invocation asks for the `uipath-rpa` skill, and
+this estate now routes CLI mechanics there deliberately — the `web` skill carries no `uia`
+command table. Where it lands depends on the agent *and* the install route, so the check looks
+in every known location rather than one: the `uip skills install` store under
+`~/.uipath/.skills/`, the Claude Code marketplace plugin under `~/.claude/plugins/`, each
+agent's own global folder in your home directory (Claude Code, Codex, Copilot — both of its
+locations — and OpenCode), and each agent's project-level folder when `-ProjectPath` is given.
+The script holds the exact list; it is deliberately not duplicated here, because it moves when
+an agent changes where it reads from.
+
+It also compares each copy's `targetCli` against the installed host and **warns on a mismatch**.
+That is not theoretical: on this machine the Claude Code plugin copy was `skills 1.201.0` /
+`targetCli ^1.201.0` against a `1.204.0` host, while the `uip skills install` store was
+`1.204.1`. Claude Code loads the plugin copy, so the agent reading those docs was a minor
+version behind the tool it was documenting.
+
+Preflight **does not install it** — it changes nothing, by design. Installing is an ask-first
+action: ask once, then
+`npx skills add https://github.com/uipath/skills --skill uipath-rpa --agent <id> -y` (confirm
+`<id>` with `npx skills add --help`), or `uip skills install`.
 
 **On the .NET SDK check.** It is a prerequisite of the **`uip rpa` tool**, not of capture
 specifically: the official `uipath-rpa` skill states that `uip rpa` runs against a headless

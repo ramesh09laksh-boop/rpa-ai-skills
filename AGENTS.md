@@ -151,6 +151,51 @@ and record the conflict rather than re-deciding it per project. See `README.md`.
   estate yet, so there is no observed pattern. Ask the team on first occurrence; do not infer
   a `_Dispatcher`/`_Performer` suffix rule.
 
+## Ask before anything that authenticates to, or changes, Orchestrator
+
+**Reading is free. Touching the tenant is not.** The line is not "read vs write" — it is
+*"does this authenticate to Orchestrator, or change it?"*. A read that signs in still signs in,
+with whoever's identity the local token holds, and it shows up in the tenant's audit log under
+their name.
+
+**Always fine — no permission needed, do not ask:**
+
+- reading any file, in this repo or a project
+- `--help` on anything, at any depth (`uip rpa uia <verb> --help`, `UiRobot help execute`)
+- `uip --version`, `uip tools list`, `uip login status` — the last one reads the **local** token
+  state and authenticates nothing
+- `validate-project`, `lint-skills`, `tests/run-fixtures.ps1`, `preflight` **without**
+  `-FolderPath`
+- `uip rpa validate` / `build` / `pack` / `analyze` — local, Studio-IPC or compiler, no tenant
+- `UiRobot version`, `UiRobot pack`
+
+**Ask first, naming the exact command and why:**
+
+| Command | Why it needs asking |
+|---|---|
+| `uip login` | authenticates, and rewrites the stored token |
+| **any** `uip or …` | authenticates to Orchestrator — including a pure read like `or folders list` |
+| `uip rpa publish`, `uip or packages upload` | puts a package into the tenant's feed |
+| `uip or jobs start` | runs something on a robot |
+| creating or updating a process, asset, queue, trigger or folder | changes the tenant |
+| `UiRobot connect` / `UiRobot disconnect` | rebinds **the machine's** robot service to an Orchestrator |
+| `uip rpa restore` on a project whose feed is Orchestrator-hosted | an authenticated read. Changes nothing, but it signs in |
+| `uip skills install`, `npx skills add` | installs software. Ask once, then do it |
+| anything else that reaches the tenant | if you are unsure, it is on this list |
+
+**How to ask.** Name the command verbatim, say whether it only reads or also changes something,
+say what you need it for, and **wait**. Do not run it and report afterwards — "I ran it and it
+was fine" is not consent, and on a bank tenant it is not recoverable either.
+
+**Two reconciliations, so the rule is not quietly broken by this repo's own tooling:**
+
+- **`preflight -FolderPath` runs `uip or folders/processes/assets/queues list`.** Those are
+  `uip or` commands. Passing `-FolderPath` **is** the asking — the switch is opt-in and exists
+  for exactly that. Without it they are skipped, which is the default.
+- **`preflight`'s library-feed check runs `uip rpa restore`.** On Automation Suite the package
+  feed is Orchestrator-hosted, so that is an authenticated read. It is gated on `-ProjectPath`,
+  changes nothing, and `-SkipFeedCheck` turns it off.
+
 ## Working agreement for long runs
 
 A multi-stage build is a long run, and long runs fail in their own ways. Every rule below comes

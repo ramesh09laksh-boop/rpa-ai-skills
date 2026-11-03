@@ -563,11 +563,23 @@ stages 1 and 3. Rather than repeat it unreliably, it lives here as one block to 
 Working rules: never invent a selector, activity, argument, API, config value, credential or
 business rule — if the source is silent it is an Open Question / TODO. Report the highest
 check level reached, with the command used: L1 validate-project, L2 uip rpa validate+build,
-L2b uip rpa pack, L3 Studio Error List clean, L4 a real job on TST in the Orchestrator folder
-on a robot with the SDD acceptance table. A local run or a mocked run is L3 at most, never L4.
-"Needs Studio" only with the exact command and its error. Commit locally after each item; keep
-Documentation/Progress.md updated. Do not stop between items — log a blocker and continue with
-the next.
+L2b uip rpa pack, L3 Studio Error List clean, L4-local the packed package run by the UiRobot on
+this machine in an Orchestrator folder, L4 a real job on TST in the Orchestrator folder on a
+robot with the SDD acceptance table. A mocked run is L3 at most. "Needs Studio" only with the
+exact command and its error. Commit locally after each item; keep Documentation/Progress.md
+updated. Do not stop between items — log a blocker and continue with the next.
+
+ASK ME FIRST before anything that authenticates to, or changes, Orchestrator — naming the exact
+command and why, then wait. That includes `uip login`, ANY `uip or ...` command (even a read
+like `or folders list`), `uip rpa publish`, `uip or packages upload`, `uip or jobs start`,
+creating or changing a process/asset/queue/trigger/folder, `UiRobot connect` or `disconnect`,
+`uip rpa restore` where the feed is Orchestrator-hosted, and installing anything
+(`uip skills install`, `npx skills add`). Reading files and running `--help` are always fine,
+as are `uip --version`, `uip tools list`, `uip login status`, validate-project, and
+`uip rpa validate`/`build`/`pack`/`analyze`. Do not run it and tell me afterwards.
+
+Load the official `uipath-rpa` skill for CLI mechanics. If preflight says it is missing, ask me
+once, then install it and record the result.
 ```
 
 ### 1. PDD → SDD

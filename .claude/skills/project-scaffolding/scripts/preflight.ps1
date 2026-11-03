@@ -42,7 +42,17 @@ param(
     # An Orchestrator folder path, e.g. "Modern/RAP-Demo". Enables the L4 readiness checks:
     # does the folder exist, and does it hold a process, the Assets-sheet assets and the queue.
     # Needs `uip login` against the Automation Suite host first.
-    [string] $FolderPath
+    #
+    # Those checks are `uip or ...` commands, which authenticate to Orchestrator. Passing this
+    # switch IS the consent for them - see AGENTS.md, "Ask before anything that authenticates
+    # to, or changes, Orchestrator". Omitted, they are skipped.
+    [string] $FolderPath,
+
+    # Skip the library-feed check, which runs `uip rpa restore`. On Automation Suite the package
+    # feed is Orchestrator-hosted, so that restore is an AUTHENTICATED read - it changes
+    # nothing, but it signs in. Use this on a machine where that is not wanted, or where the
+    # feed is known good and the restore is just slow.
+    [switch] $SkipFeedCheck
 )
 
 Set-StrictMode -Version Latest
@@ -174,7 +184,8 @@ if (-not $uipOk) {
     Report fail 'uip CLI' 'not on PATH' 'install the UiPath CLI, then re-run this script'
 }
 else {
-    Report ok 'uip CLI (host)' (& uip --version 2>$null)
+    $uipHostVersion = (& uip --version 2>$null | Select-Object -First 1)
+    Report ok 'uip CLI (host)' $uipHostVersion
 
     # `uip` is a host plus separately-versioned tools that update INDEPENDENTLY, and a tool
     # auto-installs on first use. That is not trivia: on this machine rpa-tool was rewritten
@@ -247,6 +258,105 @@ if ($ProjectPath -and $rpaToolVersion) {
                 'recheck the commands you rely on with --help, then update Progress.md'
         }
         else { Report ok 'rpa-tool vs Progress.md' "both $rpaToolVersion" }
+    }
+}
+
+# --- 4c. the official `uipath-rpa` skill -------------------------------------
+#
+# Every `uip rpa` invocation prints: "Before using this tool, make sure you have loaded the
+# uipath-rpa skill and read its documentation. uipath-rpa/SKILL.md is the canonical reference."
+# This estate's skills now route CLI mechanics there on purpose (the `web` skill no longer
+# carries a uia command table), so a missing official skill is a real gap rather than a nicety.
+#
+# WHERE it lands depends on the agent AND the install route, so this checks every known
+# location rather than one. Observed on this machine: present in the `uip skills install` store,
+# in .github/skills, .agents/skills and .copilot/skills - and NOT in ~/.claude/skills, because
+# Claude Code gets it as a marketplace PLUGIN instead.
+#
+# Preflight does not install it. It changes nothing - that is the whole contract of this script -
+# and installing a skill is a decision, not a fix. The agent asks once and then installs; see
+# AGENTS.md "Ask before anything that authenticates to, or changes, Orchestrator" and the
+# uc-delivery skill.
+$skillName = 'uipath-rpa'
+$cands = @(
+    @{ Label = 'uip skills store'; Path = "$env:USERPROFILE\.uipath\.skills\skills\$skillName" }
+    @{ Label = 'Claude Code plugin'; Path = "$env:USERPROFILE\.claude\plugins\marketplaces\uipath-marketplace\skills\$skillName" }
+    @{ Label = 'Claude Code (global)'; Path = "$env:USERPROFILE\.claude\skills\$skillName" }
+    @{ Label = 'Codex / Antigravity (global)'; Path = "$env:USERPROFILE\.agents\skills\$skillName" }
+    @{ Label = 'Copilot (global)'; Path = "$env:USERPROFILE\.copilot\skills\$skillName" }
+    @{ Label = 'Copilot (user)'; Path = "$env:USERPROFILE\.github\skills\$skillName" }
+    @{ Label = 'OpenCode (global)'; Path = "$env:USERPROFILE\.config\opencode\skills\$skillName" }
+)
+if ($ProjectPath) {
+    foreach ($d in '.claude', '.agents', '.github', '.cursor', '.opencode', '.autopilot', '.windsurf', '.kiro') {
+        $cands += @{ Label = "project $d"; Path = (Join-Path $ProjectPath "$d\skills\$skillName") }
+    }
+}
+
+# A copy's version lives in a version-manifest.json somewhere above it - at the store root for
+# `uip skills install`, at the marketplace root for the plugin. Walk up rather than hard-coding
+# a depth per route.
+# NOTE: no Get-Prop here. That helper lives in validate-project.ps1; calling it from this
+# script silently returned $null through the catch and reported every copy as "version
+# unknown" even where a manifest existed. Read the properties directly instead.
+function Get-SkillsVersion([string] $SkillDir) {
+    $dir = $SkillDir
+    for ($i = 0; $i -lt 5 -and $dir; $i++) {
+        $manifest = Join-Path $dir 'version-manifest.json'
+        if (Test-Path -LiteralPath $manifest) {
+            try {
+                $j = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
+                $sv = if ($j.PSObject.Properties['skillsVersion']) { [string] $j.skillsVersion } else { '?' }
+                $tc = if ($j.PSObject.Properties['targetCli']) { [string] $j.targetCli } else { '' }
+                return [pscustomobject]@{ SkillsVersion = $sv; TargetCli = $tc }
+            }
+            catch { return $null }
+        }
+        $dir = Split-Path -Parent $dir
+    }
+    return $null
+}
+
+$found = @($cands | Where-Object { Test-Path -LiteralPath (Join-Path $_.Path 'SKILL.md') } |
+    ForEach-Object {
+        $v = Get-SkillsVersion $_.Path
+        [pscustomobject]@{
+            Label         = $_.Label
+            SkillsVersion = if ($v) { $v.SkillsVersion } else { '?' }
+            TargetCli     = if ($v) { $v.TargetCli } else { '' }
+        }
+    })
+
+if ($found.Count -eq 0) {
+    Report warn "official $skillName" 'not installed for any agent on this machine' `
+        ("ASK FIRST, then: npx skills add https://github.com/uipath/skills --skill $skillName " +
+         "--agent <id> -y   (confirm <id> with ``npx skills add --help`` - 'claude-code', " +
+         "'github-copilot', 'codex', 'opencode'; 'copilot' is NOT valid). " +
+         'Or `uip skills install`, which keeps it updated.')
+}
+else {
+    # One line, not one per copy: six OK lines for the same skill buries the rest of the report.
+    $versions = @($found | ForEach-Object { $_.SkillsVersion } | Select-Object -Unique) -join ', '
+    Report ok "official $skillName" `
+        "$($found.Count) copy(ies), skills $versions - $(($found | ForEach-Object { $_.Label }) -join '; ')"
+
+    # The official skill is CO-VERSIONED with the CLI: its own docs say the package guides
+    # "always source-of-truth over anything in this skill when they diverge". A copy built for
+    # a different CLI line is documenting a different tool, quietly. Observed on this machine:
+    # the Claude Code plugin copy at skills 1.201.0 / targetCli ^1.201.0 against a 1.204.0 host,
+    # while the `uip skills install` store is at 1.204.1 / ^1.204.0. Claude Code loads the
+    # PLUGIN copy, so the agent that reads these docs was reading the older line.
+    $hostMm = if ($uipHostVersion) { [regex]::Match($uipHostVersion, '(\d+)\.(\d+)') } else { $null }
+    if ($hostMm -and $hostMm.Success) {
+        foreach ($f in $found) {
+            if (-not $f.TargetCli) { continue }
+            $tgtMm = [regex]::Match($f.TargetCli, '(\d+)\.(\d+)')
+            if (-not $tgtMm.Success -or $tgtMm.Value -eq $hostMm.Value) { continue }
+            Report warn "  $skillName co-version" `
+                ("$($f.Label): skills $($f.SkillsVersion) targets CLI $($f.TargetCli), host is " +
+                 "$uipHostVersion - that copy documents a different tool version") `
+                'ASK FIRST, then update that copy (`uip skills install` for the store; for Claude Code the plugin route owns it)'
+        }
     }
 }
 
@@ -359,6 +469,10 @@ else {
         Where-Object { $deps.PSObject.Properties.Name -contains $_ })
     if ($libs.Count -eq 0) {
         Report skip 'library feed' 'no Swisscom library referenced' ''
+    }
+    elseif ($SkipFeedCheck) {
+        Report skip 'library feed' '-SkipFeedCheck given' `
+            'the restore is an authenticated read against an Orchestrator-hosted feed; drop the switch to run it'
     }
     elseif (-not $uipOk) {
         Report skip 'library feed' 'uip not available to test a restore' ''

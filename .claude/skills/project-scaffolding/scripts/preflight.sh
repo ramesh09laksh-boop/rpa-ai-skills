@@ -3,7 +3,16 @@
 # there for the same reason validate-project does: one implementation, not two drifting ones.
 #
 # Usage:
-#   ./preflight.sh [<project-dir>] [--skip-capture]
+#   ./preflight.sh [<project-dir>] [--skip-capture] [--skip-feed-check]
+#
+# --skip-feed-check skips the `uip rpa restore` probe. On Automation Suite the package feed is
+# Orchestrator-hosted, so that restore is an AUTHENTICATED read -- it changes nothing, but it
+# signs in. See AGENTS.md, "Ask before anything that authenticates to, or changes,
+# Orchestrator".
+#
+# There is no --folder-path here on purpose: the Orchestrator readiness checks run `uip or ...`
+# commands, and those are asked for deliberately via the .ps1's -FolderPath rather than reached
+# through a convenience wrapper.
 #
 # Exit code 0 when nothing is blocking, 1 otherwise.
 
@@ -36,7 +45,8 @@ ARGS=()
 PROJECT=""
 for a in "$@"; do
     case "$a" in
-        --skip-capture) ARGS+=("-SkipCapture") ;;
+        --skip-capture)    ARGS+=("-SkipCapture") ;;
+        --skip-feed-check) ARGS+=("-SkipFeedCheck") ;;
         -*) echo "error: unknown option '$a'" >&2; exit 2 ;;
         *)  PROJECT="$a" ;;
     esac
