@@ -32,6 +32,8 @@ as such, in the file itself.
 | 9 | Data hygiene | verified (residual scan = 0 across 7 categories, plus a negative control) |
 | 10 | A bad/good fixture per `validate-project` rule | verified (62/62, plus two negative controls) |
 | — | .NET SDK 8.0 prerequisite; official installer documented | documented (official install page + `uipath-rpa` skill) · the installer itself was **not run** |
+| — | Official `uipath-rpa` skill checked by preflight; ask-first before touching the tenant | verified (6 copies found, a real co-version drift surfaced; `npx skills add --help` and a read-only `--list`) |
+| — | **L4-local** — pack, then run the package on the local UiRobot in a folder | documented (every `UiRobot` flag read from `--help`; `UiRobot version` run) · the **run itself was not executed** — no robot here is bound to a folder |
 
 ### Added
 
@@ -63,6 +65,24 @@ as such, in the file itself.
 - **.NET SDK 8.0** in the README prerequisites and as a `preflight` check, framed as a
   prerequisite of **`uip rpa`** rather than of capture, with the official installer, its skip
   switches, and a restricted-network section.
+- **`L4-local` — a sixth rung on the evidence ladder.** `pack`, then run **the packed package**
+  with the UiRobot on this machine, pointed at an Orchestrator folder so the credential asset
+  resolves. **No `uip login`, nothing changed in the tenant**, so it is the default end-to-end
+  run and the Orchestrator job becomes a second, ask-first step. Quoted with its folder —
+  `L4-local (folder: Modern/RAP-Demo)`. `UiRobot execute` **does** have a `--folder` option;
+  every flag was read from `UiRobot help execute` rather than guessed. `end-to-end-run.md` is
+  restructured around it: Part 0 (ask four facts once) → Part 1 (L4-local) → Part 2 (robot
+  prerequisites — the part L4-local cannot reach) → Part 3 (the Orchestrator job, ask-first) →
+  Part 4 (the acceptance table, which now applies at both levels).
+- **Preflight checks the official `uipath-rpa` skill**, agent-aware, in every known install
+  location — and compares each copy's `targetCli` against the installed host. It does **not**
+  install it: that is an ask-first action.
+- **An ask-first rule for the tenant**, in `AGENTS.md`, `uc-delivery` and the README
+  Working-rules block. The line is *not* read-versus-write: a read still signs in, under
+  whoever's identity the local token holds, and lands in the audit log under their name — so
+  `uip or folders list` is on the ask list. New `preflight -SkipFeedCheck` /
+  `--skip-feed-check`, because the library-feed check runs `uip rpa restore`, which against an
+  Orchestrator-hosted feed is an authenticated read.
 
 ### Changed
 
@@ -111,6 +131,8 @@ Every one of these was asserted somewhere in the repo or the brief and is wrong:
 | `solution-tool` / `tasks-tool` / `platform-tool` at **1.201.0, needs update** | all **1.204.0, ok**; `resource-tool` gone from `tools list` | `uip tools list`, 2026-11-03 — eight days after the recorded snapshot |
 | `web/SKILL.md`: both UIA packages **"must"** be 26.10.4, no source | the official **minimum** is `UiPath.UIAutomation.Activities` **≥ 26.10.2**, and `UiPath.UIAutomation.CLI` is not named in the official docs at all | the estate's 26.10.4 pin is now presented as a stricter *local* standard, beside the official minimum |
 | *"absolute native Windows paths"* for the UIA CLI | absolute and native-host, but **forward-slash** — `C:/…`, never `/c/…`, `/mnt/c/…` or relative | official `uia-configure-target/SKILL.md` line 16 |
+| `studio-checkpoints.md`: *"run `Main.xaml` on TST **(L4)**"* | **L3 evidence.** A Studio Debug run executes the project *sources* in your own session, which the ladder has always called L3 | the heading contradicted the ladder in the same repo; retitled |
+| The official skill is co-versioned with the CLI, so one copy is as good as another | **three copies, two versions.** `~/.uipath/.skills` at skills `1.204.1` / `targetCli ^1.204.0`; the Claude Code plugin marketplace **and** cache at `1.201.0` / `^1.201.0`; host `1.204.0` | Claude Code loads the **plugin** copy, so the agent reading those docs was a minor version behind the tool it documented. `preflight` now warns on it |
 
 ### Known open
 
@@ -123,7 +145,16 @@ Every one of these was asserted somewhere in the repo or the brief and is wrong:
   official docs forbid calling that CLI by hand. The discipline is unchanged. Flagged for
   Ramesh to confirm.
 - **Nothing above L1 was reached.** No `uip rpa validate`/`build`/`pack`, no Studio Error List,
-  no robot, no Orchestrator job. See the per-item evidence table.
+  no robot, no Orchestrator job, **and no L4-local run**. See the per-item evidence table.
+- **The two `UiRobot` facts the L4-local default rests on are unverified**, and
+  `end-to-end-run.md` says so in its own table: that `--file` works **together with**
+  `--folder` (every official example pairs `--folder` with `--package-id`), and that `--folder`
+  is what resolves the credential asset for a `--file` run. No robot here is bound to a folder.
+  **Run Part 1 once against a real folder and correct those two rows first** — a documented
+  fallback via `installprocess` + `--package-id` is recorded in case they are wrong.
+- **The Claude Code plugin copy of the official skill is a minor version behind the CLI**
+  (`1.201.0` against host `1.204.0`). Updating it is the plugin route's business and is
+  ask-first; `preflight` warns until someone does.
 - **Two branches of existing rules have no fixture**, and `tests/README.md` says so:
   `object-repository-not-shared`'s git-ignored branch (fixtures live outside a repository, so
   `git check-ignore` cannot be asked) and both `secret-argument-string` carve-outs.
