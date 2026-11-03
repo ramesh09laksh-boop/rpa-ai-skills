@@ -40,10 +40,26 @@ tests/
   fixtures/
     _base/                  a minimal conformant Windows project. Reports ZERO findings.
     <rule>/
-      notes.md              what the rule catches, and what the two cases differ by
-      bad/                  overlay
-      good/                 overlay
+      notes.md              what the rule catches, and what the cases differ by
+      bad/                  overlay — the rule must fire
+      good/                 overlay — the rule must be silent
+      bad-<variant>/        optional: another trigger SHAPE
+      good-<variant>/       optional: another thing it must stay silent on
 ```
+
+### One case per trigger shape
+
+A rule with more than one way to fire needs **one case per shape**. A single fixture carrying
+both would stay green when one of them broke — the assertion is on the rule id, so either
+trigger satisfies it.
+
+`unresolved-mock` is the live example: it fires on the `[MOCK]` text marker **and** on a
+declared mock (`Mock*/` folder, or a `Mock-*` / `Mock_*` file name), so it has `bad` and
+`bad-declared-mock`. `leaf-body-stub` has `good-declared-mock` for the matching carve-out —
+the declared mock it must *not* report.
+
+`bad` and `good` (or at least one `bad-*` and one `good-*`) are required; a rule with only one
+side fails the run.
 
 Each case is **the base plus an overlay**. Copying a whole project per case would bury the one
 difference that matters in ten identical files; this way the fixture directory *is* the diff,
@@ -105,7 +121,7 @@ faking the fixture.
 
 ## Coverage, and what is honestly not covered
 
-31 rules, 31 fixture directories, 62 assertions. Two things inside existing rules are **not**
+31 rules, 31 fixture directories, 64 assertions. Two things inside existing rules are **not**
 exercised, and are recorded here rather than implied:
 
 - **`object-repository-not-shared`, the git-ignored branch.** The rule has two halves: `.objects/`
@@ -121,8 +137,23 @@ exercised, and are recorded here rather than implied:
 Several rules also cover more trigger shapes than their fixture exercises —
 `template-default-left` alone covers the `[UC-SPECIFIC — replace]` marker, the
 `<PROJECT-NAME-TBD-ask-team>` name, the stock `ProcessABCQueue`, the stock
-`logF_BusinessProcessName`, and two template GUIDs. One shape per rule id is fixtured, because
-the rule id is the unit the suite asserts on; the others share a code path.
+`logF_BusinessProcessName`, and two template GUIDs. Where the shapes share one code path, one
+case is enough; where they are **separate branches**, add a `bad-<variant>` (see above). That
+distinction is why `unresolved-mock` has two cases and `template-default-left` has one.
+
+## Fixtures are not a substitute for a real project
+
+The fixtures prove each rule still *fires*. They cannot tell you whether it fires on the right
+things, because every fixture was written by the same person as the rule. Running the checker on
+a real Windows project is a different test, and it found two defects the suite could not:
+
+- `leaf-body-stub` reported 6 declared mocks (`Mock_System/Mock-*.xaml`) alongside 1 true
+  positive — noise that would have got the rule suppressed, hiding the true positive with it.
+- `unresolved-mock` reported **nothing** on a project with a 22-workflow mock layer, because
+  none of those files carried the `[MOCK]` string.
+
+Both are fixed, and both now have fixtures. **Re-run against a real project after changing a
+rule** — not instead of the suite, after it.
 
 ## Verifying the suite is not vacuous
 

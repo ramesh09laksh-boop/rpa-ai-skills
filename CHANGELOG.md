@@ -111,6 +111,29 @@ as such, in the file itself.
 
 ### Fixed
 
+- **`leaf-body-stub` reported declared mocks; `unresolved-mock` reported none at all.** Both
+  found by running the checker on a real Windows project (UC252) rather than on fixtures, and
+  both are the same underlying mistake — treating the `[MOCK]` *string* as the only way a mock
+  is declared.
+
+  | | Before | After |
+  |---|---|---|
+  | `leaf-body-stub` | **7** findings — 6 under `Mock_System/`, 1 real | **1** |
+  | `unresolved-mock` | **0** | **26** |
+
+  A workflow under `Mock*/` or named `Mock-*` / `Mock_*` is a **declared** mock: doing nothing
+  is its job. Reporting six of them as accidental stubs is how a rule gets blanket-suppressed —
+  and that suppression would have hidden the one true positive beside them
+  (`Bottomline_System/Bottomline_Logout.xaml`, a logout whose body is a `Comment` and a
+  `Log Message`). So `leaf-body-stub` now carves declared mocks out, and `unresolved-mock` now
+  recognises them — that project has 22 of them and **not one** carries the `[MOCK]` string, so
+  the marker-only rule was blind to the whole layer and `mocking.md`'s *"a mocked run reaches L3
+  at most"* cap applied to nothing. `mocking.md` now says a folder name is not a substitute for
+  the marker.
+
+  The fixture suite could not have caught either: every fixture was written by the same person
+  as the rule. `tests/README.md` now says so, under *Fixtures are not a substitute for a real
+  project*.
 - **Three StrictMode crashes in `validate-project.ps1`**, each of which aborted the entire run
   and reported **no findings at all** rather than failing loudly: a `project.json` without
   `runtimeOptions`, without `dependencies`, and with an empty `"dependencies": {}`. Dot-access
@@ -167,9 +190,10 @@ Every one of these was asserted somewhere in the repo or the brief and is wrong:
 - **The official UiPath CLI installer was not run**, so "needs administrator rights" is flagged
   as the likely case to confirm rather than as fact — the official install page does not state
   an elevation requirement.
-- **`leaf-body-stub` has no modern-project calibration.** `templates/` ships no `.xaml`, so zero
-  findings there is absence of opportunity, not calibration. Run it against a real
-  Windows/modern UC project before promoting it to error outside stage 8.
+- ~~**`leaf-body-stub` has no modern-project calibration.**~~ **Closed** — calibrated against
+  UC252 (a real Windows project, 85 workflows, 63 leaf) on 2026-11-04, which found two defects
+  and fixed both. See *Fixed* above. Still worth a second real project before promoting the rule
+  to error outside stage 8.
 - Everything under *Waiting on Ramesh* is untouched: the analyzer rule file, Dispatcher/Performer
   naming, Avaloq template pins, capture pin vs template pin, the worked example, whether Test
   Manager exists on the Suite, and the first real L4 run.

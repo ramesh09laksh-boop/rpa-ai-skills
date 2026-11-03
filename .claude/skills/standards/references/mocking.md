@@ -7,6 +7,12 @@ answer; neither is a mock nobody can find afterwards.
 Two rules make the difference, and the second is the one that gets skipped:
 
 1. **A mock must be visible.** Marked `[MOCK]` in the DisplayName *and* the annotation.
+   **A folder name is not a substitute.** A real project was found with 22 workflows under
+   `Mock_System/`, every one named `Mock-*.xaml`, and **not one** carrying the `[MOCK]` string —
+   so `grep -rl "\[MOCK\]"` returned nothing, the completion checklist below passed, and the
+   mock layer was invisible to every check. `validate-project`'s `unresolved-mock` rule now
+   fires on a declared mock (a `Mock*/` folder or a `Mock-*` / `Mock_*` file name) that carries
+   no marker, precisely so that cannot recur. Put the marker in the file as well as in the path.
 2. **A mocked run reaches L3 at most.** Never L4. A mock proves the *wiring*, not the process.
 
 ## Mark it `[MOCK]`, in both places

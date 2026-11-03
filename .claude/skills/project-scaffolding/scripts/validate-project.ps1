@@ -490,11 +490,26 @@ function Test-Project {
         # indistinguishable from finished work. Warning rather than error because a mock is
         # legitimate mid-build; it blocks review, not development.
         # See standards/references/mocking.md.
+        #
+        # TWO trigger shapes, because the marker alone missed a whole mock layer. Measured on
+        # UC252 (a real Windows project): 22 workflows under Mock_System/, named Mock-*.xaml,
+        # and NOT ONE of them carries the [MOCK] string - so this rule saw none of them and
+        # mocking.md's "a mocked run reaches L3 at most" cap could not be applied to anything.
+        # A folder called Mock_System/ holding Mock-Finnova_Login.xaml is a declared mock; the
+        # declaration is just in the path rather than in the text.
+        $isDeclaredMock = ($rel -match '(^|[\\/])Mock[A-Za-z0-9 _]*[\\/]') -or ($x.Name -match '^Mock[-_]')
         if ($text -match '\[MOCK\]') {
             Add-Finding warning 'unresolved-mock' $name `
                 ("$rel contains a [MOCK] stand-in. Legitimate mid-build, but a mocked run reaches " +
                  'L3 at most and an unreplaced [MOCK] blocks review - replace it and point the ' +
                  'config key at the real source.')
+        }
+        elseif ($isDeclaredMock) {
+            Add-Finding warning 'unresolved-mock' $name `
+                ("$rel is a declared mock (its folder or file name says so) but carries no [MOCK] " +
+                 'marker in the file. Add the marker per mocking.md so a grep finds it, and note ' +
+                 'that while any mock is in the dispatch path the run reaches L3 at most - a mock ' +
+                 'layer nothing detects is a mock layer nobody remembers to remove.')
         }
 
         # classic-excel-write: broken on Windows/.NET 6, see standards/excel-activities.md
@@ -685,9 +700,21 @@ function Test-Project {
         # gets switched off. Warning by default (same reasoning as the four contract rules);
         # -UatReadiness promotes it to error, because shipping a stub to UAT is not a backlog
         # item.
+        # A DECLARED mock is carved out, and this one came from calibration rather than
+        # reasoning. On UC252 the rule fired 7 times: 6 were under Mock_System/, named
+        # Mock-*.xaml - workflows whose entire job is to do nothing - and 1 was
+        # Bottomline_System/Bottomline_Logout.xaml, a real leaf whose body is a Comment and a
+        # Log Message. Only the last is this rule's business.
+        #
+        # Reporting the other 6 is not a harmless extra: it is six findings telling someone
+        # that a mock is a mock, which is how a rule gets blanket-suppressed - and the
+        # suppression would have hidden the one true positive sitting next to them. The mock
+        # layer is `unresolved-mock`'s to report, and that rule now recognises this same
+        # declared-mock shape.
         $isLeaf = ($rel -match '(^|[\\/])([A-Za-z0-9 _]+_System|Logic)[\\/]') -and
                   ($x.Name -notlike '_*') -and
-                  ($rel -notmatch '(^|[\\/])(Framework|Tests)[\\/]')
+                  ($rel -notmatch '(^|[\\/])(Framework|Tests)[\\/]') -and
+                  (-not $isDeclaredMock)
         if ($isLeaf) {
             # Body = everything after the argument declarations, with the designer's own
             # bookkeeping removed. None of it is work.

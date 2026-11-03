@@ -183,17 +183,31 @@ $results = [System.Collections.Generic.List[object]]::new()
 
 try {
     foreach ($ruleName in $toRun) {
-        foreach ($expect in @('bad', 'good')) {
-            $caseDir = Join-Path (Join-Path $fixtureRoot $ruleName) $expect
-            if (-not (Test-Path -LiteralPath $caseDir)) {
-                $results.Add([pscustomobject]@{
-                        Rule = $ruleName; Case = $expect; Pass = $false
-                        Detail = "no $expect/ directory"
-                    })
-                continue
-            }
+        # Cases are `bad` / `good` plus any number of `bad-<variant>` / `good-<variant>`.
+        # A rule with more than one trigger SHAPE needs one case per shape, or the suite stays
+        # green when a shape breaks: `unresolved-mock` fires on a [MOCK] string AND on a
+        # declared mock (Mock_System/ or Mock-*.xaml), and a single fixture carrying both
+        # would be satisfied by either one still working.
+        $ruleDir = Join-Path $fixtureRoot $ruleName
+        [string[]] $cases = @(Get-ChildItem -LiteralPath $ruleDir -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match '^(bad|good)(-|$)' } | ForEach-Object { $_.Name } | Sort-Object)
 
-            $work = Join-Path $tempRoot "$ruleName-$expect"
+        foreach ($req in @('bad', 'good')) {
+            if (-not ($cases | Where-Object { $_ -eq $req -or $_ -like "$req-*" })) {
+                $results.Add([pscustomobject]@{
+                        Rule = $ruleName; Case = $req; Pass = $false
+                        Detail = "no $req/ (or $req-<variant>/) directory"
+                    })
+            }
+        }
+
+        foreach ($case in $cases) {
+            $expect = if ($case -like 'bad*') { 'bad' } else { 'good' }
+            $caseDir = Join-Path $ruleDir $case
+
+            # Keyed on the CASE name, not on $expect: two variants of the same expectation
+            # would otherwise materialise into the same directory and overlay each other.
+            $work = Join-Path $tempRoot "$ruleName-$case"
             New-Item -ItemType Directory -Path $work -Force | Out-Null
             $built = Build-Fixture -CaseDir $caseDir -WorkDir $work
 
@@ -219,7 +233,7 @@ try {
             }
 
             $results.Add([pscustomobject]@{
-                    Rule = $ruleName; Case = $expect; Pass = $pass; Detail = $detail
+                    Rule = $ruleName; Case = $case; Pass = $pass; Detail = $detail
                     Output = $output
                 })
         }

@@ -248,7 +248,25 @@ The template is project-level scaffolding only. Three things still have to happe
 
    Deliberately narrow — it fires only when there is **no** substantive activity at all, so a
    workflow with one real activity and ten logs is not reported. Partial work is not its
-   business.
+   business. **A declared mock is carved out**: a workflow under `Mock*/`, or named `Mock-*` /
+   `Mock_*`, is *supposed* to do nothing, and the mock layer is `unresolved-mock`'s to report.
+
+   **Calibration on a real modern project** (UC252, `targetFramework: Windows`, 85 workflows,
+   63 of them leaf), measured 2026-11-04:
+
+   | | Before the carve-out | After |
+   |---|---|---|
+   | `leaf-body-stub` | **7** — 6 under `Mock_System/`, 1 real | **1** |
+   | `unresolved-mock` | **0** | **26** |
+
+   The one real finding is `Bottomline_System/Bottomline_Logout.xaml`: a logout whose body is a
+   `Comment` and a `Log Message`. The six mock findings were the kind of noise that gets a rule
+   blanket-suppressed — and that suppression would have hidden the true positive next to them.
+
+   The `unresolved-mock` jump is the other half: that project has **22** workflows under
+   `Mock_System/` and **not one** carries the `[MOCK]` string, so the marker-only rule was blind
+   to the whole layer and `mocking.md`'s *"a mocked run reaches L3 at most"* cap applied to
+   nothing. It now also fires on a declared mock, asking for the marker to be added.
 
    | Mode | `leaf-body-stub` is |
    |---|---|
