@@ -26,10 +26,22 @@ pwsh -NoProfile -File scripts/preflight.ps1 -ProjectPath <project-dir>
 ```
 
 It checks Node 22.20+, git and GitHub auth (the skills repo is private), PowerShell 7,
-`uip` and its login, Studio **and whether an instance has the project open**, the
-`UiPath.UIAutomation` 26.10.4 capture pin, that the Swisscom libraries actually restore from
+**.NET SDK 8.0**, `uip` and its login, Studio **and whether an instance has the project open**,
+the `UiPath.UIAutomation` 26.10.4 capture pin, that the Swisscom libraries actually restore from
 your feed, and a capture smoke test. Pass `-NoProfile` if you invoke the `.ps1` directly — a
 slow or prompting PowerShell profile makes it look like it has hung.
+
+**On the .NET SDK check.** It is a prerequisite of the **`uip rpa` tool**, not of capture
+specifically: the official `uipath-rpa` skill states that `uip rpa` runs against a headless
+Studio (`UiPath.Studio.Helm.<Platform>`) *auto-launched by a silent `dotnet restore`* the first
+time a command needs one — so `validate`, `build`, `pack`, `analyze`, `restore`,
+`activities find` and the `uia` group all sit on it. The `uip` host itself is Node and does not.
+Reported as a **warning**, because `uip login` and `uip or …` work without it.
+
+It checks `--list-sdks` **and** `--list-runtimes`, and reports a runtime-only install as its own
+case: `dotnet --version` prints a version there while `--list-sdks` is empty, which reads as
+"installed" and is not. Fix hint points at the official UiPath CLI installer, which provisions
+.NET SDK 8.0 — see the repo README, *Prerequisites*.
 
 ## What to fetch
 

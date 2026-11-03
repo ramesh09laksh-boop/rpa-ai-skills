@@ -120,6 +120,54 @@ else {
         'winget install --id Microsoft.PowerShell'
 }
 
+# --- 3b. .NET SDK 8.0, which `uip rpa` is built on ----------------------------
+#
+# This is a prerequisite of the `uip rpa` TOOL, not of selector capture specifically. The
+# official uipath-rpa skill states that `uip rpa` runs against a headless Studio (codename
+# Helm, shipped as the UiPath.Studio.Helm.<Platform> NuGet package) which is "auto-launched the
+# first time a command needs it" by a silent `dotnet restore` - so `validate`, `build`, `pack`,
+# `analyze`, `restore`, `activities find` and the `uia` group all sit on top of it. The `uip`
+# HOST is Node-based and needs no .NET; `uip rpa` does.
+#
+# WARN rather than FAIL: `uip login`, `uip or ...` and this repo's own checks work without it,
+# and a machine that only reads Orchestrator should not be told it is broken.
+#
+# The symptom when it is missing is not "install .NET" - it is a first `uip rpa` invocation
+# that sits near-silent and then fails somewhere inside a restore, which reads as a feed or
+# network problem.
+$wantedSdk = [version]'8.0'
+if (-not (Test-Cmd 'dotnet')) {
+    Report warn '.NET SDK' 'dotnet not on PATH - `uip rpa` cannot restore its headless Studio' `
+        'the official UiPath CLI installer provisions .NET SDK 8.0; or install it directly from https://dotnet.microsoft.com/download/dotnet/8.0'
+}
+else {
+    $sdks = @(& dotnet --list-sdks 2>$null)
+    $runtimes = @(& dotnet --list-runtimes 2>$null)
+
+    $parsed = @($sdks | ForEach-Object {
+            $m = [regex]::Match($_, '^(\d+)\.(\d+)\.(\d+)')
+            if ($m.Success) { [version]"$($m.Groups[1].Value).$($m.Groups[2].Value)" }
+        } | Where-Object { $_ })
+
+    $has8 = @($parsed | Where-Object { $_ -ge $wantedSdk })
+
+    if ($sdks.Count -eq 0) {
+        # A runtime-only install: `dotnet` resolves, `--list-sdks` is empty. Easy to miss,
+        # because `dotnet --version` still prints something.
+        Report warn '.NET SDK' `
+            "dotnet is on PATH but --list-sdks is EMPTY ($($runtimes.Count) runtime(s) only)" `
+            'install the SDK, not just the runtime: https://dotnet.microsoft.com/download/dotnet/8.0'
+    }
+    elseif ($has8.Count -gt 0) {
+        Report ok '.NET SDK' (($sdks | ForEach-Object { ($_ -split ' ')[0] }) -join ', ')
+    }
+    else {
+        Report warn '.NET SDK' `
+            ("found $(($sdks | ForEach-Object { ($_ -split ' ')[0] }) -join ', ') - none at $wantedSdk or newer") `
+            "install .NET SDK $wantedSdk; the official UiPath CLI installer does this for you"
+    }
+}
+
 # --- 4. the uip CLI, and its login ------------------------------------------
 $uipOk = Test-Cmd 'uip'
 if (-not $uipOk) {
@@ -155,7 +203,13 @@ else {
     }
     catch { $status = $null }
 
-    if ($status -eq 'Success' -or $status -eq 'Authenticated') {
+    # Accept every string the CLI actually uses for "signed in". Observed on cli 1.204.0:
+    #     uip login status --output json  ->  .Data.Status = "Logged in"
+    # The check previously accepted only 'Success' and 'Authenticated', so a correctly
+    # signed-in machine was WARNed at and - worse - the Orchestrator folder checks below were
+    # skipped with "cannot query - uip login status is 'Logged in'". The L4 readiness checks
+    # were therefore unreachable on exactly the machines that could run them.
+    if ($status -in 'Success', 'Authenticated', 'Logged in', 'LoggedIn') {
         Report ok 'uip login' $status
     }
     elseif ($null -eq $status) {
@@ -360,7 +414,7 @@ if (-not $FolderPath) {
 elseif (-not $uipOk) {
     Report skip 'Orchestrator folder' 'uip not available' ''
 }
-elseif ($status -ne 'Success' -and $status -ne 'Authenticated') {
+elseif ($status -notin 'Success', 'Authenticated', 'Logged in', 'LoggedIn') {
     Report warn 'Orchestrator folder' "cannot query - uip login status is '$status'" `
         'uip login --authority <automation-suite-host> --tenant <tenant>'
 }

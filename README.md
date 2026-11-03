@@ -8,6 +8,149 @@ need from here.
 - Project templates live in [`templates/`](templates/).
 - [`AGENTS.md`](AGENTS.md) is the entry point for an agent working *in this repo*.
 
+## Prerequisites
+
+| | Needed for | Check |
+|---|---|---|
+| **Node.js 22.20+** (verified on 22.21.1) | the `skills` CLI, and the `uip` host itself | `node --version` |
+| **PowerShell 7+** | `validate-project`, `preflight`, `lint-skills`, the rule fixtures | `pwsh --version` |
+| **.NET SDK 8.0** | **`uip rpa`** — see below | `dotnet --list-sdks` |
+| **git**, authenticated to GitHub | this repo is private, so `skills add` *and* `update` need it | `gh auth status` |
+| The Finnova/Avaloq `.nupkg`s on your feed | opening or restoring a Performer project — see the next section | `uip rpa restore <project>` |
+
+`preflight` checks all of these and prints a one-line fix per failure (the
+`project-scaffolding` skill, `scripts/preflight.sh` / `.ps1`).
+
+### .NET SDK 8.0 is a prerequisite of `uip rpa`, not of capture
+
+Worth stating precisely, because the obvious guess is wrong in both directions.
+
+- **The `uip` host does not need .NET.** It is a Node package (`@uipath/cli`), so `uip login`,
+  `uip or ...` and `uip tools list` work without it.
+- **`uip rpa` does, for everything — not just `build`.** The official `uipath-rpa` skill states
+  that `uip rpa` runs against a **headless Studio** (codename Helm, shipped as the
+  `UiPath.Studio.Helm.<Platform>` NuGet package) which is *"auto-launched the first time a
+  command needs it"* by a silent **`dotnet restore`**. That sits under `validate`, `build`,
+  `pack`, `analyze`, `restore`, `activities find` **and the `uia` capture group**.
+
+So it is not a capture-only requirement, and treating it as one gets the diagnosis wrong. The
+symptom when it is missing is not a message about .NET: it is a first `uip rpa` invocation that
+*"may sit near-silent for 30–90 seconds"* (the official docs' words, for a cold cache) and then
+fails somewhere inside a restore — which reads as a feed or network problem.
+
+> **Not verified by experiment.** The claim above is from the official co-versioned
+> documentation, not from running capture on a machine with no .NET SDK. Removing the SDK to
+> prove it was out of scope here. If you ever do run `uip rpa uia` without it, record what
+> happened.
+
+**A runtime is not an SDK.** `dotnet --version` prints a version for a runtime-only install
+while `dotnet --list-sdks` is empty, so check both — `preflight` reports that case separately
+because it is easy to misread as "installed".
+
+```bash
+dotnet --list-sdks        # want an 8.0.x line (newer is fine)
+dotnet --list-runtimes
+```
+
+### The official UiPath CLI installer
+
+The quickest way to get `uip` plus everything under it. It installs **curl**, **Node.js 22+**,
+`@uipath/cli` (via `npm install -g`), **.NET SDK 8.0**, **Python 3.11–3.14**, and runs
+`uip skills install` to wire UiPath's own skills into whichever coding agents it detects. Every
+step is idempotent, so it is safe to re-run.
+
+```bash
+# macOS / Linux
+curl -fsSL https://download.uipath.com/uipath-cli/install.sh | bash
+```
+
+```powershell
+# Windows PowerShell
+irm https://download.uipath.com/uipath-cli/install.ps1 | iex
+```
+
+> **Talk to IT before you run it.** Two reasons, and neither is paranoia:
+>
+> 1. **It is a remote script piped straight into a shell.** `irm … | iex` and `curl … | bash`
+>    execute whatever the URL returns, unreviewed. On a managed bank machine that is normally a
+>    conversation, not a decision you make alone. If you want to read it first, download it and
+>    run it as a file — the `.ps1` form also accepts the switches below, which the piped form
+>    cannot take.
+> 2. **It installs machine-wide runtimes.** Node.js, the .NET SDK and Python, plus a global
+>    `npm install -g`. *The official install page does not state an elevation requirement* —
+>    checked — but a machine-wide runtime install on managed Windows normally needs
+>    administrator rights, and your platform team may already be deploying these centrally. **I
+>    did not run the installer, so take "needs admin" as the likely case to confirm, not as a
+>    verified fact.**
+
+Skip switches, if the runtimes are provisioned for you (verified against the official install
+page):
+
+| macOS/Linux | Windows | Environment variable | Skips |
+|---|---|---|---|
+| `--dry-run` | `-DryRun` | `UIP_DRY_RUN` | nothing — prints what it would do |
+| `--skip-runtimes` | `-SkipRuntimes` | `UIP_SKIP_RUNTIMES` | the .NET SDK **and** Python |
+| `--skip-dotnet` | `-SkipDotnet` | `UIP_SKIP_DOTNET` | the .NET SDK only |
+| `--skip-python` | `-SkipPython` | `UIP_SKIP_PYTHON` | Python only |
+| `--skip-node` | `-SkipNode` | `UIP_SKIP_NODE` | Node.js |
+| `--skip-skills` | `-SkipSkills` | `UIP_SKIP_SKILLS` | `uip skills install` |
+
+**Use the environment variable with the piped form.** `irm … | iex` cannot be passed a
+`-SkipRuntimes` switch — set `$env:UIP_SKIP_RUNTIMES = '1'` first, or download the script and
+run it as a file.
+
+If you skip the .NET SDK, **something else has to provide it** — see the section above. Skipping
+it and then wondering why `uip rpa` hangs on its first call is the predictable outcome.
+
+#### On a restricted network
+
+The default path pulls `@uipath/cli` and the tools from the **public** npm registry, no token
+required. Behind an internal registry or an allowlist:
+
+- **Allowlist the `@uipath/*` scope, not a package list.** The supporting tool set grows as
+  capabilities are added (`rpa-tool`, `orchestrator-tool`, `solution-tool`, … auto-install on
+  first use), so an enumerated list goes stale and fails at the least convenient moment.
+- **Check availability before installing**, so a failure is a one-line answer rather than a
+  half-installed machine:
+
+  ```bash
+  npm view @uipath/cli version
+  npm view @uipath/skills version
+  ```
+
+- **Point npm at the internal registry** in `~/.npmrc`; `uip tools install` and
+  `uip tools update` then resolve the same way:
+
+  ```ini
+  @uipath:registry=https://<your-internal-registry>
+  //<your-internal-registry>/:_authToken=${YOUR_REGISTRY_TOKEN}
+  ```
+
+- **The CLI honours the usual proxy variables** — `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and
+  `REQUESTS_CA_BUNDLE`. If corporate TLS inspection is in play, `REQUESTS_CA_BUNDLE` is usually
+  the missing piece.
+- **The .NET SDK and Python come from their own vendors**, not from npm, so skipping them with
+  the switches above and installing them through your normal channel is often the cleaner route
+  on a locked-down machine.
+
+#### UiPath's own skills: use `uip skills install`
+
+```bash
+uip skills install                 # every coding agent it detects
+uip skills install --agent claude  # just one
+uip skills list                    # the catalog, 30 skills
+uip skills show uipath-rpa         # one entry, and where its SKILL.md landed
+```
+
+**Prefer this over `npx skills add UiPath/skills`** for the official skills. `uip skills install`
+keeps them updated as they change; `npx skills add` takes a point-in-time copy you then have to
+update yourself. They land in `~/.uipath/.skills/`, co-versioned with the CLI — `uipath-rpa` at
+`@uipath/skills 1.204.1` against host `1.204.0` on this machine.
+
+This repo's skills are the other way round: `npx skills add` is the only route, and
+[a pinned tag](#recommendation-for-uc-projects) is the recommendation. The two sets coexist —
+[precedence is decided below](#official-uipath-skills--how-they-coexist).
+
 ## Prerequisite: publish the libraries to your feed
 
 > The Finnova/Avaloq `.nupkg`s must already be published to `<your feed>` **before** opening

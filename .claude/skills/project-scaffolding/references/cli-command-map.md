@@ -11,21 +11,30 @@ Re-run `--help` before relying on anything here. If `--help` disagrees with this
 
 ## Observed state of this machine
 
-Captured **2026-10-26** on Windows, user `tzhlara2`, from `uip tools list` and
-`$env:APPDATA\npm\node_modules\@uipath\*\package.json`:
+Re-captured **2026-11-03** from `uip tools list --output table`. The previous snapshot
+(2026-10-26) is kept below it, because the delta is the point of the section.
 
-| Tool | Version | Prefix | `tools list` status | Package last written |
-|---|---|---|---|---|
-| `cli` (the host) | **1.204.0** | — | — | 2026-10-21 15:39 |
-| `rpa-tool` | **1.204.2** | `rpa` | ok | **2026-10-26 13:33** |
-| `orchestrator-tool` | **1.204.0** | `or` | ok | 2026-10-26 17:39 |
-| `rpa-legacy-tool` | **1.204.0** | `rpa-legacy` | ok | 2026-10-21 15:40 |
-| `solution-tool` | 1.201.0 | `solution` | **needs update** | 2026-09-10 22:44 |
-| `tasks-tool` | 1.201.0 | `tasks` | **needs update** | 2026-09-10 22:44 |
-| `platform-tool` | 1.201.0 | `platform` | **needs update** | 2026-09-10 22:45 |
-| `resource-tool` | 1.1.0 | — | not listed | 2026-05-29 13:13 |
+| Tool | Version | Prefix | `tools list` status |
+|---|---|---|---|
+| `cli` (the host) | **1.204.0** | — | — |
+| `rpa-tool` | **1.204.2** | `rpa` | ok |
+| `orchestrator-tool` | **1.204.0** | `or` | ok |
+| `rpa-legacy-tool` | **1.204.0** | `rpa-legacy` | ok |
+| `solution-tool` | **1.204.0** | `solution` | ok |
+| `tasks-tool` | **1.204.0** | `tasks` | ok |
+| `platform-tool` | **1.204.0** | `platform` | ok |
 
-Three tools are behind the host. **Do not run `uip tools update` mid-project** — see *Rules*.
+**Every tool now matches the host, and `resource-tool` no longer appears in `tools list` at
+all.** On 2026-10-26 `solution-tool`, `tasks-tool` and `platform-tool` were all `1.201.0` with
+status **needs update**, and `resource-tool 1.1.0` was present but unlisted. Three tool versions
+moved and one tool vanished in eight days, without anyone here asking for it.
+
+That is the whole argument of this file, and it is why **`--help` wins over anything written
+here**. It is also why *Rules* says never to run `uip tools update` mid-project: if a tool can
+move on its own, a deliberate update mid-build is strictly worse. Record the versions in
+`Documentation/Progress.md` at the start of a project — `preflight` compares `rpa-tool` against
+that record and flags a mismatch, which is what makes a change like this visible rather than
+mysterious.
 
 ## Tool ownership — which prefix owns which verb
 
@@ -236,7 +245,8 @@ Whoever settles this writes the answer here and deletes this section.
 
 | Fact | Source |
 |---|---|
-| Tool versions and statuses | `uip tools list`, 2026-10-26 |
-| Package timestamps | `Get-ChildItem $env:APPDATA\npm\node_modules\@uipath`, 2026-10-26 |
-| Every verb, subcommand and flag above | `--help` on this machine, 2026-10-26, tool versions in the table |
+| Tool versions and statuses | `uip tools list --output table`, **2026-11-03** |
+| Every verb, subcommand and flag above | `--help` on this machine, 2026-10-26, at the tool versions in the *previous* snapshot. **Not re-run on 2026-11-03** — `rpa-tool` is unchanged at 1.204.2, so the `rpa` verbs should hold; `solution`, `tasks` and `platform` each moved a minor version and their verbs are **unverified at the new version**. None of them is used by these skills. |
+| `.NET SDK 8.0` is what `uip rpa` restores its headless Studio with | the official `uipath-rpa` skill (`@uipath/skills` 1.204.1), which states `uip rpa` auto-launches headless Studio (`UiPath.Studio.Helm.<Platform>`) via a silent `dotnet restore` |
+| `uip login status` reports `Status: "Logged in"` | run on 2026-11-03. `preflight` previously accepted only `Success`/`Authenticated` and warned on a correctly signed-in machine |
 | The earlier names | An earlier agent session on this same machine; **tool version not recorded** |
