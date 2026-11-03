@@ -1,22 +1,177 @@
-# The end-to-end run — L4
+# The end-to-end run — L4-local first, then L4
 
-**L4 is the only level that proves the automation works.** Everything below it proves the project
-compiles, packages and opens. A real job, started in the Orchestrator folder, on a robot, as the
-robot's Windows account, against the real application — then read back and checked against the
-SDD.
+Everything below L4-local proves the project compiles, packages and opens. It says nothing about
+whether the automation *does the work*. Two runs establish that, and they are not
+interchangeable:
 
-A local `uip rpa run` or Studio Debug is **not** this. It uses *your* session, *your* Windows
-account, and often a package version Orchestrator has never seen. That is L3 evidence.
+| | What it is | When |
+|---|---|---|
+| **L4-local (folder: `<folder>`)** | `pack`, then run **the packed package** with the **UiRobot installed on this machine**, pointed at an Orchestrator folder so the credential asset resolves | **The default.** Do this first, every time. No `uip login` |
+| **L4** | A real job, started **in** the Orchestrator folder, on a **robot**, as the robot's own Windows account | The pre-production step. **Ask first** — it authenticates to and changes the tenant |
 
-**Platform:** this estate is **Automation Suite** (self-hosted), not Automation Cloud. The
-Orchestrator host is the estate's own URL and `uip login` reaches it with `--authority <host>`.
-See `decisions.md` §0, and the project's own `AGENTS.md` Environment block.
+A local `uip rpa run` or Studio Debug is **neither**. Those execute the *project sources* in
+your own session, often at a version no package ever held. That is L3 evidence.
 
-All commands below were taken from `--help` on this machine, 2026-10-26, against
-**rpa-tool 1.204.2** and **orchestrator-tool 1.204.0**. Re-run `--help` before relying on a
-flag, and check `uip tools list` — the tools version independently of the `uip` host.
+**L4-local is a real rung, and a narrow one.** It runs the same artefact the robot would run, in
+a folder context, so it catches what a sources-run cannot: a packaging defect, a missing assembly
+reference, an asset that does not resolve, a config key the package does not carry. What it does
+**not** prove is in *What L4-local does not prove* below — read that before quoting the level at
+anyone.
+
+**Platform:** this estate is **Automation Suite** (self-hosted), not Automation Cloud.
+
+All commands below were taken from `--help` on this machine. `uip` commands: 2026-10-26, against
+**rpa-tool 1.204.2** and **orchestrator-tool 1.204.0**. `UiRobot` commands: **2026-11-03**,
+against **UiRobot 24.10.25** at `C:\Program Files\UiPath\Studio\UiRobot.exe`. Re-run `--help`
+before relying on a flag, and check `uip tools list` — the tools version independently of the
+`uip` host.
+
+---
+
+## Part 0 — four facts to ask for once, and record
+
+**Ask once, together, at the start — not one question per step.** Record the answers in the
+project's own `AGENTS.md` **Environment** block, which is a committed file, so **non-secret facts
+only**:
+
+| Fact | Example | Why it is needed |
+|---|---|---|
+| **UiRobot install path** | `C:\Program Files\UiPath\Studio\UiRobot.exe` | It ships beside Studio, but the path moves with the install type (per-machine vs per-user) and the version. Do not guess it |
+| **Orchestrator folder** | `Modern/RAP-Demo` | Passed to the robot so the credential asset resolves. Without it the asset lookup has no folder to look in |
+| **Robot user** | the Windows account the robot service runs as | Decides whose desktop session, whose browser profile and whose extension the run uses — the usual cause of "works for me" |
+| **Is the robot connected to the Automation Suite Orchestrator?** | yes / no | If **no**, an asset cannot resolve at all and `--folder` cannot mean anything. Say so up front rather than discovering it in an error |
+
+**Never record a credential, an asset *value*, a token or a client secret** in that block, or
+anywhere else. The asset **name** is fine — it is an identifier you have to name to wire anything
+up.
+
+> **This is not something to probe for.** `UiRobot` has no status verb — the verb list is
+> `pack`, `trace`, `pip`, `connect`, `disconnect`, `flushlogs`, `version`, `execute`,
+> `installprocess`, `help`. The only commands that would reveal or change the connection are
+> `connect` / `disconnect`, and those **rebind the machine's robot service** — firmly on the
+> ask-first list (`AGENTS.md`). `UiRobot version` is read-only and safe; it tells you the version
+> and nothing about the binding. So: ask.
+
+---
+
+## Part 1 — L4-local: pack, then run the package with the local UiRobot
+
+**No `uip login`, no publish, nothing in the tenant changes.**
+
+### Step 1. Pack (L2b)
+
+```bash
+uip rpa pack <project-dir> --output-path <dir>
+```
+
+`pack` compiles, validates **and runs the analyzer** — the gate `validate` alone is not. Do not
+pass `--ignored-rules` or `--skip-analyze` to get past a finding (`code-quality.md`). Pack from a
+**clean checkout at the commit you intend to ship**, or "which version did I run?" has no answer
+later.
+
+*(`UiRobot pack <project.json> -o <dir> [-v <version>]` also exists and is the robot's own
+packer. Prefer `uip rpa pack`: it is the estate's L2b rung and it runs the analyzer.)*
+
+### Step 2. Run the package, with the folder
+
+Verified from `UiRobot help execute` on 2026-11-03:
+
+```
+  -p, --package-id      Package Id of the process to execute (available version will be used).
+  -r, --process-name    Name of the process to execute.
+  -f, --file            Nupkg or legacy project/workflow file to execute.
+  -i, --input           Input parameters in JSON format.
+      --folder          The Orchestrator folder path.
+      --entry           The entry point path.
+
+  usage: UiRobot execute [--package-id <id> | --process-name <name> | --file <path>]
+                         [--input <params>] [--folder <path>] [--entry <entry_point>]
+```
+
+**`--folder` exists**, documented as *"The Orchestrator folder path."* — that is what makes the
+credential asset resolve. So:
+
+```powershell
+# PowerShell. The --input quoting is the tool's own example form for this shell.
+& "C:\Program Files\UiPath\Studio\UiRobot.exe" execute `
+    --file "<dir>\<Package>.1.0.0.nupkg" `
+    --folder "Modern/RAP-Demo" `
+    --input '{\"in_ENV\" : \"TST\"}'
+```
+
+```bash
+# Command Prompt / bash take the other quoting, also from the tool's own examples
+UiRobot execute --file "<dir>\<Package>.1.0.0.nupkg" --folder "Modern/RAP-Demo" \
+  --input "{\"in_ENV\" : \"TST\"}"
+```
+
+Add `--entry "<EntryPoint>.xaml"` when the package declares more than one entry point.
+
+> **Two things here are documented but not run, and are marked so rather than asserted.**
+>
+> 1. **`--file` together with `--folder`.** `--folder` is listed as a general option of
+>    `execute`, independent of which selector you use — but every official *example* pairs it
+>    with `--package-id` (`UiRobot execute --package-id UiPathDemo --folder "Product/Development/QA"`),
+>    and the one `--file` example uses `--entry` instead. The combination is **UNVERIFIED here**:
+>    no robot on this machine is bound to a folder to test it against.
+> 2. **That `--folder` is what resolves the asset for a `--file` run.** It is the only
+>    folder-bearing option, so it is the only candidate — but that is inference from the help
+>    text, not an observed asset lookup. **UNVERIFIED.**
+>
+> If `--file` + `--folder` turns out not to resolve assets, the documented fallback is to make
+> the package known to the robot first and run it by id:
+> `UiRobot installprocess --process-name <name> --folder <folder>`, then
+> `UiRobot execute --package-id <id> --folder <folder>` — which is the pairing the examples
+> show. Record which one worked, with the date, and delete the one that did not.
+
+### Step 3. When it fails on an asset or on folder access — that is a checkpoint
+
+Two failures here are **mine to fix, not yours to work around**:
+
+| Symptom | What to report |
+|---|---|
+| The asset does not resolve | the **exact error text**, the **asset name** from the `Assets` sheet, and the **folder** you passed |
+| The robot user has no access to the folder | the **exact error text**, the **folder**, and the **robot user** from Part 0 |
+
+**Report it, name those things, and carry on with the next item.** Do not retry with a different
+folder hoping one sticks, do not fall back to a local credential, and do not substitute a literal
+for the asset — each of those turns a five-minute fix into a project that works on one machine.
+
+**Never print an asset value.** Not in a report, a log, a commit, or a chat. The name is the
+identifier; the value is the secret. See the `security` skill, and `references/studio-checkpoints.md`
+Checkpoint 4 for what I need to do at my end.
+
+### Step 4. Report it as L4-local
+
+Name the level **with the folder in it** — `L4-local (folder: Modern/RAP-Demo)` — plus the
+command verbatim, the package file and version, the transaction count processed vs input count,
+and every `Warn` and `Error` line. Then complete the acceptance table in Part 4: a run without it
+establishes that something executed, not that it was correct.
+
+### What L4-local does not prove
+
+Being precise about this is the whole reason it has its own name:
+
+- **Not the unattended service-account session.** It runs as **you**, in **your** interactive
+  Windows session, with **your** browser profile and **your** extension. The single most common
+  unattended failure — the extension or the session not existing for the service account — is
+  invisible here.
+- **Not the trigger.** Nothing proves the process starts when it is supposed to.
+- **Not permissions beyond that one folder.** It proves your identity's access to the folder you
+  named, not the robot account's, and not any other folder's.
+- **Not the published artefact.** The package came from your disk, not from the feed the folder's
+  robots restore from.
+- **Not the Orchestrator job record** — no job key, no queue retry history, no retention trail.
+
+So **L4-local is not L4, and must not be reported as it.** An Orchestrator job — Part 3, **ask
+first** — remains the pre-production step.
+
+---
 
 ## How the client secret is supplied — and how it is not
+
+*(This section is about `uip login`, which belongs to the **L4** path in Part 3. L4-local needs
+none of it.)*
 
 `uip login` supports a **non-interactive** sign-in, and the only acceptable way to give it the
 secret is **by environment-variable reference**. From `--client-secret`'s own help text:
@@ -49,10 +204,11 @@ run `uip login` themselves in their own terminal. Do not route it through an age
 
 ---
 
-## Part 1 — robot prerequisites
+## Part 2 — robot prerequisites
 
 These are about the **robot machine**, not your laptop, and that is the whole difficulty: a
-project that works in Studio and fails unattended almost always fails on one of these.
+project that works in Studio and fails unattended almost always fails on one of these. **This is
+the part L4-local cannot reach** — it ran on your machine, as you.
 
 > **Most of this part cannot be verified from a developer machine, and is marked accordingly.**
 > Where a check is not scriptable, it is a question for whoever owns the robot — not an
@@ -68,7 +224,13 @@ project that works in Studio and fails unattended almost always fails on one of 
 | 6 | **The robot account has access to the folder, its assets and its queue** | **Scriptable** — see below |
 | 7 | **The folder actually has an enabled robot with credentials** | **Scriptable** — `rpa remote targets` reports `enabled` and `hasCredentials` per robot |
 
-### What is scriptable (requires `uip login` against the Automation Suite host)
+### What is scriptable (requires `uip login` against the Automation Suite host — **ask first**)
+
+> **Every command in this block is a `uip or` or `uip rpa remote` command, and every one of them
+> authenticates to Orchestrator** — including the pure reads. They are on the ask-first list:
+> name the command, say it only reads, and wait. `AGENTS.md`, *Ask before anything that
+> authenticates to, or changes, Orchestrator*. `preflight -FolderPath <path>` runs the `uip or`
+> reads as a batch, and passing that switch is the asking.
 
 ```bash
 uip or folders   list
@@ -97,19 +259,18 @@ and the folder's user assignments.
 
 ---
 
-## Part 2 — the run
+## Part 3 — the Orchestrator job (L4) — **ask first**
+
+> **Do not start here, and do not run any of it without asking.** Part 1 (L4-local) comes first
+> and needs none of this. Everything below publishes to, or changes, the tenant: `uip login`,
+> `uip rpa publish`, `uip or packages upload`, `uip or processes create`, `uip or jobs start`.
+> Name the command, say what it changes, and wait — `AGENTS.md`.
 
 ### Step 1. Pack (L2b)
 
-```bash
-uip rpa pack <project-dir> --output-path <dir>
-```
-
-`pack` compiles, validates **and runs the analyzer** — the gate `validate` alone is not. Do not
-pass `--ignored-rules` or `--skip-analyze` to get past a finding. See `code-quality.md`.
-
-Pack from a **clean checkout at the commit you intend to ship**, or "which version is in TST?"
-has no answer later.
+Already done in Part 1, Step 1 — **reuse that package**, do not re-pack. Re-packing produces a
+different artefact from the one L4-local exercised, and the point of the sequence is that the
+same package passes both.
 
 ### Step 2. Publish to the feed the folder uses
 
@@ -209,20 +370,28 @@ Stated plainly, because the difference matters:
 
 | | Status |
 |---|---|
-| Every command name and flag above | **Verified** — read from `--help` on this machine, 2026-10-26, rpa-tool 1.204.2 / orchestrator-tool 1.204.0 |
-| That the **sequence** works end to end | **UNVERIFIED.** No live Orchestrator session exists on this machine: `uip login status` → `"Status": "Refresh Failed"`. Nothing in Part 1 or Part 2 has been executed against a real tenant, folder, feed, robot or job |
+| Every `uip` command name and flag above | **Verified** — read from `--help` on this machine, 2026-10-26, rpa-tool 1.204.2 / orchestrator-tool 1.204.0 |
+| Every `UiRobot` verb, option and quoting form in Part 1 | **Verified** — read from `UiRobot --help` and `UiRobot help execute`, 2026-11-03, UiRobot 24.10.25. `UiRobot version` was run (`24.10.25.0`) |
+| That `UiRobot` has no connection-status verb | **Verified** — the verb list is `pack`, `trace`, `pip`, `connect`, `disconnect`, `flushlogs`, `version`, `execute`, `installprocess`, `help`. Hence Part 0 asks rather than probes |
+| **`--file` together with `--folder`** | **UNVERIFIED.** `--folder` is a general option of `execute`, but every official example pairs it with `--package-id`. No robot here is bound to a folder to test against |
+| **That `--folder` is what resolves the credential asset for a `--file` run** | **UNVERIFIED** — inference from the help text ("The Orchestrator folder path"), not an observed asset lookup |
+| That the **L4-local sequence** runs end to end | **UNVERIFIED.** Not executed: it needs a robot bound to an Orchestrator folder, which this machine does not have |
+| That the **L4 sequence** works end to end | **UNVERIFIED.** Nothing in Part 2 or Part 3 has been executed against a real tenant, folder, feed, robot or job — and under the ask-first rule it must not be, unprompted |
 | `rpa remote targets` output shape | **UNVERIFIED** — the `enabled` / `hasCredentials` fields are from its help text, not from a response |
 | Whether `--folder-path` on `rpa publish` is sufficient, or `--feed-id` is also needed | **UNVERIFIED** — depends on how the folder resolves its feed |
 
-So: **run this once against TST and correct whatever is wrong**, then mark the corrected steps
-verified with the date. Until then, treat the sequence as a plan derived from the tool's own
-help rather than a procedure someone has walked.
+So: **run Part 1 once against a real folder and correct whatever is wrong**, then mark the
+corrected steps verified with the date — starting with the two `--file`/`--folder` rows, which
+are the ones the default path depends on. Until then, treat both sequences as plans derived from
+the tools' own help rather than procedures someone has walked.
 
 ---
 
-## Part 3 — the SDD acceptance table
+## Part 4 — the SDD acceptance table
 
-**This is what makes it L4.** Steps 1–6 prove a job ran; this proves it did the right thing.
+**This is what makes a run mean anything — at either level.** The steps above prove something
+executed; this proves it did the right thing. Fill it in for **L4-local** too: a run reported
+without it establishes that the package started, not that the process was correct.
 
 Fill one row per SDD step. `Evidence` must be something a reader can check, not a restatement.
 
@@ -260,14 +429,24 @@ Fill one row per SDD step. `Evidence` must be something a reader can check, not 
 
 ## Reporting it
 
-State all of this, or it is not an L4 claim:
+**For L4-local**, state all of this or it is not an L4-local claim:
 
-- the **job key**, its **state**, and its **duration**
-- the **package version** that ran, and the **folder path**
+- the level **with the folder in it** — `L4-local (folder: Modern/RAP-Demo)`
+- the **command verbatim**, and the **package file and version** that ran
 - **transaction count processed vs input count**
-- every `Warn` and `Error` line from the log
-- the **completed acceptance table**, with the application state read back independently
+- every `Warn` and `Error` line
+- the **completed acceptance table** (Part 4), with the application state read back independently
+- the four Part 0 facts, as recorded
+- that it ran **as your interactive account**, not the robot's — and therefore what it does not
+  prove (see Part 1)
 - anything still open, as a **named blocker** rather than a caveat
 
-If any of those is missing, report the level you actually reached — L3, or L2b — and say what is
-needed to close the gap. That is a useful report. "It ran fine" is not.
+**For L4**, all of the above plus:
+
+- the **job key**, its **state**, and its **duration**
+- the **folder path** and the **published package version**
+- every `Warn` and `Error` line from the **job log**
+
+If any of those is missing, report the level you actually reached — L4-local, L3, or L2b — and
+say what is needed to close the gap. That is a useful report. "It ran fine" is not, and neither
+is calling an L4-local run L4.

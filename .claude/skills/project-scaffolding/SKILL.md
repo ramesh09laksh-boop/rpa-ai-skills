@@ -296,14 +296,17 @@ Studio showed a compile error in `Framework/InitAllSettings.xaml` and every run 
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
 | **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
+| **L4-local** | The **packed package** runs on the **local UiRobot**, in an Orchestrator folder so the credential asset resolves | `UiRobot execute --file <.nupkg> --folder "<folder>"` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a **robot**, as the robot's own account, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` — **ask first** |
 
 Every report names the highest level reached **and the command that proved it**. A wiring or
 "project ready" stage is not done below **L3** — L1 and L2 both passed on a project Studio
 could not compile. **L2b is separate because `validate` and `build` are not the last
 compile-time gate** — a missing assembly reference and `ST-SEC-008` both pass them and fail at
-`pack`. **A local `uip rpa run` is L3 evidence, not L4**: L4 is a real job in the Orchestrator
-folder on a robot. A mocked run reaches **L3 at most**. Never write PASS without the level.
+`pack`. **L4-local is the default end-to-end run**, quoted with its folder, and needs no
+`uip login`; it is **not** L4, because it runs as your interactive account. **A local
+`uip rpa run` is L3 evidence**, being a run of the *sources* in the developer's session. A mocked
+run reaches **L3 at most**. Never write PASS without the level.
 
 Full detail, the two traps in those commands, and why `validate` is not a superset of the
 analyzer: `references/evidence-ladder.md`. **Command names are per-tool and per-version** —

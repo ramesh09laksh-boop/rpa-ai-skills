@@ -85,7 +85,17 @@ it. Create this block at stage 2 and keep it current:
 | Package feed        | the feed this folder uses — <name or URL> |
 | Environment         | TST  ·  production is <folder path>, separate approval required |
 | uip login           | `uip login --authority <host> --tenant <tenant> --profile <tst|prd>` |
+| **UiRobot path**    | C:\Program Files\UiPath\Studio\UiRobot.exe |
+| **Robot user**      | <DOMAIN\account the robot service runs as> |
+| **Robot connected to Orchestrator?** | yes / no — asked, not probed |
 ```
+
+The last three are what an **L4-local** run needs, and they are **asked for once, together**, at
+the start of stage 7b — not one question per step. Without the folder path a credential asset has
+nowhere to resolve from; without knowing whether the robot is connected at all, an asset failure
+is unreadable. `UiRobot` has no status verb and `connect`/`disconnect` rebind the machine's robot
+service, so this is a question, not a probe. The `standards` skill,
+`references/end-to-end-run.md` Part 0.
 
 **Non-secret facts only.** Names, hosts, paths, accounts, folder paths. **Never** a password,
 token, client secret, API key or connection string — those live in Orchestrator assets, and
@@ -97,10 +107,12 @@ default. Detail: the `standards` skill, `references/decisions.md` §0.
 ## The ten stages, and the gate on each
 
 A stage is not done until its gate is met. Gates use the evidence ladder — **L1** static,
-**L2** compiles + analyzer, **L2b** packs, **L3** Studio Error List empty, **L4** a real job on
+**L2** compiles + analyzer, **L2b** packs, **L3** Studio Error List empty, **L4-local** the
+packed package run by the UiRobot on this machine in an Orchestrator folder, **L4** a real job on
 TST in the Orchestrator folder, on a robot, with the SDD acceptance table (the
-`project-scaffolding` skill, `references/evidence-ladder.md`). A local run or a mocked run is
-**L3 at most**.
+`project-scaffolding` skill, `references/evidence-ladder.md`). A **sources** run
+(`uip rpa run`, Studio Debug) or a mocked run is **L3 at most**. L4-local is the default
+end-to-end run and needs no `uip login`; L4 is **ask-first**.
 
 | # | Stage | Load | Gate |
 |---|---|---|---|
@@ -110,8 +122,8 @@ TST in the Orchestrator folder, on a robot, with the SDD acceptance table (the
 | 4–5 | Capture **and** develop, one workflow at a time | `web` + `standards` + the app skill(s); `pdd-sdd-scaffolding` only in OFFLINE mode | Every row of `Documentation/Leaf_Ledger.md` reads `yes`, **and** each workflow was run once against the live application with the command recorded. `.objects/` committed |
 | 6 | Test data → tests | `standards` (`references/test-data.md`), `security` | `Tests.xlsx` built; no case marked passed without a run |
 | 7 | Review | `standards`, `security`, app skill(s) | Analyzer clean, **and the report names which rule set ran** |
-| 7b | End-to-end run in the Orchestrator folder | `standards` (`references/end-to-end-run.md`), `security` | **L4** — a real job on a robot. A Successful job that processed 0 transactions is a failure |
-| 8 | UAT readiness | all of the above | **L4** — a real job, with state, logs and the SDD acceptance table |
+| 7b | End-to-end run | `standards` (`references/end-to-end-run.md`), `security` | **L4-local (folder: …)** by default — the packed package run by the local UiRobot in a folder, with the acceptance table. Then **L4** (**ask first**) — a real job on a robot. A Successful run that processed 0 transactions is a failure at either level |
+| 8 | UAT readiness | all of the above | **L4** — a real job, with state, logs and the SDD acceptance table. L4-local does not substitute |
 | 9 | Deployment readiness | `standards` (`references/deployment.md`), `security` | TST first, at **L2b** and **L4**. PRD only with named approval |
 | 10 | Change / enhancement | whatever the project already uses | Re-run 6–8 for what the change touches |
 
@@ -159,11 +171,20 @@ Studio blockers are a missing Studio *session*, which `uip rpa studio start` pro
 Working rules: never invent a selector, activity, argument, API, config value, credential or
 business rule — if the source is silent it is an Open Question / TODO. Report the highest
 check level reached, with the command used: L1 validate-project, L2 uip rpa validate+build,
-L2b uip rpa pack, L3 Studio Error List clean, L4 a real job on TST in the Orchestrator folder
-on a robot with the SDD acceptance table. A local run or a mocked run is L3 at most, never L4.
-"Needs Studio" only with the exact command and its error. Commit locally after each item; keep
-Documentation/Progress.md updated. Do not stop between items — log a blocker and continue with
-the next.
+L2b uip rpa pack, L3 Studio Error List clean, L4-local the packed package run by the UiRobot on
+this machine in an Orchestrator folder (quote it as "L4-local (folder: <folder>)"), L4 a real job
+on TST in the Orchestrator folder on a robot with the SDD acceptance table. A sources run or a
+mocked run is L3 at most; L4-local is never reported as L4. "Needs Studio" only with the exact
+command and its error. Commit locally after each item; keep Documentation/Progress.md updated.
+Do not stop between items — log a blocker and continue with the next.
+
+ASK ME FIRST before anything that authenticates to, or changes, Orchestrator — naming the exact
+command and why, then wait. That includes `uip login`, ANY `uip or ...` command (even a read),
+`uip rpa publish`, `uip or packages upload`, `uip or jobs start`, creating or changing a
+process/asset/queue/trigger/folder, `UiRobot connect` or `disconnect`, `uip rpa restore` where
+the feed is Orchestrator-hosted, and installing anything. Reading files and `--help` are always
+fine, as are `uip --version`, `uip tools list`, `uip login status`, validate-project, and
+`uip rpa validate`/`build`/`pack`/`analyze`. Do not run it and tell me afterwards.
 ```
 
 When something breaks, start at the `standards` skill, `references/troubleshooting.md` — the

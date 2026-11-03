@@ -550,9 +550,10 @@ written":
   activity against them, run the workflow once, pack, write the ledger row. These were two
   stages; separating them is what let a project with a live session ship `TODO_SELECTOR`
   placeholders and no capture at all.
-- **End-to-end run** (7b) — the first time the automation runs as a **job in the Orchestrator
-  folder, on a robot**, rather than in a developer's session. This is **L4**, and nothing before
-  it proves the automation works.
+- **End-to-end run** (7b) — the first time the **packed package** runs, rather than the project
+  sources in a developer's session. Two steps: **L4-local** by default (the local UiRobot, in an
+  Orchestrator folder, no `uip login`), then **L4** — a job on a robot — which is **ask-first**
+  because it changes the tenant. Nothing before 7b proves the automation works.
 
 ### Working rules — paste this at the top of any stage prompt
 
@@ -728,38 +729,60 @@ that actually load — see `standards/references/code-quality.md`. Fix findings;
 rule to pass.
 ```
 
-### 7b. End-to-end run in the Orchestrator folder
+### 7b. End-to-end run — L4-local first, then L4
 
-The first run that proves anything. Everything before this is a developer's session.
+The first run that proves anything. Everything before this is a developer's session running
+project *sources*.
+
+**Default is L4-local:** pack, then run the package with the UiRobot on this machine, pointed at
+an Orchestrator folder so the credential asset resolves. **No `uip login`, nothing changed in the
+tenant.** The Orchestrator job is a second, separate step — and it is ask-first.
 
 ```
 Load `standards` (end-to-end-run) and `security`. This estate is Automation Suite, not
-Automation Cloud — read the Environment block in the project's AGENTS.md for the Orchestrator
-host, tenant, folder path, robot machine and feed; if it is missing, create it first.
+Automation Cloud.
 
-1. Preflight: `preflight.sh <project> --skip-capture` plus
-   `preflight.ps1 -ProjectPath <project> -FolderPath <folder>`. Fix anything blocking. The
-   robot-side prerequisites are NOT scriptable — robot version vs the package pins, the robot's
-   own package sources, an interactive session, the browser extension for the service account,
-   the app being reachable from the robot machine. Confirm them with whoever owns the robot and
-   say which are unverified.
+Ask me ONCE, together, and record the answers in the project's AGENTS.md Environment block
+(committed file — NON-SECRET facts only, never an asset value):
+  - the UiRobot install path
+  - the Orchestrator folder (e.g. Modern/RAP-Demo)
+  - the robot user
+  - whether the robot is connected to the Automation Suite Orchestrator
+Do not probe for the connection state: UiRobot has no status verb, and connect/disconnect
+rebind the machine's robot service. Ask.
+
+1. Preflight: `preflight.sh <project> --skip-capture`. Fix anything blocking. Do NOT pass
+   -FolderPath unless you have asked me — those are `uip or` calls.
 2. Pack (L2b): `uip rpa pack <project> --output-path <dir>` from a clean checkout. Do not pass
    --ignored-rules or --skip-analyze.
-3. Publish: `uip or packages upload <.nupkg>`, then `uip or packages versions <id>` to confirm.
-4. Confirm the folder: process bound to that version, credential asset, queue (if any), and a
-   TST config with no [UC-SPECIFIC — replace] and no undefined key.
-5. Start the job: `uip or jobs start <process-key> --folder-path <folder>
-   --input-arguments '{"in_ENV":"TST"}'`. Keep the job key.
-6. Read it back: `uip or jobs get`, `uip or jobs history`, `uip or jobs logs --level Warning`,
-   and the queue results via `uip or queue-items list --status Successful|Failed`.
-7. Complete the SDD acceptance table: SDD step → evidence → pass/fail, with the application
+3. Run it locally (L4-local). Read `UiRobot help execute` first and use what it prints — do not
+   guess flags:
+     UiRobot execute --file "<dir>\<Package>.<ver>.nupkg" --folder "<folder>"
+                     --input "{\"in_ENV\" : \"TST\"}" [--entry "<EntryPoint>.xaml"]
+   `--folder` is what makes the credential asset resolve. If it does not resolve, the documented
+   fallback is `UiRobot installprocess --process-name <name> --folder <folder>` then
+   `UiRobot execute --package-id <id> --folder <folder>` — record which worked.
+4. A missing asset, or a robot user without access to that folder, is a CHECKPOINT for me:
+   report the exact error text, name the asset and the folder, and carry on with the next item.
+   Never print an asset value. Do not retry with other folders and do not substitute a literal.
+5. Complete the SDD acceptance table: SDD step → evidence → pass/fail, with the application
    state read back INDEPENDENTLY of the robot's logs, per-transaction results compared with the
    test data, negative-data rows producing the expected Business exceptions, no [MOCK] or
    TODO_SELECTOR anywhere, and transaction count equal to input count.
 
-Report the level reached with the command that proved it. A Successful job that processed 0
-transactions is a failure, not a pass. If you could not start a job, say so and report L2b or
-L3 — do not describe a local run as L4.
+Report it as "L4-local (folder: <folder>)" with the command verbatim, the package and version,
+transactions processed vs input, and every Warn and Error. Say plainly what it does NOT prove:
+it ran as my interactive account, so not the unattended service-account session, not the
+trigger, and not permissions beyond that one folder.
+
+THEN STOP AND ASK before the Orchestrator job. Publishing and starting a job change the tenant:
+`uip login`, `uip rpa publish` / `uip or packages upload`, `uip or processes create`,
+`uip or jobs start`. Name the commands and wait. Once I agree, reuse the SAME package from
+step 2 — do not re-pack — and follow end-to-end-run.md Part 3, then report L4 with the job key,
+state, duration, folder, published version and job log.
+
+A Successful job that processed 0 transactions is a failure, not a pass. If you reached only
+L4-local, say L4-local — never describe it as L4, and never describe a sources run as either.
 ```
 
 ### 8. UAT Readiness
@@ -828,13 +851,21 @@ So "validated" on its own is not a claim. Name the level and the command:
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
 | **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
+| **L4-local** | The **packed package** runs on the **local UiRobot**, pointed at an Orchestrator folder so the credential asset resolves | `UiRobot execute --file <.nupkg> --folder "<folder>"` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a **robot**, as the robot's own account, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` — **ask first** |
 
-A wiring or "project ready" stage is **not done below L3**. "Tested" means **L4** — a real job
-started in the Orchestrator folder on a robot, with job state, logs and the SDD acceptance table.
-**A local run of `Main.xaml` is L3 evidence, not L4**, and a **mocked** run reaches L3 at most.
-L2b is a rung of its own because a missing assembly reference and `ST-SEC-008` both pass
-`validate` and `build` and fail only at `pack`. Detail:
+A wiring or "project ready" stage is **not done below L3**. **L4-local is the default end-to-end
+run** — no `uip login`, nothing changed in the tenant — and it is quoted with its folder:
+`L4-local (folder: Modern/RAP-Demo)`. It runs the same artefact the robot would, so it catches a
+packaging defect, a missing assembly reference or an asset that does not resolve; it runs as
+**your** interactive account, so it proves nothing about the unattended service-account session,
+the trigger, or permissions beyond that folder.
+
+"Tested" still means **L4** — a real job started in the Orchestrator folder on a robot, with job
+state, logs and the SDD acceptance table. **L4-local is not L4**; a local run of `Main.xaml` from
+*sources* is neither (that is L3 evidence); and a **mocked** run reaches L3 at most. L2b is a rung
+of its own because a missing assembly reference and `ST-SEC-008` both pass `validate` and `build`
+and fail only at `pack`. Detail:
 [`evidence-ladder.md`](.claude/skills/project-scaffolding/references/evidence-ladder.md);
 procedure: [`end-to-end-run.md`](.claude/skills/standards/references/end-to-end-run.md).
 

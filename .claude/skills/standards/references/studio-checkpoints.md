@@ -42,9 +42,15 @@ happened: both reported success while Studio showed
 
 ---
 
-## Checkpoint 2 — run `Main.xaml` on TST (L4)
+## Checkpoint 2 — run `Main.xaml` on TST (L3 evidence)
 
-**When:** before claiming anything is tested. "Tested" means this, with a log excerpt.
+**When:** the first time you want to see the process move at all, in Studio.
+
+> **This is L3 evidence, not L4.** The heading here used to say L4, which contradicted the
+> ladder: a Studio Debug run executes the project **sources** in *your* Windows session, at a
+> version no package ever held. The end-to-end rungs are **L4-local** (the packed package on the
+> local UiRobot, in an Orchestrator folder) and **L4** (a job on a robot) — the
+> `project-scaffolding` skill, `references/evidence-ladder.md`, and `end-to-end-run.md`.
 
 **Before you start:** confirm you are on **TST**. Never PRD without named approval.
 
