@@ -471,12 +471,18 @@ level reached.
 
 ```
 Load `web`. First read project.json: UiPath.UIAutomation.Activities and UiPath.UIAutomation.CLI
-must both be 26.10.4 — fix and restore before anything else. Capture targets for the workflows
-listed in the *.selectors-todo.md files, 2–3 screens per run, following
-`web/references/capture-troubleshooting.md`. After any page navigation: navigate explicitly,
-fresh snapshot, fresh work folder. `evaluate` must match only the target — if not, leave
-TODO_SELECTOR and record why. Identify list items by business key, never position. Commit
-`.objects/` — it holds the captured selectors. Update each todo file and Progress.md.
+must both be 26.10.4 — fix and restore before anything else. Confirm the signed-in account is at
+the role the robot will run as, and that the admin-only controls are absent — a capture made at a
+higher role is untrusted and is re-captured. Capture targets for the workflows listed in the
+*.selectors-todo.md files, following `web/references/capture-troubleshooting.md`. After any page
+navigation: navigate explicitly, fresh snapshot, fresh work folder. The registration gate must
+match only the target — if not, leave TODO_SELECTOR and record why. Identify list items by
+business key, never position. Commit `.objects/` — it holds the captured selectors.
+
+**Commit every 2–3 screens, then continue to the next batch.** Do not end the run after three
+screens. Stop only when the ledger is complete, or when a row needs something only I can do — and
+then say exactly what. Update each todo file, `Documentation/Capture_Progress.md` (with the role
+each screen was captured under) and Progress.md.
 ```
 
 ### 5. Develop leaf workflows

@@ -67,17 +67,35 @@ rm -rf "$W" && mkdir -p "$W"
 
 A folder per screen, created empty. Not one folder for the whole capture session.
 
-## 3. Capture 2–3 screens per run, and write down where you stopped
+## 3. Commit every 2–3 screens — then keep going
 
 Capture is long, stateful and easy to lose. A run that captures eight screens and dies on the
-ninth leaves nothing behind that the next run can resume from.
+ninth leaves nothing behind that the next run can resume from. So checkpoint often.
 
-- **2–3 screens per run**, then stop and record.
+**The checkpoint is a commit, not a stop.** An earlier version of this section said "2–3 screens
+per run, then stop and record", and agents read it the way it was written: they captured three
+screens and ended the run with the ledger half empty. That was never the intent — the point of
+the 2–3 boundary is that *losing* work costs at most three screens, not that a session is over
+after three.
+
+- **Every 2–3 screens: record, commit, and continue to the next batch.**
 - Keep a progress file (`Documentation/Capture_Progress.md`) naming, per screen: the Object
-  Repository app / screen / element reference ids, which selectors passed `evaluate`, and what is
-  still `TODO_SELECTOR`. The reference ids are the part you cannot regenerate by guessing.
+  Repository app / screen / element reference ids, the role the capture was made under, which
+  selectors passed the registration gate, and what is still `TODO_SELECTOR`. The reference ids
+  are the part you cannot regenerate by guessing.
 - Update the workflow's `.selectors-todo.md` as each marker is resolved, in the same run that
   resolved it.
+
+**Stop only for one of these two reasons**, and say which:
+
+| Stop when | What to report |
+|---|---|
+| The ledger is **complete** — every row in `Documentation/Leaf_Ledger.md` is yes | The ledger, and the highest evidence level reached with the command that proved it |
+| A row needs **a person** | Exactly what you need: an account at the robot's role, a credential in an Orchestrator asset, a screen you cannot reach, an Owner-only control that must be removed |
+
+Running out of screens in the current batch is **not** a reason to stop. Neither is a single
+target that fails the registration gate — leave it `TODO_SELECTOR` with the reason and move to
+the next one.
 
 ## 4. Parametrized descriptors take their values from config, never a literal
 

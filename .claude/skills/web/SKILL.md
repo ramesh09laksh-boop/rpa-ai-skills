@@ -178,5 +178,5 @@ a credential into a prompt, a snapshot or a definition file. See the `security` 
 - `references/selector-strategy.md` — how to derive stable selectors for these applications
 - `references/verified-flows.md` — flow-by-flow record, with verification status
 - `references/capture-troubleshooting.md` — the version precheck, the stale-URL fix after a
-  client-side redirect, one work folder per screen, the 2–3-screens-per-run protocol, and
-  keeping parametrized descriptors out of literals
+  client-side redirect, one work folder per screen, the commit-every-2–3-screens-then-continue
+  protocol, and keeping parametrized descriptors out of literals
