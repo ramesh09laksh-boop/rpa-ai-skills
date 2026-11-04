@@ -152,85 +152,22 @@ so the templates do **not** come along with the skills. Two routes:
 
 ## Instantiating a template
 
-1. **Decide the project name and the queue name first** — see the two sections below. Both
-   are painful to change after the first publish.
-2. In Studio: **File → New → Robotic Enterprise Process**. Name it the agreed project name,
-   in the folder the UC repo will live in, and set **Compatibility: Windows** — not
-   *Windows – Legacy*. Getting this wrong at creation means regenerating the project; the
-   template's `project.json` says `Windows`, but the `.xaml` Studio generates for Legacy is not
-   the same file.
-3. Copy the template's `project.json`, `project.uiproj`, `entry-points.json`, `Data/` and
-   `Tests/` over the generated project, replacing what Studio produced.
-4. In the copied `project.json`, set:
-   - `"name"` — the agreed project name. **No spaces, anywhere.** It propagates verbatim into
-     the published package name and the Orchestrator process name. The shipped value is
-     `<PROJECT-NAME-TBD-ask-team>`, which fails the publishability check on purpose — the
-     angle brackets make an unreplaced placeholder impossible to publish and impossible to
-     mistake for a finished name. See
-     [`naming-conventions.md`](../.claude/skills/standards/references/naming-conventions.md#no-whitespace-in-projectjson--name).
-   - `"projectId"` and `entryPoints[0].uniqueId` — fresh GUIDs. The values shipped here are
-     placeholders; two projects sharing a `projectId` confuses Studio and Orchestrator.
-   - `"description"` — what the process does.
+**The checklist lives in the `project-scaffolding` skill, not here:**
+[`references/instantiating-templates.md`](../.claude/skills/project-scaffolding/references/instantiating-templates.md).
 
-   Then mirror `"name"` and `"description"` into `project.uiproj`, and
-   `entryPoints[0].uniqueId` into `entry-points.json`. Three files, one set of values — a
-   half-renamed project publishes under the wrong package name.
+It moved because this file does not travel. `scripts/fetch-template.*` does a sparse checkout of
+`templates/<name>/` only, so a UC project that fetches a template gets the folder and **not this
+README** — and both the script's closing message and the skill's step 3 used to point here. The
+checklist now ships with the script that tells you to work it.
 
-   **Leave `project.json`'s own `entryPoints[0].input` as `[]`.** It looks inconsistent next to
-   `entry-points.json`, which declares three arguments — that is expected, not an oversight.
-   Studio rewrites `input`/`output` from `Main.xaml`'s actual arguments the first time it opens
-   and saves the project. Hand-editing it to "fix" the mismatch achieves nothing and is
-   overwritten on the next save.
-5. Open the project in Studio so it reconciles `Main.xaml` against `project.json`, and add the
-   `in_ENV` argument (plus `in_TOWER` / `in_System` if the process serves more than one
-   installation). `entry-points.json` already declares `in_ENV`,
-   `in_OrchestratorQueueName` and `in_OrchestratorQueueFolder`; add matching `Main.xaml`
-   arguments or delete the ones the process does not use. Being able to override the queue per
-   Orchestrator process without a redeploy is worth keeping for a Dispatcher/Performer pair —
-   `PJFVA-966_UC81` does exactly this.
+Eight steps, in order: the project name and queue name decided first; Windows compatibility at
+creation; copy the project files over; fresh GUIDs and the three identity files kept in step;
+`in_ENV` added **and wired to `Config_<ENV>.xlsx`** (the stock literal points at a `Config.xlsx`
+no template ships, so skipping this kills the first run in Initialization); every
+`[UC-SPECIFIC — replace]` filled in both workbooks; `Tests.xlsx` rows and `RunAllTests.xaml`;
+`.gitkeep` deleted where there is now real content. Then `validate-project` to zero errors.
 
-   **Then wire `in_ENV` to the config workbook — this step is not optional.** Selecting the
-   workbook is the entire reason `in_ENV` exists. Stock Studio `Main.xaml` invokes
-   `Framework/InitAllSettings.xaml` with the literal `in_ConfigFile = "Data\Config.xlsx"`, and
-   **no template ships a `Config.xlsx`** — they ship `Config_TST.xlsx` and `Config_PRD.xlsx`.
-   Leave the stock literal in place and the very first run dies in Initialization with
-   file-not-found. Change that argument to:
-
-   ```vb
-   [If(String.IsNullOrWhiteSpace(in_ENV), "Data\Config_TST.xlsx",
-       "Data\Config_" & in_ENV.Trim().ToUpperInvariant() & ".xlsx")]
-   ```
-
-   The vocabulary is `TST` and `PRD`, matching the two shipped workbooks. The fallback is
-   **TST**, deliberately: an unset `in_ENV` must not silently pick up production settings. If
-   you add a third environment, add the workbook and keep the key set identical across all of
-   them — `validate-project` enforces that parity.
-
-   **This step assumes the stock xlsx config.** If the SDD calls for JSON config instead
-   (`Config_TST.json` / `Config_PRD.json`), the expression above changes its file extension
-   accordingly, **and** `Framework/InitAllSettings.xaml` itself has to be rebuilt in Studio to
-   deserialize JSON instead of `ReadRange` — it is no longer stock. See
-   [`config-format.md`](../.claude/skills/standards/references/config-format.md) before
-   touching this step if that's the case.
-6. Fill in every `[UC-SPECIFIC — replace]` in `Data/Config_TST.xlsx` **and**
-   `Data/Config_PRD.xlsx`, and wire each `Assets` row to a real Orchestrator asset —
-   [`orchestrator-assets.md`](../.claude/skills/security/references/orchestrator-assets.md).
-7. Replace the placeholder rows in `Tests/Tests.xlsx` and add `Tests/RunAllTests.xaml`.
-
-   No template ships the harness, because like `Main.xaml` it is Studio-generated. Its contract:
-   it reads the `Tests` sheet of `Tests.xlsx`, invokes each named workflow with the arguments in
-   that row, and writes pass/fail back to the `Result` sheet. Seed it from an estate project that
-   already has one — `UC39_BPO_manuelle_Boersenauftraege/Tests/` or
-   `PJFVA-966_UC81_BPO_VD03_TK_Valoren/Tests/`.
-
-   **Do not invoke anything under `Tests/` from production code.** UC39 calls
-   `Tests\RunAllTests_Logging.xaml` from its live process; the test harness then runs as part of
-   the business process, which is how a test fixture ends up writing to a production system. See
-   [`project-layout.md`](../.claude/skills/standards/references/project-layout.md).
-8. Delete `.gitkeep` from any folder that now has real content.
-
-An unreplaced `[UC-SPECIFIC — replace]` marker is a review finding, the same way an
-unresolved `TODO_SELECTOR` is.
+Read it there. Keeping a second copy here is how the two drift apart.
 
 ## The queue name is a contract between the pair
 

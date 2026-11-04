@@ -1,0 +1,10 @@
+{
+  "name": "Proj With Spaces",
+  "description": "Fixture: whitespace in the project name.",
+  "main": "Main.xaml",
+  "projectId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "targetFramework": "Windows",
+  "designOptions": { "modernBehavior": true },
+  "runtimeOptions": { "isAttended": false, "requiresUserInteraction": false },
+  "dependencies": {}
+}

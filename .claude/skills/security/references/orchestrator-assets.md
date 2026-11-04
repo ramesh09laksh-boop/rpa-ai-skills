@@ -3,8 +3,9 @@
 > **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
 > `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
 > what the estate does**, not conformance targets. The `Settings`/`Constants`/`Assets` model and the
-> asset-naming rules carry over unchanged. Modern equivalent for the workbooks themselves:
-> `templates/*/Data/Config_TST.xlsx`.
+> asset-naming rules carry over unchanged. Modern equivalent for the workbooks themselves: the
+> `Data/Config_TST.xlsx` a REFramework template ships (maintainer provenance -- `templates/` is
+> in the rpa-ai-skills repo, not in your project).
 
 Everything here is taken from the three reference projects. Where a secret type has no
 evidenced pattern, that is called out rather than filled in.
@@ -42,7 +43,7 @@ Workflows read `in_Config("<Name>")` and **never** call `Get Asset` themselves. 
 
 | Type | Activity | Evidenced use |
 |---|---|---|
-| **Credential** | `Get Credential` (`GetRobotCredential`) | `AVQ_Credential_1004` (Avaloq + CardOne + SMTP), `Bposecbot@Finnova*` (Finnova), `AI_System_Authorization` (API token) |
+| **Credential** | `Get Credential` (`GetRobotCredential`) | `AVQ_Credential_1004` (Avaloq + CardOne + SMTP), `<ROBOT_ACCOUNT>@Finnova*` (Finnova), `AI_System_Authorization` (API token) |
 | **Text** | `Get Asset` (`GetRobotAsset`) | launch commands, report keywords, endpoints, model ids, recipient lists |
 | **Integer** | `Get Asset` | `Tracelog_RotateInDays`, `Entsperren_QueueItem_Postpone_InHours` |
 | **Bool** | — | **not evidenced.** No Bool asset appears in any of the three projects. |
@@ -121,7 +122,7 @@ Package: `Swisscom.PHI [1.0.7]`, activity `Get PHI Vault`.
 
 ```
 ' Logic/Logic-PHI_Vault_Get.xaml — the whole workflow
-Get PHI Vault   ObjectName   = AccountName        ' e.g. "BPOSECBOT@FinnovaSB1"
+Get PHI Vault   ObjectName   = AccountName        ' e.g. "<ROBOT_ACCOUNT>@<FinnovaInstance>"
                 PHIEndpoint  = Obsolete           ' literal value in the sample
                 UserName     = User
                 Password     = Password           ' SecureString
@@ -131,11 +132,11 @@ Object names live in config, one per system:
 
 | Config key | Object name |
 |---|---|
-| `Finnova_System_PHI_Valut_Name` *(sic)* | `BPOSECBOT@FinnovaSB1` |
-| `Finnova_System_PHI_Account_Name_<TOWER>` | `Bposecbot@FinnovaEntris`, `TAATROPA@FinnovaNovus`, … |
-| `Mail_System_PHI_Vault_Name` | `BPOSEC.Robotics` |
-| `UBS_KeyTrader_PHI_Vault_Name` | `UBSKeyTrader@UC81` |
-| `SIX_ID_System_PHI_Vault_Name_FIN` / `_AVQ` | `SMG3@SIXID` / `SMG2@SIXID` |
+| `Finnova_System_PHI_Valut_Name` *(sic)* | `<ROBOT_ACCOUNT>@<FinnovaInstance>` |
+| `Finnova_System_PHI_Account_Name_<TOWER>` | `<ROBOT_ACCOUNT>@<FinnovaTower>`, `<ROBOT_ACCOUNT_2>@<FinnovaTower2>`, … |
+| `Mail_System_PHI_Vault_Name` | `<MAIL_ROBOT_ACCOUNT>` |
+| `UBS_KeyTrader_PHI_Vault_Name` | `<KEYTRADER_ACCOUNT>@<UC>` |
+| `SIX_ID_System_PHI_Vault_Name_FIN` / `_AVQ` | `<SIX_ACCOUNT_FIN>@SIXID` / `<SIX_ACCOUNT_AVQ>@SIXID` |
 
 **The object name is an identifier, not a secret** — that is why it sits in a committed
 config sheet.
@@ -154,7 +155,7 @@ Orchestrator credential instead.
 
 `UC39/Finnova_System/Finnova-Login.xaml` has the `Get PHI Vault` call **commented out**
 (inside a `CommentOut` "Ignored Activities" block) and uses `Get Credential` instead — with
-the asset name set to the *PHI account name* (`Bposecbot@FinnovaEntris`).
+the asset name set to the *PHI account name* (`<ROBOT_ACCOUNT>@<FinnovaTower>`).
 
 So: the Orchestrator credential asset is named after the CyberArk object. That makes
 switching mechanisms a config change rather than a code change. Preserve the convention —

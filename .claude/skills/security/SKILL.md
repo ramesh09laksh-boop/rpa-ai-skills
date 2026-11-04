@@ -19,7 +19,7 @@ environment without a redeploy lives in an Orchestrator **asset**.
 ## The three rules
 
 1. **No secret ever appears in a `.xaml`, a config sheet, or a log.** Config holds the
-   *name* of a credential (`AVQ_Credential_1004`, `Bposecbot@FinnovaEntris`), never its
+   *name* of a credential (`AVQ_Credential_1004`, `<ROBOT_ACCOUNT>@<FinnovaTower>`), never its
    value.
 2. **Passwords stay `SecureString` end to end.** Every library `Login` activity takes a
    `SecureString`. The `StringPassword` argument on both `Login` activities is a plaintext

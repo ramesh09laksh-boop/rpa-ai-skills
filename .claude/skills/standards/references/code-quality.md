@@ -171,7 +171,8 @@ What inspecting them turned up, for whoever decides:
   gate rather than a suggestion.
 
 Once the file is agreed, ship it inside a skill (`assets/`) so it travels with
-`npx skills add`; a file under `templates/` or the repo root does not reach UC projects.
+`npx skills add`. A file under `templates/` or at the rpa-ai-skills repo root is **not in your
+project** — only skill folders are installed, so a rule file parked there reaches nobody.
 
 ## When the gate applies
 

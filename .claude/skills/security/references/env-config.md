@@ -3,8 +3,9 @@
 > **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
 > `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
 > what the estate does**, not conformance targets. The `Settings`/`Constants`/`Assets` model and the
-> asset-naming rules carry over unchanged. Modern equivalent for the workbooks themselves:
-> `templates/*/Data/Config_TST.xlsx`.
+> asset-naming rules carry over unchanged. Modern equivalent for the workbooks themselves: the
+> `Data/Config_TST.xlsx` a REFramework template ships (maintainer provenance -- `templates/` is
+> in the rpa-ai-skills repo, not in your project).
 
 ## There is no `.env` file
 
@@ -41,18 +42,28 @@ Three sheets, read by `Framework/InitAllSettings.xaml`.
 
 Environment-specific values that do not need to change without a redeploy.
 
+The **shapes**, with the values written as what they are rather than as a real environment's.
+This block used to carry a working PRD set — a vault account name, a mail host, a shared mailbox
+at a bank domain and an output path. It is illustrative either way, and a skill ships to every
+install and into every agent's context, so the shapes are what belongs here:
+
 ```
-OrchestratorQueueName                 CommissionAI_Queue
-Finnova_System_PHI_Account_Name_ENT   Bposecbot@FinnovaEntris
-Finnova_System_Win_Title_ENT          BRZ Entris*
-Mail_System_Server                    https://webmail.swisscom.com
-Mail_System_SharedMailbox             bas.boersenabrechnungen@swisscom.com
-File_System_Folder_TraceLogs          D:\Data\RPA\BPO\UC39\Output\Trace Logs
-AI_System_Credential                  AI_System_Authorization
+OrchestratorQueueName                 UC<NN>_<Purpose>_Queue
+Finnova_System_PHI_Account_Name_ENT   <vault-object-name>        # an identifier, not a secret
+Finnova_System_Win_Title_ENT          <window title pattern>*
+Mail_System_Server                    https://<exchange-host>
+Mail_System_SharedMailbox             <shared-mailbox-address>
+File_System_Folder_TraceLogs          <absolute path>\Output\Trace Logs
+AI_System_Credential                  AI_System_Authorization    # the ASSET NAME
 ```
 
 Note what these are: queue names, **account names**, window titles, server URLs, mailbox
 addresses, folder paths, and the *name of* a credential asset. **No passwords.**
+
+**And note what they are not: yours.** Fill every one from your own project's workbook and the
+assets in your own Orchestrator folder. A value copied out of a skill, a wiki or another UC is
+how a project ends up quietly pointed at a different environment — the failure mode that passes
+every static check because the value is well-formed.
 
 ### `Constants` — `Name | Value | Description`
 
@@ -149,9 +160,10 @@ config sheet into a ticket, a test fixture or an external tool.
   (`Avaloq_System_Credendials`, `Finnova_System_PHI_Valut_Name`).
 - **No check that `TST` and `PRD` have the same keys.** Worth adding to a build step.
 - **Argument defaults duplicate config.** Several workflows carry hardcoded defaults in
-  their `x:Class` attributes — e.g. `Finnova-Login.xaml` defaults
-  `in_FinnovaLaunchCmd = "D:\finnova\novusprd\jureclient\cmd\start_finnova_jure.cmd"` and
-  `in_ObjectName = "TAATERPA@FinnovaNovus"`, `Avaloq_Login.xaml` defaults
-  `in_Avaloq_System_Client_Path` and the integration-server arguments. These are debugging
-  conveniences that survive into production; they are **not secrets**, but they are stale
-  production paths in source control. Prefer leaving defaults empty.
+  their `x:Class` attributes — `Finnova-Login.xaml` defaults a launch-command path and a vault
+  object name, `Avaloq_Login.xaml` defaults `in_Avaloq_System_Client_Path` and the
+  integration-server host, port and system id. These are debugging conveniences that survive
+  into production; they are **not secrets**, but they are stale production coordinates in source
+  control, and one of them has already drifted out of step with config. Leave defaults empty.
+  The four occurrences, with their shapes: `references/prohibited-practices.md` →
+  *Argument defaults*.

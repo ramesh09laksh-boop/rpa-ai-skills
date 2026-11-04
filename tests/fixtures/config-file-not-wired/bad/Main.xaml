@@ -1,0 +1,11 @@
+<Activity x:Class="Main" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <x:Members>
+    <x:Property Name="in_ENV" Type="InArgument(x:String)" />
+  </x:Members>
+  <Sequence DisplayName="Main">
+    <Assign DisplayName="Stock literal, never changed">
+      <Assign.To><OutArgument x:TypeArguments="x:String">[ConfigFile]</OutArgument></Assign.To>
+      <Assign.Value><InArgument x:TypeArguments="x:String">Data\Config.xlsx</InArgument></Assign.Value>
+    </Assign>
+  </Sequence>
+</Activity>

@@ -42,9 +42,9 @@ Three live examples where a space is part of the selector:
 <webctrl tag='TD' rowName='ISIN ' tableCol='2' />
 ```
 
-Trailing spaces come from the page markup (`<td>ISIN </td>`). `selector-intelligence
-get-selector-attributes` prints values double-quoted so the padding is visible — copy what is
-between the quotes verbatim, and do not trim.
+Trailing spaces come from the page markup (`<td>ISIN </td>`). The capture flow prints attribute
+values double-quoted so the padding is visible — copy what is between the quotes verbatim, and do
+not trim.
 
 **Better still, wildcard it.** Measured on SIX iD 2026-09-30, the real padding is *two*
 trailing spaces (`rowName="Versammlungsdatum  "`) where this estate's reference docs say one.
@@ -85,15 +85,17 @@ closing one.
 
 ## Building a selector — never by hand
 
-Do not translate a snapshot into a selector yourself. The selector is produced by
-`target-anchorable resolve-defaults`, hardened with `selector-intelligence get-ancestors` /
-`get-selector-attributes`, and accepted only once `selector-intelligence evaluate` reports
-your target as the sole matching candidate.
+Do not translate a snapshot into a selector yourself, **and do not assemble one by calling the
+selector-building CLIs yourself either.** The official UIA package docs are explicit:
+*"Never manually call internal selector-building `uip rpa uia` CLIs. Direct calls bypass
+improvement and OR registration, leaving fragile unregistered selectors."* The selector is
+produced, hardened, gated and registered by the package's own capture flow as one operation —
+the `web` skill, *The loop*, routes to it. Command names are not reproduced here because the
+CLI surface is co-versioned with the UIA package, not with this repo.
 
-The page tree (`tree.yml` from `uip rpa uia snapshot capture <bN>`) is for **choosing which
-element** to configure — its `eN` ref — not for reading attributes into a selector. Attributes
-lifted from a tree, a screenshot or `interact get-all` are exactly the guesses this file
-exists to prevent.
+The page tree (`tree.yml` from the snapshot CLI) is for **choosing which element** to
+configure — its `eN` ref — not for reading attributes into a selector. Attributes lifted from a
+tree, a screenshot or a get-all dump are exactly the guesses this file exists to prevent.
 
 What the tree is good for:
 
@@ -106,15 +108,17 @@ What the tree is good for:
 
 **Two dropdowns that look identical can behave differently.** On SIX iD, `Suchtyp` is a plain
 `<select>` and `SelectItem` sticks; `Suche in` is a hidden `<select>` behind a custom widget
-that silently reverted a `SelectItem` back to its default while the CLI reported success. Query
-`interact get <eN> items` and, when in doubt, drive it click-to-open then click-the-option.
+that silently reverted a `SelectItem` back to its default while the CLI reported success. Read
+the element's items back through the capture flow's interaction CLI and, when in doubt, drive it
+click-to-open then click-the-option.
 
 ## Verification checklist
 
 Before committing a selector:
 
-- [ ] Produced by `resolve-defaults` and accepted by `selector-intelligence evaluate` — never hand-written
-- [ ] `evaluate` listed your target and nothing else (unless it is a deliberate set)
+- [ ] Produced and registered by the package's capture flow — never hand-written, and never
+      assembled by hand-calling the internal selector-building CLIs
+- [ ] The registration gate listed your target and nothing else (unless it is a deliberate set)
 - [ ] Uses the highest-ranked attribute available
 - [ ] Unique — no second match on the page
 - [ ] Any leading/trailing whitespace preserved verbatim

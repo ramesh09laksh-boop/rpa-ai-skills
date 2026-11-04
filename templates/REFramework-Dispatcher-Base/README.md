@@ -67,7 +67,7 @@ End If
 The source read itself belongs in a `*_System/` workflow (`Mail_System/`, `File_System/`, …),
 not inline in the Framework file — `<Application>_System/` touches the source, `Logic/`
 decides. See
-[`where-does-it-go.md`](../../.claude/skills/standards/references/where-does-it-go.md).
+the `standards` skill, `references/where-does-it-go.md`.
 
 **`Logic/`** — the selection rule lives here, as a workflow taking a row and returning a
 boolean plus a reason. Keeping it out of `Process.xaml` is what makes the rule testable
@@ -102,7 +102,7 @@ Filled-in rows and what each is for: [`Data/config-contents.md`](Data/config-con
 
 The `Assets` sheet ships one credential row per authenticated application, marked
 `[UC-SPECIFIC — replace]`. Wire each to a real Orchestrator asset —
-[`orchestrator-assets.md`](../../.claude/skills/security/references/orchestrator-assets.md).
+the `security` skill, `references/orchestrator-assets.md`.
 If the Dispatcher's source needs no login, **delete** the `Source_System_Credential` row
 rather than leaving a placeholder that resolves to nothing at runtime.
 
@@ -126,6 +126,6 @@ Nothing in `Tests/` may be invoked from `Process.xaml`.
 
 ## Related skills
 
-- [`standards`](../../.claude/skills/standards/SKILL.md) — where each workflow goes, naming, error handling
-- [`security`](../../.claude/skills/security/SKILL.md) — credentials, assets, the never-do list
-- [`pdd-sdd-scaffolding`](../../.claude/skills/pdd-sdd-scaffolding/SKILL.md) — turning the SDD's source/filter description into the first draft
+- the `standards` skill — where each workflow goes, naming, error handling
+- the `security` skill — credentials, assets, the never-do list
+- the `pdd-sdd-scaffolding` skill — turning the SDD's source/filter description into the first draft

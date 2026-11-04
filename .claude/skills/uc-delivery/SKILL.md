@@ -85,7 +85,17 @@ it. Create this block at stage 2 and keep it current:
 | Package feed        | the feed this folder uses — <name or URL> |
 | Environment         | TST  ·  production is <folder path>, separate approval required |
 | uip login           | `uip login --authority <host> --tenant <tenant> --profile <tst|prd>` |
+| **UiRobot path**    | C:\Program Files\UiPath\Studio\UiRobot.exe |
+| **Robot user**      | <DOMAIN\account the robot service runs as> |
+| **Robot connected to Orchestrator?** | yes / no — asked, not probed |
 ```
+
+The last three are what an **L4-local** run needs, and they are **asked for once, together**, at
+the start of stage 7b — not one question per step. Without the folder path a credential asset has
+nowhere to resolve from; without knowing whether the robot is connected at all, an asset failure
+is unreadable. `UiRobot` has no status verb and `connect`/`disconnect` rebind the machine's robot
+service, so this is a question, not a probe. The `standards` skill,
+`references/end-to-end-run.md` Part 0.
 
 **Non-secret facts only.** Names, hosts, paths, accounts, folder paths. **Never** a password,
 token, client secret, API key or connection string — those live in Orchestrator assets, and
@@ -97,26 +107,36 @@ default. Detail: the `standards` skill, `references/decisions.md` §0.
 ## The ten stages, and the gate on each
 
 A stage is not done until its gate is met. Gates use the evidence ladder — **L1** static,
-**L2** compiles + analyzer, **L2b** packs, **L3** Studio Error List empty, **L4** a real job on
+**L2** compiles + analyzer, **L2b** packs, **L3** Studio Error List empty, **L4-local** the
+packed package run by the UiRobot on this machine in an Orchestrator folder, **L4** a real job on
 TST in the Orchestrator folder, on a robot, with the SDD acceptance table (the
-`project-scaffolding` skill, `references/evidence-ladder.md`). A local run or a mocked run is
-**L3 at most**.
+`project-scaffolding` skill, `references/evidence-ladder.md`). A **sources** run
+(`uip rpa run`, Studio Debug) or a mocked run is **L3 at most**. L4-local is the default
+end-to-end run and needs no `uip login`; L4 is **ask-first**.
 
 | # | Stage | Load | Gate |
 |---|---|---|---|
 | 1 | PDD → SDD | `standards`, `security` | Every transaction type and its work-item columns defined; Open Questions listed |
 | 2 | SDD → Project | `project-scaffolding` | **L3** |
 | 3 | Wire the Framework | `standards` (`references/wiring-the-framework.md`), `security` | **L3**, and the 0-transaction guard observed firing |
-| 4 | Capture targets | `web` | Every `TODO_SELECTOR` resolved or recorded with a reason; `.objects/` committed |
-| 5 | Develop leaf workflows | `standards` + the app skill(s), `pdd-sdd-scaffolding` | **L2**, `_System` contract met |
+| 4–5 | Capture **and** develop, one workflow at a time | `web` + `standards` + the app skill(s); `pdd-sdd-scaffolding` only in OFFLINE mode | Every row of `Documentation/Leaf_Ledger.md` reads `yes`, **and** each workflow was run once against the live application with the command recorded. `.objects/` committed |
 | 6 | Test data → tests | `standards` (`references/test-data.md`), `security` | `Tests.xlsx` built; no case marked passed without a run |
 | 7 | Review | `standards`, `security`, app skill(s) | Analyzer clean, **and the report names which rule set ran** |
-| 8 | UAT readiness | all of the above | **L4** — a real job, with state, logs and the SDD acceptance table |
+| 7b | End-to-end run | `standards` (`references/end-to-end-run.md`), `security` | **L4-local (folder: …)** by default — the packed package run by the local UiRobot in a folder, with the acceptance table. Then **L4** (**ask first**) — a real job on a robot. A Successful run that processed 0 transactions is a failure at either level |
+| 8 | UAT readiness | all of the above | **L4** — a real job, with state, logs and the SDD acceptance table. L4-local does not substitute |
 | 9 | Deployment readiness | `standards` (`references/deployment.md`), `security` | TST first, at **L2b** and **L4**. PRD only with named approval |
 | 10 | Change / enhancement | whatever the project already uses | Re-run 6–8 for what the change touches |
 
-Stages 3 and 4 are the ones most often skipped, and both fail silently: an unwired Framework
+**Stages 4 and 5 are one loop, not two stages.** Per workflow: capture → author → run once →
+pack → ledger row → commit → next workflow. Capturing every screen first and authoring afterwards
+is what let a project with a live session ship `TODO_SELECTOR` placeholders and no capture at all.
+In LIVE mode a whole workflow is never deferred to `TODO_SELECTOR`; only an individual target that
+fails the registration gate is, with the reason recorded. Ledger template and column meanings:
+the `standards` skill, `references/leaf-ledger.md`.
+
+Stages 3 and 4–5 are the ones most often skipped, and both fail silently: an unwired Framework
 runs green on **zero** transactions, and an unresolved selector fails only when the robot runs.
+A Framework wired to leaf workflows whose bodies are stubs does both at once.
 
 ## Ask the decisions one at a time, in plain language
 
@@ -151,11 +171,20 @@ Studio blockers are a missing Studio *session*, which `uip rpa studio start` pro
 Working rules: never invent a selector, activity, argument, API, config value, credential or
 business rule — if the source is silent it is an Open Question / TODO. Report the highest
 check level reached, with the command used: L1 validate-project, L2 uip rpa validate+build,
-L2b uip rpa pack, L3 Studio Error List clean, L4 a real job on TST in the Orchestrator folder
-on a robot with the SDD acceptance table. A local run or a mocked run is L3 at most, never L4.
-"Needs Studio" only with the exact command and its error. Commit locally after each item; keep
-Documentation/Progress.md updated. Do not stop between items — log a blocker and continue with
-the next.
+L2b uip rpa pack, L3 Studio Error List clean, L4-local the packed package run by the UiRobot on
+this machine in an Orchestrator folder (quote it as "L4-local (folder: <folder>)"), L4 a real job
+on TST in the Orchestrator folder on a robot with the SDD acceptance table. A sources run or a
+mocked run is L3 at most; L4-local is never reported as L4. "Needs Studio" only with the exact
+command and its error. Commit locally after each item; keep Documentation/Progress.md updated.
+Do not stop between items — log a blocker and continue with the next.
+
+ASK ME FIRST before anything that authenticates to, or changes, Orchestrator — naming the exact
+command and why, then wait. That includes `uip login`, ANY `uip or ...` command (even a read),
+`uip rpa publish`, `uip or packages upload`, `uip or jobs start`, creating or changing a
+process/asset/queue/trigger/folder, `UiRobot connect` or `disconnect`, `uip rpa restore` where
+the feed is Orchestrator-hosted, and installing anything. Reading files and `--help` are always
+fine, as are `uip --version`, `uip tools list`, `uip login status`, validate-project, and
+`uip rpa validate`/`build`/`pack`/`analyze`. Do not run it and tell me afterwards.
 ```
 
 When something breaks, start at the `standards` skill, `references/troubleshooting.md` — the
@@ -170,9 +199,54 @@ Not decisions, and not negotiable:
 - **Never type or paste a credential** — not into a prompt, a snapshot, a definition file or a
   chat. Credentials come from the Orchestrator asset. If one is missing, that is a checkpoint.
 - **Destructive actions only on data you have been told is throwaway.**
+- **Ask before anything that authenticates to, or changes, Orchestrator.** See below.
 
-Stop and ask before any action that touches data outside TST throwaway data, or needs a
-credential you were not given. Those are the only two reasons to stop mid-run.
+### Ask before touching the tenant
+
+The line is not read-versus-write. It is *"does this authenticate to Orchestrator, or change
+it?"* — a read still signs in, under whoever's identity the local token holds, and lands in the
+tenant's audit log under their name.
+
+**Always fine, never ask:** reading files; `--help` at any depth; `uip --version`,
+`uip tools list`, `uip login status` (reads the **local** token, authenticates nothing);
+`validate-project`, `lint-skills`, the rule fixtures, `preflight` without `-FolderPath`;
+`uip rpa validate` / `build` / `pack` / `analyze`; `UiRobot version`, `UiRobot pack`.
+
+**Ask first, naming the exact command and why:** `uip login` · **any** `uip or …`, including a
+pure read like `or folders list` · `uip rpa publish` / `uip or packages upload` ·
+`uip or jobs start` · creating or updating a process, asset, queue, trigger or folder ·
+`UiRobot connect` / `disconnect` (this rebinds **the machine's** robot service) ·
+`uip rpa restore` where the feed is Orchestrator-hosted · `uip skills install` /
+`npx skills add` · anything else that reaches the tenant.
+
+Name the command verbatim, say whether it only reads or also changes something, say what you
+need it for, and **wait**. Do not run it and report afterwards: "I ran it and it was fine" is
+not consent, and on a bank tenant it is not recoverable either.
+
+`preflight -FolderPath` runs `uip or …` reads — **passing the switch is the asking.** Its
+library-feed check runs `uip rpa restore`, an authenticated read against an Orchestrator-hosted
+feed; `-SkipFeedCheck` turns it off. Full list: `AGENTS.md` in this repo.
+
+### The official `uipath-rpa` skill
+
+Every `uip rpa` invocation asks for it, and this estate's skills now route CLI mechanics there
+on purpose — the `web` skill deliberately carries no `uia` command table. `preflight` reports
+whether it is installed for this agent, and warns when a copy's `targetCli` does not match the
+installed host.
+
+**If it is missing: ask once, then install it.** Installing software is on the ask-first list.
+
+```bash
+npx skills add https://github.com/uipath/skills --skill uipath-rpa --agent <id> -y
+```
+
+Confirm `<id>` with `npx skills add --help` — `claude-code`, `github-copilot`, `codex`,
+`opencode`, or `'*'`; **`copilot` is not valid**. `uip skills install` is the alternative and
+keeps itself updated. Record which route was used and the version it landed, in
+`Documentation/Progress.md`.
+
+Stop and ask before any action that touches data outside TST throwaway data, needs a credential
+you were not given, or authenticates to the tenant.
 
 ## Working alongside the official UiPath skills
 

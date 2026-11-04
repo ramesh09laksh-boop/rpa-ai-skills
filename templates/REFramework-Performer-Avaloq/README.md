@@ -45,7 +45,7 @@ production settings.
 
 **Create `Avaloq_System/`.** Every workflow that touches a Smart Client window lives here and
 nowhere else; `Logic/` decides, `Avaloq_System/` acts. See
-[`systems/avaloq-system.md`](../../.claude/skills/standards/references/systems/avaloq-system.md).
+the `standards` skill, `references/systems/avaloq-system.md`.
 
 **`Framework/InitAllApplications.xaml`** — start `smartclient.exe` and log in. Path and
 launch arguments come from Orchestrator Text assets, so an environment or tenant move is a
@@ -60,7 +60,7 @@ Credentials come from `Get Credential` against the asset in the `Assets` sheet. 
 also ships its own UI-driven CyberArk flow (`CyberArk/OpenPHI`, `GetCyberArkAccount`,
 `ClosePHI`); if you use it, **always call `ClosePHI`**, or you leave a browser session holding
 a retrieved secret. TKB-UC11 uses the Orchestrator credential instead.
-[`orchestrator-assets.md`](../../.claude/skills/security/references/orchestrator-assets.md).
+the `security` skill, `references/orchestrator-assets.md`.
 
 **`Framework/GetTransactionData.xaml`** — stock. `Get Transaction Item` against
 `in_Config("OrchestratorQueueName")` and `in_Config("OrchestratorQueueFolder")`. Do not change
@@ -73,11 +73,11 @@ selectors: the addressing arguments are `WindowCtrlName` / `SectionCtrlname` /
 `GroupAaname` / `ContainerCtrlname` / `FieldCtrlname`, and the
 `BreakIfConfirm` / `ConfirmMessage` / `ErrorMessage` contract is how the client tells you it
 refused — check it, don't assume success. Full API:
-[`avaloq-library`](../../.claude/skills/avaloq-library/SKILL.md).
+the `avaloq-library` skill.
 
 If the process reads the embedded Smart Client Report web tables, that browser work goes in
 `Web_Nav_System/` — the one place raw web selectors are allowed outside `Tests/`. See
-[`web`](../../.claude/skills/web/SKILL.md).
+the `web` skill.
 
 **Exceptions** — `BusinessRuleException` when Avaloq refused (carry its `ErrorMessage` /
 `ConfirmMessage` text into the message), `ApplicationException` for technical failure. The
@@ -122,8 +122,8 @@ Nothing in `Tests/` may be invoked from `Process.xaml`.
 
 ## Related skills
 
-- [`avaloq-library`](../../.claude/skills/avaloq-library/SKILL.md) — activity API, addressing arguments, the confirm/error contract
-- [`standards`](../../.claude/skills/standards/SKILL.md) — where each workflow goes, naming, error handling
-- [`security`](../../.claude/skills/security/SKILL.md) — credentials, assets, the never-do list
-- [`web`](../../.claude/skills/web/SKILL.md) — the embedded report browser
-- [`pdd-sdd-scaffolding`](../../.claude/skills/pdd-sdd-scaffolding/SKILL.md) — scaffolding from an SDD when Avaloq isn't reachable
+- the `avaloq-library` skill — activity API, addressing arguments, the confirm/error contract
+- the `standards` skill — where each workflow goes, naming, error handling
+- the `security` skill — credentials, assets, the never-do list
+- the `web` skill — the embedded report browser
+- the `pdd-sdd-scaffolding` skill — scaffolding from an SDD when Avaloq isn't reachable

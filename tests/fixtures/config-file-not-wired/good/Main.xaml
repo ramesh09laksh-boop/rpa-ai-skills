@@ -1,0 +1,11 @@
+<Activity x:Class="Main" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <x:Members>
+    <x:Property Name="in_ENV" Type="InArgument(x:String)" />
+  </x:Members>
+  <Sequence DisplayName="Main">
+    <Assign DisplayName="Pick the workbook from in_ENV">
+      <Assign.To><OutArgument x:TypeArguments="x:String">[ConfigFile]</OutArgument></Assign.To>
+      <Assign.Value><InArgument x:TypeArguments="x:String">[If(String.IsNullOrWhiteSpace(in_ENV), "Data\Config_TST.xlsx", "Data\Config_" &amp; in_ENV.Trim().ToUpperInvariant() &amp; ".xlsx")]</InArgument></Assign.Value>
+    </Assign>
+  </Sequence>
+</Activity>

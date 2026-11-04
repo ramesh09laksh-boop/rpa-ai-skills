@@ -1,0 +1,16 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib">
+  <x:Members>
+    <x:Property Name="in_Reference" Type="InArgument(x:String)" />
+    <x:Property Name="out_Status" Type="OutArgument(x:String)" />
+  </x:Members>
+  <Sequence DisplayName="Body">
+    <Assign DisplayName="Guard, then convert separately">
+      <Assign.To><OutArgument x:TypeArguments="x:Boolean">[Parsed]</OutArgument></Assign.To>
+      <Assign.Value><InArgument x:TypeArguments="x:Boolean">[IsNumeric(in_Reference)]</InArgument></Assign.Value>
+    </Assign>
+    <Assign DisplayName="Convert">
+      <Assign.To><OutArgument x:TypeArguments="x:Int32">[ParsedNumber]</OutArgument></Assign.To>
+      <Assign.Value><InArgument x:TypeArguments="x:Int32">[CInt(in_Reference)]</InArgument></Assign.Value>
+    </Assign>
+  </Sequence>
+</Activity>

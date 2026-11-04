@@ -7,6 +7,206 @@ Tag each release (`git tag -a v<x.y> -m ...`) so a project can pin or roll back.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
+## [Unreleased] — v0.2.2
+
+**Merged to `main` on 2026-11-04 via PR #4, not tagged.** Branched from `main` (which was
+content-identical to `chore/post-release-0.2.1` — the diff was empty). CI green on all six jobs
+on the PR before merge.
+
+> **Merged with three follow-up items still open**, at Ramesh's explicit decision after the
+> release consequence was stated: the `designOptions.modernBehavior` comparison and proposal,
+> `leaf-body-stub` calibration against the Lanes and Google projects, and two further *Known
+> open* entries. Tracking continues against `main`.
+>
+> **No tag was cut.** A UC project that needs to stay still cannot pin this release by tag —
+> `owner/repo#v0.2.2` does not exist. Cut one, or pin a branch, before telling anyone to pin it.
+
+A correctness release. Most of it comes from two real runs — a Lanes capture and a Google
+search demo — that each produced a project passing every check while doing nothing.
+
+**Evidence level per item.** `verified` = a command was run and its output is in the commit.
+`documented` = confirmed against the official co-versioned docs, not run. `unverified` = stated
+as such, in the file itself.
+
+| # | Change | Evidence |
+|---|---|---|
+| 1 | Capture under the role the robot runs as | verified (lint) · the Owner-session finding is from the Lanes run |
+| 2 | The 2–3 screen boundary is a commit, not a stop | verified (lint; `grep` before/after) |
+| 3 | Stages 4 and 5 merged into one per-workflow loop; leaf ledger | verified (lint) |
+| 4 | `leaf-body-stub` rule; three StrictMode crashes fixed | verified (probe, both severities, plus a no-false-positive case) |
+| 5 | `web` CLI claims re-verified; command table replaced | documented (official UIA package docs 26.10.4, quoted with file and line) |
+| 6 | Stage 3 prompt names `KillAllProcesses` | verified (all seven matched against the prompt text) |
+| 7 | `rpa-legacy` section trimmed to one line | verified (lint) |
+| 8 | Skills made self-contained; install-simulation lint | verified (73 findings → 0, plus a negative control) |
+| 9 | Data hygiene | verified (residual scan = 0 across 7 categories, plus a negative control) |
+| 10 | A bad/good fixture per `validate-project` rule | verified (62/62, plus two negative controls) |
+| — | .NET SDK 8.0 prerequisite; official installer documented | documented (official install page + `uipath-rpa` skill) · the installer itself was **not run** |
+| — | Official `uipath-rpa` skill checked by preflight; ask-first before touching the tenant | verified (6 copies found, a real co-version drift surfaced; `npx skills add --help` and a read-only `--list`) |
+| — | **L4-local** — pack, then run the package on the local UiRobot in a folder | documented (every `UiRobot` flag read from `--help`; `UiRobot version` run) · the **run itself was not executed** — no robot here is bound to a folder |
+
+### Added
+
+- **`leaf-body-stub`** validate-project rule — a leaf workflow whose body contains no activity
+  that does the step. The four leaf-contract rules all check the *signature*, so a file can
+  satisfy every one of them and still be a `Log Message` in a `Sequence`. A Framework correctly
+  wired to workflows like that reads its transactions, dispatches them, marks them Successful
+  and performs **no work** — while passing `validate`, `build`, `analyze`, `pack`, Studio's
+  Error List, and a real Orchestrator job with a non-zero transaction count. Warning
+  mid-build; **error** under the new `-UatReadiness` / `--uat-readiness` switch.
+- **`tests/`** — a bad/good fixture per validate-project rule, with CI asserting **both**
+  directions (`bad` must fire, `good` must be silent) and a coverage check that fails when a
+  rule has no fixture. 31 rules, 62 assertions. CI previously checked only that `templates/`
+  produces zero findings, which proves a rule does not false-positive and nothing about whether
+  it still works.
+- **`infra-identity-value`** skill-lint rule — real IPs, e-mail addresses and customer
+  identifiers inside skills, as errors. Not secrets, which is why they were written down and why
+  nothing flagged them.
+- **`install-simulation`** skill-lint rule — each skill is copied **alone** to a temp directory,
+  which is what `npx skills add --skill <name>` delivers, and every relative link and
+  repo-level path mention is resolved there.
+- **`standards/references/leaf-ledger.md`** — the `Documentation/Leaf_Ledger.md` template. Seven
+  columns, each documented with the silent failure it catches. The capture-and-develop stage is
+  gated on the whole ledger, not on the count of files that exist.
+- **`project-scaffolding/references/instantiating-templates.md`** — the instantiation checklist,
+  moved out of a file the fetch script never delivered.
+- **The probe trap** in `web/SKILL.md` — a logged-in probe inside a card whose `TargetApp` is
+  the sign-in screen, with `OpenMode = IfNotOpen`, can never fire.
+- **.NET SDK 8.0** in the README prerequisites and as a `preflight` check, framed as a
+  prerequisite of **`uip rpa`** rather than of capture, with the official installer, its skip
+  switches, and a restricted-network section.
+- **`L4-local` — a sixth rung on the evidence ladder.** `pack`, then run **the packed package**
+  with the UiRobot on this machine, pointed at an Orchestrator folder so the credential asset
+  resolves. **No `uip login`, nothing changed in the tenant**, so it is the default end-to-end
+  run and the Orchestrator job becomes a second, ask-first step. Quoted with its folder —
+  `L4-local (folder: Modern/RAP-Demo)`. `UiRobot execute` **does** have a `--folder` option;
+  every flag was read from `UiRobot help execute` rather than guessed. `end-to-end-run.md` is
+  restructured around it: Part 0 (ask four facts once) → Part 1 (L4-local) → Part 2 (robot
+  prerequisites — the part L4-local cannot reach) → Part 3 (the Orchestrator job, ask-first) →
+  Part 4 (the acceptance table, which now applies at both levels).
+- **Preflight checks the official `uipath-rpa` skill**, agent-aware, in every known install
+  location — and compares each copy's `targetCli` against the installed host. It does **not**
+  install it: that is an ask-first action.
+- **An ask-first rule for the tenant**, in `AGENTS.md`, `uc-delivery` and the README
+  Working-rules block. The line is *not* read-versus-write: a read still signs in, under
+  whoever's identity the local token holds, and lands in the audit log under their name — so
+  `uip or folders list` is on the ask list. New `preflight -SkipFeedCheck` /
+  `--skip-feed-check`, because the library-feed check runs `uip rpa restore`, which against an
+  Orchestrator-hosted feed is an authenticated read.
+
+### Changed
+
+- **Stages 4 and 5 are one loop**, per workflow: capture → author → run once → pack → ledger
+  row → commit → next. Separating them is what let a project *with a live session* ship
+  `TODO_SELECTOR` placeholders and no capture at all.
+- **`web/SKILL.md` no longer carries a `uip rpa uia` command table.** All four claims from the
+  Lanes run were checked against the official docs; one of them is why the table is gone:
+  *"Never manually call internal selector-building `uip rpa uia` CLIs. Direct calls bypass
+  improvement and OR registration, leaving fragile unregistered selectors."* The old table
+  listed exactly that set. The discipline rules stayed; the command names are now the package's
+  to own.
+- **Skills are self-contained.** The moved checklist above was a real bug — `fetch-template.*`
+  sparse-checks-out `templates/<name>/` only, so the one artefact telling you how to finish
+  instantiating a template was the one artefact it could not deliver. Provenance mentions are
+  now labelled for the reader, and the templates' own delivered `README.md`/`.gitignore` files
+  no longer hard-code `.claude/skills/…` paths that resolve to nothing in a project.
+- **Data hygiene.** Infrastructure and identity values in the skills are replaced by their
+  config **key** and Orchestrator **asset name**. Asset names and config keys stay — they are
+  identifiers you must name to wire anything up.
+- **`preflight` no longer warns at a signed-in machine.** `uip login status` reports
+  `"Logged in"`; the check accepted only `Success`/`Authenticated`, so the L4 readiness checks
+  were unreachable on exactly the machines that could run them.
+- **Stage 3 is "wired, gate open"** until the 0-transaction guard has been *observed firing*.
+  That needs a run, and a run needs the Orchestrator asset.
+
+### Fixed
+
+- **`leaf-body-stub` reported declared mocks; `unresolved-mock` reported none at all.** Both
+  found by running the checker on a real Windows project (UC252) rather than on fixtures, and
+  both are the same underlying mistake — treating the `[MOCK]` *string* as the only way a mock
+  is declared.
+
+  | | Before | After |
+  |---|---|---|
+  | `leaf-body-stub` | **7** findings — 6 under `Mock_System/`, 1 real | **1** |
+  | `unresolved-mock` | **0** | **26** |
+
+  A workflow under `Mock*/` or named `Mock-*` / `Mock_*` is a **declared** mock: doing nothing
+  is its job. Reporting six of them as accidental stubs is how a rule gets blanket-suppressed —
+  and that suppression would have hidden the one true positive beside them
+  (`Bottomline_System/Bottomline_Logout.xaml`, a logout whose body is a `Comment` and a
+  `Log Message`). So `leaf-body-stub` now carves declared mocks out, and `unresolved-mock` now
+  recognises them — that project has 22 of them and **not one** carries the `[MOCK]` string, so
+  the marker-only rule was blind to the whole layer and `mocking.md`'s *"a mocked run reaches L3
+  at most"* cap applied to nothing. `mocking.md` now says a folder name is not a substitute for
+  the marker.
+
+  The fixture suite could not have caught either: every fixture was written by the same person
+  as the rule. `tests/README.md` now says so, under *Fixtures are not a substitute for a real
+  project*.
+- **Three StrictMode crashes in `validate-project.ps1`**, each of which aborted the entire run
+  and reported **no findings at all** rather than failing loudly: a `project.json` without
+  `runtimeOptions`, without `dependencies`, and with an empty `"dependencies": {}`. Dot-access
+  to an absent property throws under StrictMode *even inside* `if ($proj.dependencies)`, so the
+  existing guard did not guard. Nothing in the estate omits those keys, which is why it went
+  unnoticed until a minimal fixture existed.
+
+### Counts and claims that changed
+
+Every one of these was asserted somewhere in the repo or the brief and is wrong:
+
+| Claimed | Actual | How |
+|---|---|---|
+| `validate-project` has **42 rules** | **31** distinct rule ids (30 before `leaf-body-stub`) | 42 is the number of `Add-Finding` **call sites**, in a 42,321-byte script |
+| (my own interim count) **29** rules | 31 | 29 missed `run-output-clean`, emitted as `Add-Finding $sev` rather than a literal severity |
+| **56** repo-level path mentions inside skills | **69** | `grep -raoE` over `.claude/skills`, before any change |
+| *"README stage 4 and `capture-troubleshooting.md` §3 say 2–3 screens per run, then stop"* | **one** place, not two | README said "2–3 screens per run" with no stop instruction |
+| `solution-tool` / `tasks-tool` / `platform-tool` at **1.201.0, needs update** | all **1.204.0, ok**; `resource-tool` gone from `tools list` | `uip tools list`, 2026-11-03 — eight days after the recorded snapshot |
+| `web/SKILL.md`: both UIA packages **"must"** be 26.10.4, no source | the official **minimum** is `UiPath.UIAutomation.Activities` **≥ 26.10.2**, and `UiPath.UIAutomation.CLI` is not named in the official docs at all | the estate's 26.10.4 pin is now presented as a stricter *local* standard, beside the official minimum |
+| *"absolute native Windows paths"* for the UIA CLI | absolute and native-host, but **forward-slash** — `C:/…`, never `/c/…`, `/mnt/c/…` or relative | official `uia-configure-target/SKILL.md` line 16 |
+| `studio-checkpoints.md`: *"run `Main.xaml` on TST **(L4)**"* | **L3 evidence.** A Studio Debug run executes the project *sources* in your own session, which the ladder has always called L3 | the heading contradicted the ladder in the same repo; retitled |
+| The official skill is co-versioned with the CLI, so one copy is as good as another | **three copies, two versions.** `~/.uipath/.skills` at skills `1.204.1` / `targetCli ^1.204.0`; the Claude Code plugin marketplace **and** cache at `1.201.0` / `^1.201.0`; host `1.204.0` | Claude Code loads the **plugin** copy, so the agent reading those docs was a minor version behind the tool it documented. `preflight` now warns on it |
+
+### Known open
+
+- **The data-hygiene redaction is forward-only.** The removed values remain in git history and
+  in any clone or `npx skills add` taken before this branch; `git log -S` on one of them returns
+  a commit. Whether to rewrite history or rotate anything is a decision for Ramesh, not
+  something to do silently.
+- **The stage-5 prompt deviates from the brief by one phrase.** The supplied text said *"a
+  target that fails the `evaluate` gate"*; it now reads *"the registration gate"*, because the
+  official docs forbid calling that CLI by hand. The discipline is unchanged. Flagged for
+  Ramesh to confirm.
+- **Nothing above L1 was reached.** No `uip rpa validate`/`build`/`pack`, no Studio Error List,
+  no robot, no Orchestrator job, **and no L4-local run**. See the per-item evidence table.
+- **The two `UiRobot` facts the L4-local default rests on are unverified**, and
+  `end-to-end-run.md` says so in its own table: that `--file` works **together with**
+  `--folder` (every official example pairs `--folder` with `--package-id`), and that `--folder`
+  is what resolves the credential asset for a `--file` run. No robot here is bound to a folder.
+  **Run Part 1 once against a real folder and correct those two rows first** — a documented
+  fallback via `installprocess` + `--package-id` is recorded in case they are wrong.
+- **The Claude Code plugin copy of the official skill is a minor version behind the CLI**
+  (`1.201.0` against host `1.204.0`). Updating it is the plugin route's business and is
+  ask-first; `preflight` warns until someone does.
+- **Two branches of existing rules have no fixture**, and `tests/README.md` says so:
+  `object-repository-not-shared`'s git-ignored branch (fixtures live outside a repository, so
+  `git check-ignore` cannot be asked) and both `secret-argument-string` carve-outs.
+- **No internal-FQDN lint pattern.** An allowlist of public documentation hosts would need
+  maintaining and would go stale; the one instance found was redacted by hand, and a future one
+  is not caught.
+- **A public infrastructure IP on a line with no host-ish word is not caught** by
+  `infra-identity-value`. A dotted quad is textually indistinguishable from a four-part version
+  string, and this repo has 16 of those.
+- **The official UiPath CLI installer was not run**, so "needs administrator rights" is flagged
+  as the likely case to confirm rather than as fact — the official install page does not state
+  an elevation requirement.
+- ~~**`leaf-body-stub` has no modern-project calibration.**~~ **Closed** — calibrated against
+  UC252 (a real Windows project, 85 workflows, 63 leaf) on 2026-11-04, which found two defects
+  and fixed both. See *Fixed* above. Still worth a second real project before promoting the rule
+  to error outside stage 8.
+- Everything under *Waiting on Ramesh* is untouched: the analyzer rule file, Dispatcher/Performer
+  naming, Avaloq template pins, capture pin vs template pin, the worked example, whether Test
+  Manager exists on the Suite, and the first real L4 run.
+
 ## [Unreleased] — v0.2.1 draft
 
 Not tagged. Branch `chore/post-release-0.2.1`, PR #3.

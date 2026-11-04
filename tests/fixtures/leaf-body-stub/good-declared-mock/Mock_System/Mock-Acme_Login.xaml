@@ -1,0 +1,11 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib">
+  <x:Members>
+    <x:Property Name="in_Config" Type="InArgument(scg:Dictionary(x:String, x:Object))" />
+    <x:Property Name="in_Reference" Type="InArgument(x:String)" />
+    <x:Property Name="out_Status" Type="OutArgument(x:String)" />
+  </x:Members>
+  <Sequence DisplayName="Stand in for the Acme sign-in">
+    <ui:Comment Text="Declared mock. Doing nothing is the entire job." />
+    <ui:LogMessage DisplayName="Pretend to sign in" Level="Info" Message="Mock-Acme_Login: no-op" />
+  </Sequence>
+</Activity>

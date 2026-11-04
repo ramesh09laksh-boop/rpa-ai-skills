@@ -41,5 +41,5 @@ never let the two sheets diverge in their key set.
 | Avaloq_System_Client_Path | Avaloq_SmartClient_Path | *(empty)* | Text asset — smartclient.exe launch path. Config key and asset name differ deliberately; the indirection lets one code base bind to differently-named assets per tenant. |
 | Avaloq_System_Client_Arguments | Avaloq_SmartClient_Arguments | *(empty)* | Text asset — integration server and DB coordinates passed to smartclient.exe. |
 | Avaloq_System_Credentials | [UC-SPECIFIC — replace] | *(empty)* | Credential asset for the Smart Client login. NOTE: TKB-UC11 spells this key Avaloq_System_Credendials (sic) and its workflows match that typo. Do not copy the typo into a new project — but if you lift a workflow from TKB-UC11, fix the key and the workflow together or not at all. |
-| Mail_System_Exception_To | [UC-SPECIFIC — replace] | *(empty)* | Text asset — recipients of the exception mail. Wire to a real Orchestrator Text asset; see .claude/skills/security/references/orchestrator-assets.md. |
+| Mail_System_Exception_To | [UC-SPECIFIC — replace] | *(empty)* | Text asset — recipients of the exception mail. Wire to a real Orchestrator Text asset; see the `security` skill, references/orchestrator-assets.md. |
 

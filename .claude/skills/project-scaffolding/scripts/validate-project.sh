@@ -8,7 +8,9 @@
 # trusts is worse than no checker.
 #
 # Usage:
-#   ./validate-project.sh <project-dir> [<project-dir> ...] [--warnings-as-errors]
+#   ./validate-project.sh <project-dir> [<project-dir> ...] [--warnings-as-errors] [--uat-readiness]
+#
+# --uat-readiness is the stage-8 gate: it promotes leaf-body-stub from warning to error.
 #
 # Exit code 0 when there are no errors, 1 otherwise.
 
@@ -38,21 +40,25 @@ EOF
 fi
 
 if [ $# -eq 0 ]; then
-    echo "usage: $(basename "$0") <project-dir> [<project-dir> ...] [--warnings-as-errors]" >&2
+    echo "usage: $(basename "$0") <project-dir> [<project-dir> ...] [--warnings-as-errors] [--uat-readiness]" >&2
     exit 2
 fi
 
+# Project paths first, switches last: the .ps1 binds -ProjectPath with
+# ValueFromRemainingArguments, so a switch sitting between two paths would be swallowed as a
+# path. Collecting them into separate arrays keeps that from depending on argument order here.
 ARGS=()
-WAE=""
+SWITCHES=()
 for a in "$@"; do
     case "$a" in
-        --warnings-as-errors) WAE="-WarningsAsErrors" ;;
+        --warnings-as-errors) SWITCHES+=("-WarningsAsErrors") ;;
+        --uat-readiness)      SWITCHES+=("-UatReadiness") ;;
         *) ARGS+=("$a") ;;
     esac
 done
 
-if [ -n "$WAE" ]; then
-    exec "$PWSH" -NoProfile -File "$PS1_SCRIPT" "${ARGS[@]}" "$WAE"
+if [ ${#SWITCHES[@]} -gt 0 ]; then
+    exec "$PWSH" -NoProfile -File "$PS1_SCRIPT" "${ARGS[@]}" "${SWITCHES[@]}"
 else
     exec "$PWSH" -NoProfile -File "$PS1_SCRIPT" "${ARGS[@]}"
 fi

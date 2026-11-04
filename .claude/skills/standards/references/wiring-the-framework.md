@@ -14,6 +14,44 @@ This is a stage in its own right, between "project scaffolded" and "develop leaf
 is not finished below **L3** on the evidence ladder (`project-scaffolding` skill,
 `references/evidence-ladder.md`).
 
+## A Framework wired to stubs is a skeleton, not a process
+
+Wiring is necessary and is not sufficient. The mirror image of the Lanes failure is just as
+quiet: a Framework correctly wired — a real `Get Transaction Item`, a `Switch` with one arm per
+transaction type, every arm invoking the right `_System` workflow — where the invoked workflows'
+**bodies** are a `Log Message` each. Transactions are read, dispatched, marked Successful, and
+nothing happens in the application.
+
+That shape passes everything: it compiles, `uip rpa validate` and `build` are clean, the
+analyzer is clean, it packs, and it runs. Studio's Error List is empty. Even a job in the
+Orchestrator folder goes green with a non-zero transaction count — so it clears **L4** on the
+transaction count alone. The only checks that catch it are reading the application state
+independently of the robot's logs (`references/end-to-end-run.md`) and
+`validate-project`'s **`leaf-body-stub`** rule, which reports a leaf workflow whose body
+contains no activity that does the step. It is a warning mid-build and an **error** under
+`--uat-readiness` / `-UatReadiness`: a stub is honest work in progress and is not shippable.
+
+So: **wired** is a statement about `Framework/`. **Done** is a statement about `Framework/`
+*and* the bodies behind it, which is what `Documentation/Leaf_Ledger.md`'s *body real* column
+records (`references/leaf-ledger.md`).
+
+### Stage 3 stays "wired, gate open" until the 0-transaction guard has been observed
+
+Do not report stage 3 as done on the strength of the files looking right. The gate is the guard
+**firing**, not the guard existing:
+
+- Point the configured source at nothing — a queue with no items, a path that matches no file —
+  and **watch it fail**. An `Error` log and a thrown exception, not a green finish.
+- Then put the source back.
+
+**This needs a run, and a run needs the Orchestrator asset** (`InitAllSettings` resolves every
+`Assets` row at startup, so the credential has to exist before anything executes). That is a
+human checkpoint, not something to work around: the `standards` skill,
+`references/studio-checkpoints.md`, Checkpoint 4. Until it has been observed, report stage 3 as
+**"wired, gate open — 0-transaction guard not yet observed, blocked on <the asset>"** and carry
+on with the next stage. Do not write it up as done, and do not substitute "the guard is in the
+XAML" for having seen it fire.
+
 ## Wire in this order
 
 Each step depends on the one before it, so do not skip ahead — a `Process.xaml` dispatch built
@@ -168,7 +206,11 @@ Two cross-file checks that no single file reveals:
 - [ ] All seven files in the table wired, and the report names which
 - [ ] `Process.xaml` has one `Switch` arm per SDD transaction type, each invoking a `_System`
       workflow — no UI activity and no business rule inline
-- [ ] The 0-transaction guard is in place and was observed firing (point the source at nothing)
+- [ ] The 0-transaction guard is in place **and was observed firing** (point the source at
+      nothing). Until then the stage is *"wired, gate open"*, not done — and the report says what
+      it is blocked on
+- [ ] No `leaf-body-stub` finding on a workflow the Framework dispatches to. A wired Framework
+      over stub bodies is a skeleton, not a process
 - [ ] Exceptions classified in `Logic/`, Business vs Application, application text carried
 - [ ] Every credential comes from an Orchestrator asset, fetched in its consuming scope
 - [ ] Every assumption about a transaction type is written in the SDD and `Progress.md`

@@ -52,7 +52,17 @@ param(
     #
     # Never pass this for a real UC project. The whole point of those rules is that a
     # half-instantiated project cannot pass for a finished one.
-    [switch] $TemplateMode
+    [switch] $TemplateMode,
+
+    # The stage-8 (UAT readiness) gate. Promotes leaf-body-stub from warning to error.
+    #
+    # leaf-body-stub is a warning by default for the same reason the four contract rules are:
+    # it is new, and a new rule that fails a build on first contact with a real project gets
+    # switched off rather than fixed. Mid-build, a stub body is honest work in progress.
+    # At UAT it is not - a leaf workflow that does nothing is the estate's signature silent
+    # failure, and shipping one is not a backlog item. So the same rule, a different severity,
+    # keyed to the stage rather than to a judgement call.
+    [switch] $UatReadiness
 )
 
 Set-StrictMode -Version Latest
@@ -173,6 +183,29 @@ function Get-ConfigPairs {
 
 function Get-KeepFileName { '.gitkeep' }
 
+# Safe property read off a ConvertFrom-Json object.
+#
+# Under Set-StrictMode -Version Latest, dot-access to a property a PSCustomObject does NOT have
+# THROWS - and it throws even inside `if ($proj.dependencies)`, so the guard does not guard.
+# Every optional key in project.json is therefore a crash waiting for a project that omits it:
+# a project.json without runtimeOptions killed the whole run with "The property 'runtimeOptions'
+# cannot be found on this object", naming no file and reporting no findings at all. Nothing in
+# the estate's own projects omits those keys, which is exactly why it went unnoticed until a
+# minimal fixture was written.
+#
+# Supports dotted paths so a nested optional ('designOptions.modernBehavior') is one call.
+function Get-Prop {
+    param($Object, [string] $Path, $Default = $null)
+    $cur = $Object
+    foreach ($part in $Path.Split('.')) {
+        if ($null -eq $cur) { return $Default }
+        if ($cur -isnot [psobject] -or -not $cur.PSObject.Properties[$part]) { return $Default }
+        $cur = $cur.PSObject.Properties[$part].Value
+    }
+    if ($null -eq $cur) { return $Default }
+    return $cur
+}
+
 # A project may carry validate-project.ignore:
 #
 #     # comments allowed
@@ -231,42 +264,48 @@ function Test-Project {
     $proj = Get-Content -LiteralPath $projJsonPath -Raw | ConvertFrom-Json
     Read-Suppressions -ProjectRoot $abs -ProjectName $name
 
+    $projName = [string] (Get-Prop $proj 'name' '')
+
     # --- name-no-whitespace -------------------------------------------------
-    if ($proj.name -match '\s') {
+    if ($projName -match '\s') {
         Add-Finding error 'name-no-whitespace' $name `
-            "project.json name '$($proj.name)' contains whitespace - the package id derives from it"
+            "project.json name '$projName' contains whitespace - the package id derives from it"
     }
-    if ($proj.name -ne $name) {
+    if ($projName -ne $name) {
         Add-Finding warning 'name-no-whitespace' $name `
-            "project.json name '$($proj.name)' does not match the folder name '$name'"
+            "project.json name '$projName' does not match the folder name '$name'"
     }
     $uiprojPath = Join-Path $abs 'project.uiproj'
     if (Test-Path $uiprojPath) {
         $uiproj = Get-Content -LiteralPath $uiprojPath -Raw | ConvertFrom-Json
-        if ($uiproj.Name -ne $proj.name) {
+        $uiprojName = [string] (Get-Prop $uiproj 'Name' '')
+        if ($uiprojName -ne $projName) {
             Add-Finding error 'name-no-whitespace' $name `
-                "project.uiproj Name '$($uiproj.Name)' disagrees with project.json name '$($proj.name)'"
+                "project.uiproj Name '$uiprojName' disagrees with project.json name '$projName'"
         }
     }
 
     # --- target-framework ---------------------------------------------------
-    if ($proj.targetFramework -ne 'Windows') {
+    $targetFramework = Get-Prop $proj 'targetFramework'
+    if ($targetFramework -ne 'Windows') {
         Add-Finding error 'target-framework' $name `
-            "targetFramework is '$($proj.targetFramework)', expected 'Windows' (not 'Windows - Legacy')"
+            "targetFramework is '$targetFramework', expected 'Windows' (not 'Windows - Legacy')"
     }
-    if (-not $proj.designOptions.modernBehavior) {
+    if (-not (Get-Prop $proj 'designOptions.modernBehavior' $false)) {
         Add-Finding error 'target-framework' $name 'designOptions.modernBehavior must be true'
     }
 
     # --- unattended-contradiction ------------------------------------------
-    if ((-not $proj.runtimeOptions.isAttended) -and $proj.runtimeOptions.requiresUserInteraction) {
+    # Absent runtimeOptions is not a contradiction, so default isAttended to true (no finding).
+    if ((-not (Get-Prop $proj 'runtimeOptions.isAttended' $true)) -and
+         (Get-Prop $proj 'runtimeOptions.requiresUserInteraction' $false)) {
         Add-Finding error 'unattended-contradiction' $name `
             'isAttended false with requiresUserInteraction true - an unattended job will block on a dialog nobody sees'
     }
 
     # --- template-default-left (project.json) ------------------------------
-    if ($proj.name -like '*PROJECT-NAME-TBD*') {
-        Add-Finding error 'template-default-left' $name "project.json still ships the template name '$($proj.name)'"
+    if ($projName -like '*PROJECT-NAME-TBD*') {
+        Add-Finding error 'template-default-left' $name "project.json still ships the template name '$projName'"
     }
     foreach ($guid in @('626d7f84-ac42-45be-be60-f096f1cc0332',
                         '52654669-fea5-4a67-a77e-9ae69b3b8dcb')) {
@@ -392,8 +431,14 @@ function Test-Project {
 
     # --- assets-empty -------------------------------------------------------
     $bankingLib = $false
-    if ($proj.dependencies) {
-        foreach ($d in $proj.dependencies.PSObject.Properties.Name) {
+    $deps = Get-Prop $proj 'dependencies'
+    if ($deps) {
+        # Enumerate the property objects, not `.Properties.Name`. An empty "dependencies": {}
+        # deserializes to a PSCustomObject with an EMPTY property collection, and member
+        # enumeration over an empty collection throws under StrictMode - so a project with no
+        # dependencies at all aborted the whole run with "The property 'Name' cannot be found
+        # on this object". Same class of bug as the Get-Prop cases above, one level deeper.
+        foreach ($d in @($deps.PSObject.Properties | ForEach-Object { $_.Name })) {
             if ($d -match 'Finnova|Avaloq|Swisscom\.PHI') { $bankingLib = $true }
         }
     }
@@ -445,11 +490,26 @@ function Test-Project {
         # indistinguishable from finished work. Warning rather than error because a mock is
         # legitimate mid-build; it blocks review, not development.
         # See standards/references/mocking.md.
+        #
+        # TWO trigger shapes, because the marker alone missed a whole mock layer. Measured on
+        # UC252 (a real Windows project): 22 workflows under Mock_System/, named Mock-*.xaml,
+        # and NOT ONE of them carries the [MOCK] string - so this rule saw none of them and
+        # mocking.md's "a mocked run reaches L3 at most" cap could not be applied to anything.
+        # A folder called Mock_System/ holding Mock-Finnova_Login.xaml is a declared mock; the
+        # declaration is just in the path rather than in the text.
+        $isDeclaredMock = ($rel -match '(^|[\\/])Mock[A-Za-z0-9 _]*[\\/]') -or ($x.Name -match '^Mock[-_]')
         if ($text -match '\[MOCK\]') {
             Add-Finding warning 'unresolved-mock' $name `
                 ("$rel contains a [MOCK] stand-in. Legitimate mid-build, but a mocked run reaches " +
                  'L3 at most and an unreplaced [MOCK] blocks review - replace it and point the ' +
                  'config key at the real source.')
+        }
+        elseif ($isDeclaredMock) {
+            Add-Finding warning 'unresolved-mock' $name `
+                ("$rel is a declared mock (its folder or file name says so) but carries no [MOCK] " +
+                 'marker in the file. Add the marker per mocking.md so a grep finds it, and note ' +
+                 'that while any mock is in the dispatch path the run reaches L3 at most - a mock ' +
+                 'layer nothing detects is a mock layer nobody remembers to remove.')
         }
 
         # classic-excel-write: broken on Windows/.NET 6, see standards/excel-activities.md
@@ -623,6 +683,84 @@ function Test-Project {
                 ("$rel is a Logic/ workflow declaring no arguments. Nothing can be passed to it or " +
                  'returned from it, so callers duplicate the rule inline instead of invoking it.')
         }
+
+        # --- leaf-body-stub ----------------------------------------------------
+        # A leaf workflow whose BODY does nothing. Every other rule in this script checks the
+        # workflow's contract - its arguments, its types, its config keys - and all of them pass
+        # on a file whose body is a single Log Message. So a Framework correctly wired to leaf
+        # workflows that are stubs runs green, processes its transactions, and performs no work.
+        # Nothing in the toolchain catches it: it compiles, it validates, it analyzes, it packs,
+        # and it runs. The official UIA docs make the same point about the same shape
+        # ("That XAML compiles, validates, runs - and does nothing. It is the most expensive
+        # kind of stub.") and require the real activity with a TODO marker instead.
+        #
+        # Deliberately NARROW: fires only when the body contains no substantive activity AT ALL.
+        # A workflow with one real activity plus ten logs is not reported - partial work is not
+        # this rule's business, and a rule that fires on half-finished-but-progressing files
+        # gets switched off. Warning by default (same reasoning as the four contract rules);
+        # -UatReadiness promotes it to error, because shipping a stub to UAT is not a backlog
+        # item.
+        # A DECLARED mock is carved out, and this one came from calibration rather than
+        # reasoning. On UC252 the rule fired 7 times: 6 were under Mock_System/, named
+        # Mock-*.xaml - workflows whose entire job is to do nothing - and 1 was
+        # Bottomline_System/Bottomline_Logout.xaml, a real leaf whose body is a Comment and a
+        # Log Message. Only the last is this rule's business.
+        #
+        # Reporting the other 6 is not a harmless extra: it is six findings telling someone
+        # that a mock is a mock, which is how a rule gets blanket-suppressed - and the
+        # suppression would have hidden the one true positive sitting next to them. The mock
+        # layer is `unresolved-mock`'s to report, and that rule now recognises this same
+        # declared-mock shape.
+        $isLeaf = ($rel -match '(^|[\\/])([A-Za-z0-9 _]+_System|Logic)[\\/]') -and
+                  ($x.Name -notlike '_*') -and
+                  ($rel -notmatch '(^|[\\/])(Framework|Tests)[\\/]') -and
+                  (-not $isDeclaredMock)
+        if ($isLeaf) {
+            # Body = everything after the argument declarations, with the designer's own
+            # bookkeeping removed. None of it is work.
+            $bodyText = $text
+            $mEnd = $bodyText.IndexOf('</x:Members>')
+            if ($mEnd -ge 0) { $bodyText = $bodyText.Substring($mEnd + 12) }
+            $bodyText = $bodyText -replace '(?s)<!--.*?-->', ''                              # comments
+            $bodyText = $bodyText -replace '(?s)<TextExpression\.[^>]*>.*?</TextExpression\.[^>]*>', ''
+            $bodyText = $bodyText -replace '(?s)<sap2010:WorkflowViewStateService\.ViewState>.*?</sap2010:WorkflowViewStateService\.ViewState>', ''
+            $bodyText = $bodyText -replace '(?s)<sads:[^>]*>.*?</sads:[^>]*>', ''             # debug symbols
+
+            # Element local names in the body. A name containing a dot is property-element
+            # syntax (Sequence.Variables, TryCatch.Try) and never an activity.
+            $elements = @([regex]::Matches($bodyText, '<(?:[A-Za-z_][\w]*:)?([A-Za-z_][\w.]*)') |
+                ForEach-Object { $_.Groups[1].Value } |
+                Where-Object { $_ -notmatch '\.' } |
+                Select-Object -Unique)
+
+            # Containers, declarations and no-ops. Everything NOT in here counts as work.
+            $inert = @(
+                # containers and XAML plumbing - structure, not work
+                'Activity', 'Sequence', 'Flowchart', 'FlowStep', 'FlowDecision', 'StateMachine',
+                'State', 'TryCatch', 'Catch', 'ActivityAction', 'ActivityFunc',
+                'DelegateInArgument', 'DelegateOutArgument', 'Variable', 'Members', 'Property',
+                'AssemblyReference', 'String', 'Boolean', 'Int32', 'Object', 'Collection',
+                'Dictionary', 'ViewStateManager', 'ViewStateData', 'HintSize', 'Annotation',
+                'InArgument', 'OutArgument', 'InOutArgument', 'Literal', 'Reference', 'Null',
+                # no-op activities - these are what a stub is MADE of
+                'LogMessage', 'WriteLine', 'Comment', 'CommentOut', 'NoOp', 'Delay', 'Persist'
+            )
+            $substantive = @($elements | Where-Object { $_ -notin $inert })
+
+            if ($substantive.Count -eq 0) {
+                $what = if ($elements -contains 'LogMessage' -or $elements -contains 'WriteLine') {
+                    'only logging'
+                }
+                elseif ($elements.Count -le 2) { 'an empty body' }
+                else { 'only containers and annotations' }
+                Add-Finding warning 'leaf-body-stub' $name `
+                    ("$rel is a leaf workflow with $what - no activity in it does the step. It " +
+                     'compiles, validates, analyzes, packs and RUNS, so a Framework wired to it ' +
+                     'reports green and performs no work. Author the real activity (keep a ' +
+                     'TODO_SELECTOR on the target if capture is still open) rather than leaving ' +
+                     'a Log Message in its place.')
+            }
+        }
     }
 
     if (@($xamls | Where-Object Name -eq 'Main.xaml').Count -gt 0) {
@@ -746,6 +884,14 @@ if ($results.Count -ge 2) {
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
+# -UatReadiness: promote the stage-8 rules before suppressions are applied, so a project can
+# still record a written reason for one in validate-project.ignore and have it shown.
+if ($UatReadiness) {
+    foreach ($f in $script:Findings) {
+        if ($f.Rule -eq 'leaf-body-stub' -and $f.Severity -eq 'warning') { $f.Severity = 'error' }
+    }
+}
+
 # Apply suppressions: a suppressed finding keeps its place in the output, with the reason,
 # but stops counting towards the exit code.
 foreach ($f in $script:Findings) {

@@ -1,6 +1,6 @@
 ---
 name: standards
-description: Use when creating, extending or navigating a UiPath REFramework automation project in this estate — deciding which folder a new workflow belongs in, naming a project, workflow or its in_/out_/io_ arguments, editing project.json / project.uiproj / entry-points.json, choosing targetFramework, wiring Framework/InitAllSettings, InitAllApplications, Process and SetTransactionStatus, or working inside an application folder such as Finnova_System, Avaloq_System, Mail_System, File_System, SIX_ID_System, CardOne_System, Web_Nav_System, Camunda_System, UBS KeyTrader or AI. Trigger when translating an SDD into workflows, scaffolding a new process from templates/, splitting work into a Dispatcher and a Performer, naming an Orchestrator queue, or asking "where does this step go?".
+description: Use when creating, extending or navigating a UiPath REFramework automation project in this estate — deciding which folder a new workflow belongs in, naming a project, workflow or its in_/out_/io_ arguments, editing project.json / project.uiproj / entry-points.json, choosing targetFramework, wiring Framework/InitAllSettings, InitAllApplications, Process and SetTransactionStatus, or working inside an application folder such as Finnova_System, Avaloq_System, Mail_System, File_System, SIX_ID_System, CardOne_System, Web_Nav_System, Camunda_System, UBS KeyTrader or AI. Trigger when translating an SDD into workflows, scaffolding a new process from a REFramework template, splitting work into a Dispatcher and a Performer, naming an Orchestrator queue, or asking "where does this step go?".
 ---
 
 # UiPath project standards
@@ -9,19 +9,28 @@ Every project in this estate is UiPath **REFramework** with the same skeleton. A
 maps onto exactly one folder; getting that mapping right is most of what makes these
 projects maintainable.
 
-Sample processes — the evidence behind everything here. They sit one level above the skills
-repo:
+**Maintainer provenance — not in your project.** The paths below are where this skill's content
+was derived from. They are siblings of the `rpa-ai-skills` repo on a maintainer's machine; they
+are **not** delivered by `npx skills add` and nothing in your project will resolve them. They are
+listed so a claim here can be traced back, and for regenerating content on a library bump —
+nothing more. Skip this block unless you are editing the skill itself.
 
-| Project | Systems it talks to |
+| Project (maintainer provenance) | Systems it talks to |
 |---|---|
 | `../Finnova/UC39_BPO_manuelle_Börsenaufträge` | Finnova, Mail, File, AI |
 | `../Finnova/PJFVA-966_UC81_BPO_VD03_TK _Valoren` | Finnova, SIX iD, UBS KeyTrader, Camunda, Mail, File |
 | `../Avaloq/TKB-UC11.Kreditverletzung` | Avaloq, CardOne, Web Nav, Mail, File |
 
-Alongside them, `../REFramework-Dispatcher-Base/`, `../REFramework-Performer-Avaloq/` and
-`../REFramework-Performer-Finnova/` are clean Studio 23.10 Windows REFramework skeletons. Use
-them for what stock REFramework plumbing looks like and for project metadata; use the three
-sample processes above for how this estate actually structures work.
+Also maintainer provenance: `../REFramework-Dispatcher-Base/`,
+`../REFramework-Performer-Avaloq/` and `../REFramework-Performer-Finnova/`, clean Studio 23.10
+Windows REFramework skeletons. They are where this skill's picture of stock REFramework plumbing
+and project metadata comes from; the three processes above are where its picture of how this
+estate structures work comes from.
+
+**All three processes are `targetFramework: Legacy`** (`modernBehavior: false`, Studio
+20.10–21.10). They are evidence of what the estate does, not conformance targets — the folder
+layout and the `_System`/`Logic` split carry over, `project.json` values and activity choices do
+not.
 
 ## The skeleton
 
@@ -47,10 +56,17 @@ deliberate work, not something to fold into an unrelated change.
 
 ## Starting a new project
 
-Start from `templates/`, not from a sample project. Three templates, split by role:
+Start from a **REFramework template**, not from a sample project. Three of them, split by role:
 `REFramework-Dispatcher-Base` (reads the source, filters, enqueues — no banking-library
-dependency), `REFramework-Performer-Finnova`, `REFramework-Performer-Avaloq`. Instantiation
-sequence and the deltas to apply to Studio's generated skeleton: `templates/README.md`.
+dependency), `REFramework-Performer-Finnova`, `REFramework-Performer-Avaloq`.
+
+**The templates do not ship with the skills, and this skill cannot hand you one — they are not
+in your project until something fetches them.** That is what the `project-scaffolding` skill is
+for: it picks the right template(s), fetches just those folders (the `project-scaffolding` skill,
+`scripts/fetch-template.sh` and its `.ps1` twin), and carries the instantiation checklist — the
+`project-scaffolding` skill, `references/instantiating-templates.md`: project name, fresh GUIDs,
+`in_ENV` wired to `Config_<ENV>.xlsx`, every `[UC-SPECIFIC — replace]`, and the shared queue
+name.
 
 Two things must be settled **before** the first publish, because both are painful afterwards:
 the project name (`project.json → name` must contain **no whitespace anywhere** — it becomes
@@ -118,6 +134,11 @@ the `avaloq-library` skill.
   `GetTransactionData` / `InitAllApplications` / `Process` / `SetTransactionStatus`, in order.
   A project with good leaf workflows and a stock Framework runs green and processes nothing —
   read this before authoring the first leaf workflow
+- `references/leaf-ledger.md` — the `Documentation/Leaf_Ledger.md` template: one row per leaf
+  workflow, seven columns (*body real*, *contract met*, *captured as `<role>`*, *matched only
+  the target*, *parametrized by business key*, *run once*, *CONFIRMED*). The capture-and-develop
+  stage is gated on the whole ledger reading `yes`, with each workflow run once against the live
+  application and the command recorded — not on the count of files that exist
 - `references/where-does-it-go.md` — decision rules for placing a new workflow
 - `references/naming-conventions.md` — workflow and argument naming
 - `references/error-handling.md` — exception types and the retry idiom used across all projects

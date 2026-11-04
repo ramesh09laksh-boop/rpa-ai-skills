@@ -29,13 +29,12 @@ together and capture then worked. Note what that project then looked like:
 whether that is the intended steady state is **an open question for the team**, not something to
 settle silently per project.
 
-## 1. A stale URL makes `evaluate` reject every selector
+## 1. A stale URL makes the registration gate reject every selector
 
 **Symptom.** After the application navigates on its own — a post-sign-in redirect, a client-side
-route change in a single-page app — `target-app resolve-defaults` emits a window selector whose
-`url` attribute is the **previous** page. Every subsequent
-`selector-intelligence evaluate` then fails, because it is matching against a window that is not
-the one on screen.
+route change in a single-page app — the capture flow derives a **window** selector whose `url`
+attribute is the **previous** page. Every element it then gates against that window fails,
+because it is matching inside a window that is not the one on screen.
 
 It looks like the selectors are wrong. They are fine; the window is wrong.
 
@@ -44,13 +43,16 @@ captured before the redirect still resolves, so nothing errors — it just descr
 
 **Fix, in this order — all four steps, or it comes back:**
 
-```bash
-uip rpa uia interact browser navigate <tab-ref> "<target url>"   # 1. navigate EXPLICITLY
-sleep 2                                                          # 2. let it settle
-uip rpa uia snapshot capture --folder-path "$W"                  # 3. fresh top-level snapshot
-                                                                 #    -> a NEW tab ref; use it
-# 4. a FRESH work folder, then re-run target-app resolve-defaults
-```
+1. **Navigate explicitly** with the interaction CLI, even though the page is already showing the
+   right thing. The point is not to move the browser; it is to make the extension re-read where
+   it is.
+2. **Let it settle** — a couple of seconds.
+3. **Take a fresh top-level snapshot.** This yields a **new** tab ref. Use the new one; the old
+   ref still resolves and still describes the old page, which is the whole trap.
+4. **Use a fresh work folder**, then re-run the capture flow for this screen.
+
+Exact command names come from the UIA package's own `ui-automation-guide.md` (co-versioned with
+the package), reached via the `web` skill, *The loop*.
 
 Do not skip the explicit `navigate` because the page is already showing the right thing. The
 point is not to move the browser; it is to make the extension re-read where it is.
@@ -67,17 +69,35 @@ rm -rf "$W" && mkdir -p "$W"
 
 A folder per screen, created empty. Not one folder for the whole capture session.
 
-## 3. Capture 2–3 screens per run, and write down where you stopped
+## 3. Commit every 2–3 screens — then keep going
 
 Capture is long, stateful and easy to lose. A run that captures eight screens and dies on the
-ninth leaves nothing behind that the next run can resume from.
+ninth leaves nothing behind that the next run can resume from. So checkpoint often.
 
-- **2–3 screens per run**, then stop and record.
+**The checkpoint is a commit, not a stop.** An earlier version of this section said "2–3 screens
+per run, then stop and record", and agents read it the way it was written: they captured three
+screens and ended the run with the ledger half empty. That was never the intent — the point of
+the 2–3 boundary is that *losing* work costs at most three screens, not that a session is over
+after three.
+
+- **Every 2–3 screens: record, commit, and continue to the next batch.**
 - Keep a progress file (`Documentation/Capture_Progress.md`) naming, per screen: the Object
-  Repository app / screen / element reference ids, which selectors passed `evaluate`, and what is
-  still `TODO_SELECTOR`. The reference ids are the part you cannot regenerate by guessing.
+  Repository app / screen / element reference ids, the role the capture was made under, which
+  selectors passed the registration gate, and what is still `TODO_SELECTOR`. The reference ids
+  are the part you cannot regenerate by guessing.
 - Update the workflow's `.selectors-todo.md` as each marker is resolved, in the same run that
   resolved it.
+
+**Stop only for one of these two reasons**, and say which:
+
+| Stop when | What to report |
+|---|---|
+| The ledger is **complete** — every row in `Documentation/Leaf_Ledger.md` is yes | The ledger, and the highest evidence level reached with the command that proved it |
+| A row needs **a person** | Exactly what you need: an account at the robot's role, a credential in an Orchestrator asset, a screen you cannot reach, an Owner-only control that must be removed |
+
+Running out of screens in the current batch is **not** a reason to stop. Neither is a single
+target that fails the registration gate — leave it `TODO_SELECTOR` with the reason and move to
+the next one.
 
 ## 4. Parametrized descriptors take their values from config, never a literal
 

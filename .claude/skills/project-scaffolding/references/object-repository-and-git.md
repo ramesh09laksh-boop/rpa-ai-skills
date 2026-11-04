@@ -1,10 +1,16 @@
 # `.objects/` was git-ignored, and that lost captured selectors
 
-**Status: CONFIRMED and fixed.** `.objects/` has been removed from the root `.gitignore` and all
-three `templates/*/.gitignore`, and `validate-project` now reports
+**Status: CONFIRMED and fixed.** `.objects/` has been removed from the skills repo's own
+`.gitignore` files — the root one and all three `templates/*/.gitignore` (maintainer provenance:
+those are in the skills repo, not in your project) — and `validate-project` now reports
 `object-repository-not-shared` as an **error**. This page records the evidence, because the
 ignore line looked entirely reasonable and will look reasonable again to the next person tidying
 up a `.gitignore`.
+
+**What that means for you:** a template fetched *after* that fix ships a `.gitignore` without
+the line. A project instantiated *before* it inherited one with the line, and `npx skills update`
+cannot remove it — the line lives in your project's own file. Check yours and delete it; keep
+`.local/` and `.settings/`.
 
 ## What was wrong
 
@@ -70,9 +76,9 @@ was in the wrong list.
 
 ## What was changed
 
-1. `.objects/` removed from the root `.gitignore` and all three `templates/*/.gitignore`, each
-   with a comment saying it is **source** so it is not re-added as tidy-up. `.local/` and
-   `.settings/` stay ignored.
+1. `.objects/` removed from the root `.gitignore` and all three `templates/*/.gitignore` in the
+   skills repo (maintainer provenance — not in your project), each with a comment saying it is
+   **source** so it is not re-added as tidy-up. `.local/` and `.settings/` stay ignored.
 2. New `validate-project` rule **`object-repository-not-shared`** (error), which fires when a
    workflow references the Object Repository and either `.objects/` holds no descriptors, or it
    holds descriptors that `git check-ignore` says are ignored. Verified: it reports the error on

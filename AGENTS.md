@@ -151,6 +151,51 @@ and record the conflict rather than re-deciding it per project. See `README.md`.
   estate yet, so there is no observed pattern. Ask the team on first occurrence; do not infer
   a `_Dispatcher`/`_Performer` suffix rule.
 
+## Ask before anything that authenticates to, or changes, Orchestrator
+
+**Reading is free. Touching the tenant is not.** The line is not "read vs write" — it is
+*"does this authenticate to Orchestrator, or change it?"*. A read that signs in still signs in,
+with whoever's identity the local token holds, and it shows up in the tenant's audit log under
+their name.
+
+**Always fine — no permission needed, do not ask:**
+
+- reading any file, in this repo or a project
+- `--help` on anything, at any depth (`uip rpa uia <verb> --help`, `UiRobot help execute`)
+- `uip --version`, `uip tools list`, `uip login status` — the last one reads the **local** token
+  state and authenticates nothing
+- `validate-project`, `lint-skills`, `tests/run-fixtures.ps1`, `preflight` **without**
+  `-FolderPath`
+- `uip rpa validate` / `build` / `pack` / `analyze` — local, Studio-IPC or compiler, no tenant
+- `UiRobot version`, `UiRobot pack`
+
+**Ask first, naming the exact command and why:**
+
+| Command | Why it needs asking |
+|---|---|
+| `uip login` | authenticates, and rewrites the stored token |
+| **any** `uip or …` | authenticates to Orchestrator — including a pure read like `or folders list` |
+| `uip rpa publish`, `uip or packages upload` | puts a package into the tenant's feed |
+| `uip or jobs start` | runs something on a robot |
+| creating or updating a process, asset, queue, trigger or folder | changes the tenant |
+| `UiRobot connect` / `UiRobot disconnect` | rebinds **the machine's** robot service to an Orchestrator |
+| `uip rpa restore` on a project whose feed is Orchestrator-hosted | an authenticated read. Changes nothing, but it signs in |
+| `uip skills install`, `npx skills add` | installs software. Ask once, then do it |
+| anything else that reaches the tenant | if you are unsure, it is on this list |
+
+**How to ask.** Name the command verbatim, say whether it only reads or also changes something,
+say what you need it for, and **wait**. Do not run it and report afterwards — "I ran it and it
+was fine" is not consent, and on a bank tenant it is not recoverable either.
+
+**Two reconciliations, so the rule is not quietly broken by this repo's own tooling:**
+
+- **`preflight -FolderPath` runs `uip or folders/processes/assets/queues list`.** Those are
+  `uip or` commands. Passing `-FolderPath` **is** the asking — the switch is opt-in and exists
+  for exactly that. Without it they are skipped, which is the default.
+- **`preflight`'s library-feed check runs `uip rpa restore`.** On Automation Suite the package
+  feed is Orchestrator-hosted, so that is an authenticated read. It is gated on `-ProjectPath`,
+  changes nothing, and `-SkipFeedCheck` turns it off.
+
 ## Working agreement for long runs
 
 A multi-stage build is a long run, and long runs fail in their own ways. Every rule below comes
@@ -208,16 +253,24 @@ no workflow would run at all.
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
 | **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
+| **L4-local** | The **packed package** runs on the **local UiRobot**, pointed at an Orchestrator folder so the credential asset resolves | `UiRobot execute --file <.nupkg> --folder "<folder>"` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a **robot**, as the robot's own account, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` — **ask first** |
 
 - Every report names the **highest level reached and the command that proved it**.
 - A wiring or "project ready" stage is **not done below L3**.
 - **L2b is its own rung** — a used `xmlns` whose assembly is unreferenced, and `ST-SEC-008`,
   both pass `validate` and `build` and fail at `pack`, which names no file.
+- **L4-local is the default end-to-end run**, quoted with the folder in it:
+  `L4-local (folder: Modern/RAP-Demo)`. It needs no `uip login` and changes nothing in the
+  tenant, so it comes first. It runs the same artefact the robot would — catching a packaging
+  defect, a missing assembly reference or an asset that does not resolve — but as **your**
+  interactive account, so it proves nothing about the unattended service-account session, the
+  trigger, or permissions beyond that one folder.
 - **"Tested" means L4**: a real job in the Orchestrator folder, on a robot, with job state, logs
-  and the SDD acceptance table. A local `uip rpa run` or Studio Debug is **L3 evidence** — it is
-  the developer's session, not the robot's. A **mocked** run reaches L3 at most.
-- **A `Successful` job that processed 0 transactions is a failure, not an L4 pass.**
+  and the SDD acceptance table. **L4-local is not L4.** A local `uip rpa run` or Studio Debug is
+  neither — those run the *sources* in the developer's session and are **L3 evidence**. A
+  **mocked** run reaches L3 at most.
+- **A `Successful` job that processed 0 transactions is a failure**, at either level.
 - **Never write PASS without the level.** A bare PASS is what this ladder exists to stop.
 
 Detail, and the Studio-IPC trap in `uip rpa validate` / `run`: the `project-scaffolding` skill,
@@ -301,19 +354,28 @@ Only what the estate actually evidences. Do not add a rule here that no project 
 
 Web selectors are captured and validated with the **UiPath UI Automation CLI**, `uip rpa uia`.
 It explores the page through the same UI Automation engine the robot runs and writes the
-result straight into the Object Repository, so no selector is ever re-typed by hand:
+result straight into the Object Repository, so no selector is ever re-typed by hand.
 
-```bash
-uip rpa uia snapshot capture --folder-path "$W"        # window baseline
-uip rpa uia interact browser open <url> --browser Chrome
-uip rpa uia snapshot capture <bN> --folder-path "$W"   # page tree -> pick eN refs
-uip rpa uia target-anchorable resolve-defaults --refs '[...]'
-uip rpa uia selector-intelligence evaluate --selector ... --refs ...
-uip rpa uia object-repository create-elements --screen-reference-id ... 
-```
+**Do not list the subcommands here, and do not call the selector-building ones by hand.** This
+section used to carry a six-line command sketch naming `target-anchorable resolve-defaults`,
+`selector-intelligence evaluate` and `object-repository create-elements`. The official
+co-versioned UIA package docs forbid exactly that:
+
+> **Never manually call internal selector-building `uip rpa uia` CLIs.** Direct calls bypass
+> improvement and OR registration, leaving fragile unregistered selectors. Only SKILL.md flow is
+> valid.
+>
+> — `UiPath.UIAutomation.Activities` 26.10.4, `references/uia-configure-target-guide.md`
+
+and state that *"`uip rpa uia --help` deliberately exposes no standard subcommands — the UIA CLI
+surface is owned and co-versioned by the `UiPath.UIAutomation.Activities` package"*. A command
+list in this repo therefore both instructs the forbidden thing and drifts against the package the
+robot runs. Route capture through the package's own `uia-configure-target` flow, reached from the
+official `uipath-rpa` skill; the discipline rules and the role precheck are in the `web` skill.
 
 Requires `UiPath.UIAutomation.Activities` and `UiPath.UIAutomation.CLI` **at the same
-version** (26.10.4 verified) — a mismatch makes `uip rpa uia` list zero subcommands.
+version** (26.10.4 verified in this estate; the official minimum for Activities is 26.10.2) — a
+too-old package makes `uip rpa uia` list zero subcommands.
 
 **Playwright MCP is no longer used.** It inspected pages with a different engine than the
 robot runs, and its output had to be hand-translated into selectors — which is the largest

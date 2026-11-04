@@ -17,7 +17,7 @@ That gap is not theoretical. On the Lanes run, all three of these were true at t
 So a report that says "validated" without saying *at which level* is not a report. Name the
 level and the command.
 
-## The five rungs
+## The six rungs
 
 | Level | What it establishes | Command |
 |---|---|---|
@@ -25,7 +25,8 @@ level and the command.
 | **L2** | It compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
 | **L2b** | It **packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens the project with an **empty Error List** | Studio (human checkpoint) |
-| **L4** | A **real job on TST**, started in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start` / Orchestrator |
+| **L4-local** | The **packed package** runs on the **local UiRobot**, pointed at an Orchestrator folder so the credential asset resolves, with the SDD acceptance table | `UiRobot execute --file <.nupkg> --folder "<folder>"` |
+| **L4** | A **real job on TST**, started in the Orchestrator folder, on a **robot**, as the robot's own account, with the SDD's expected results checked | `uip or jobs start` / Orchestrator — **ask first** |
 
 Rules:
 
@@ -33,12 +34,32 @@ Rules:
   reported Success" is a report. "Validated" is not.
 - **A wiring or "project ready" stage is not done below L3.** L1 and L2 both passed on a
   project Studio could not compile; only L3 caught it.
+- **L4-local is the default end-to-end run, and it is quoted with its folder** —
+  `L4-local (folder: Modern/RAP-Demo)`. Do it before asking for anything in the tenant.
 - **A stage that claims "tested" means L4** — a real job, with job state, logs and the SDD
-  acceptance table. A local run of `Main.xaml` is **not** L4; it is L3 evidence.
+  acceptance table. **L4-local is not L4**, and a local run of `Main.xaml` from *sources* is
+  neither: that is L3 evidence.
 - **A mocked run reaches L3 at most.** By definition: a mock proves the wiring, not the process.
   See the `standards` skill, `references/mocking.md`.
 - **Never write PASS without the level.** A bare PASS is the failure mode this ladder exists to
   stop.
+
+### Why L4-local is a rung and not a footnote
+
+It runs **the same artefact the robot would run**, in a folder context. That is enough to catch a
+packaging defect, a missing assembly reference, an asset that does not resolve, or a config key
+the package does not carry — none of which a sources-run can reach, and all of which otherwise
+surface as a failed Orchestrator job someone has to bisect.
+
+It is also **cheap and reversible**: no `uip login`, no publish, nothing in the tenant changes.
+That is why it is the default and L4 is the ask-first step.
+
+What it does **not** prove, and why L4 still exists: it runs as **your** interactive account,
+with **your** browser profile and extension — so it misses the single most common unattended
+failure. It proves nothing about the trigger, about the robot account's permissions, about any
+other folder, or about the artefact the folder's robots would actually restore. And there is no
+job record, no queue retry history, no retention trail. Full list: the `standards` skill,
+`references/end-to-end-run.md`, *What L4-local does not prove*.
 
 ## Why L2b exists separately
 

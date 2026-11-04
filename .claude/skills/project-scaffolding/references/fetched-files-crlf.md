@@ -1,7 +1,8 @@
 # A fetched template differs on every text file — that is line endings
 
 A fetched template will differ from the source in `rpa-ai-skills` on **every text file** if you
-diff it naively:
+diff it naively. The command below needs a checkout of the skills repo to compare against, which
+is **not in your project** — it is the maintainer-side diagnostic that explains the symptom:
 
 ```
 $ diff -r rpa-ai-skills/templates/REFramework-Dispatcher-Base ./REFramework-Dispatcher-Base

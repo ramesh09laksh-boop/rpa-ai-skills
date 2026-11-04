@@ -1,0 +1,29 @@
+{
+  "name": "Proj",
+  "description": "Fixture base: a minimal conformant Windows REFramework project. Every fixture starts from this and overlays only what it needs to trip (or not trip) one rule.",
+  "main": "Main.xaml",
+  "projectId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "targetFramework": "Windows",
+  "expressionLanguage": "VisualBasic",
+  "studioVersion": "23.10.8.0",
+  "designOptions": {
+    "modernBehavior": true
+  },
+  "runtimeOptions": {
+    "isAttended": false,
+    "requiresUserInteraction": false,
+    "excludedLoggedData": [
+      "Private:*",
+      "*password*"
+    ]
+  },
+  "dependencies": {},
+  "entryPoints": [
+    {
+      "filePath": "Main.xaml",
+      "uniqueId": "ffffffff-1111-2222-3333-444444444444",
+      "input": [],
+      "output": []
+    }
+  ]
+}

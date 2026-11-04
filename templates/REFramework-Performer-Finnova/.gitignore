@@ -29,7 +29,7 @@ Data/Temp/*
 
 # Screenshots of a logged-in banking session contain customer data - this is a
 # data-protection control, not tidiness.
-# See .claude/skills/security/references/prohibited-practices.md
+# See the `security` skill, references/prohibited-practices.md
 Exceptions_Screenshots/*
 !Exceptions_Screenshots/.gitkeep
 

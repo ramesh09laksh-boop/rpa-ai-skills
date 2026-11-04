@@ -8,6 +8,149 @@ need from here.
 - Project templates live in [`templates/`](templates/).
 - [`AGENTS.md`](AGENTS.md) is the entry point for an agent working *in this repo*.
 
+## Prerequisites
+
+| | Needed for | Check |
+|---|---|---|
+| **Node.js 22.20+** (verified on 22.21.1) | the `skills` CLI, and the `uip` host itself | `node --version` |
+| **PowerShell 7+** | `validate-project`, `preflight`, `lint-skills`, the rule fixtures | `pwsh --version` |
+| **.NET SDK 8.0** | **`uip rpa`** — see below | `dotnet --list-sdks` |
+| **git**, authenticated to GitHub | this repo is private, so `skills add` *and* `update` need it | `gh auth status` |
+| The Finnova/Avaloq `.nupkg`s on your feed | opening or restoring a Performer project — see the next section | `uip rpa restore <project>` |
+
+`preflight` checks all of these and prints a one-line fix per failure (the
+`project-scaffolding` skill, `scripts/preflight.sh` / `.ps1`).
+
+### .NET SDK 8.0 is a prerequisite of `uip rpa`, not of capture
+
+Worth stating precisely, because the obvious guess is wrong in both directions.
+
+- **The `uip` host does not need .NET.** It is a Node package (`@uipath/cli`), so `uip login`,
+  `uip or ...` and `uip tools list` work without it.
+- **`uip rpa` does, for everything — not just `build`.** The official `uipath-rpa` skill states
+  that `uip rpa` runs against a **headless Studio** (codename Helm, shipped as the
+  `UiPath.Studio.Helm.<Platform>` NuGet package) which is *"auto-launched the first time a
+  command needs it"* by a silent **`dotnet restore`**. That sits under `validate`, `build`,
+  `pack`, `analyze`, `restore`, `activities find` **and the `uia` capture group**.
+
+So it is not a capture-only requirement, and treating it as one gets the diagnosis wrong. The
+symptom when it is missing is not a message about .NET: it is a first `uip rpa` invocation that
+*"may sit near-silent for 30–90 seconds"* (the official docs' words, for a cold cache) and then
+fails somewhere inside a restore — which reads as a feed or network problem.
+
+> **Not verified by experiment.** The claim above is from the official co-versioned
+> documentation, not from running capture on a machine with no .NET SDK. Removing the SDK to
+> prove it was out of scope here. If you ever do run `uip rpa uia` without it, record what
+> happened.
+
+**A runtime is not an SDK.** `dotnet --version` prints a version for a runtime-only install
+while `dotnet --list-sdks` is empty, so check both — `preflight` reports that case separately
+because it is easy to misread as "installed".
+
+```bash
+dotnet --list-sdks        # want an 8.0.x line (newer is fine)
+dotnet --list-runtimes
+```
+
+### The official UiPath CLI installer
+
+The quickest way to get `uip` plus everything under it. It installs **curl**, **Node.js 22+**,
+`@uipath/cli` (via `npm install -g`), **.NET SDK 8.0**, **Python 3.11–3.14**, and runs
+`uip skills install` to wire UiPath's own skills into whichever coding agents it detects. Every
+step is idempotent, so it is safe to re-run.
+
+```bash
+# macOS / Linux
+curl -fsSL https://download.uipath.com/uipath-cli/install.sh | bash
+```
+
+```powershell
+# Windows PowerShell
+irm https://download.uipath.com/uipath-cli/install.ps1 | iex
+```
+
+> **Talk to IT before you run it.** Two reasons, and neither is paranoia:
+>
+> 1. **It is a remote script piped straight into a shell.** `irm … | iex` and `curl … | bash`
+>    execute whatever the URL returns, unreviewed. On a managed bank machine that is normally a
+>    conversation, not a decision you make alone. If you want to read it first, download it and
+>    run it as a file — the `.ps1` form also accepts the switches below, which the piped form
+>    cannot take.
+> 2. **It installs machine-wide runtimes.** Node.js, the .NET SDK and Python, plus a global
+>    `npm install -g`. *The official install page does not state an elevation requirement* —
+>    checked — but a machine-wide runtime install on managed Windows normally needs
+>    administrator rights, and your platform team may already be deploying these centrally. **I
+>    did not run the installer, so take "needs admin" as the likely case to confirm, not as a
+>    verified fact.**
+
+Skip switches, if the runtimes are provisioned for you (verified against the official install
+page):
+
+| macOS/Linux | Windows | Environment variable | Skips |
+|---|---|---|---|
+| `--dry-run` | `-DryRun` | `UIP_DRY_RUN` | nothing — prints what it would do |
+| `--skip-runtimes` | `-SkipRuntimes` | `UIP_SKIP_RUNTIMES` | the .NET SDK **and** Python |
+| `--skip-dotnet` | `-SkipDotnet` | `UIP_SKIP_DOTNET` | the .NET SDK only |
+| `--skip-python` | `-SkipPython` | `UIP_SKIP_PYTHON` | Python only |
+| `--skip-node` | `-SkipNode` | `UIP_SKIP_NODE` | Node.js |
+| `--skip-skills` | `-SkipSkills` | `UIP_SKIP_SKILLS` | `uip skills install` |
+
+**Use the environment variable with the piped form.** `irm … | iex` cannot be passed a
+`-SkipRuntimes` switch — set `$env:UIP_SKIP_RUNTIMES = '1'` first, or download the script and
+run it as a file.
+
+If you skip the .NET SDK, **something else has to provide it** — see the section above. Skipping
+it and then wondering why `uip rpa` hangs on its first call is the predictable outcome.
+
+#### On a restricted network
+
+The default path pulls `@uipath/cli` and the tools from the **public** npm registry, no token
+required. Behind an internal registry or an allowlist:
+
+- **Allowlist the `@uipath/*` scope, not a package list.** The supporting tool set grows as
+  capabilities are added (`rpa-tool`, `orchestrator-tool`, `solution-tool`, … auto-install on
+  first use), so an enumerated list goes stale and fails at the least convenient moment.
+- **Check availability before installing**, so a failure is a one-line answer rather than a
+  half-installed machine:
+
+  ```bash
+  npm view @uipath/cli version
+  npm view @uipath/skills version
+  ```
+
+- **Point npm at the internal registry** in `~/.npmrc`; `uip tools install` and
+  `uip tools update` then resolve the same way:
+
+  ```ini
+  @uipath:registry=https://<your-internal-registry>
+  //<your-internal-registry>/:_authToken=${YOUR_REGISTRY_TOKEN}
+  ```
+
+- **The CLI honours the usual proxy variables** — `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and
+  `REQUESTS_CA_BUNDLE`. If corporate TLS inspection is in play, `REQUESTS_CA_BUNDLE` is usually
+  the missing piece.
+- **The .NET SDK and Python come from their own vendors**, not from npm, so skipping them with
+  the switches above and installing them through your normal channel is often the cleaner route
+  on a locked-down machine.
+
+#### UiPath's own skills: use `uip skills install`
+
+```bash
+uip skills install                 # every coding agent it detects
+uip skills install --agent claude  # just one
+uip skills list                    # the catalog, 30 skills
+uip skills show uipath-rpa         # one entry, and where its SKILL.md landed
+```
+
+**Prefer this over `npx skills add UiPath/skills`** for the official skills. `uip skills install`
+keeps them updated as they change; `npx skills add` takes a point-in-time copy you then have to
+update yourself. They land in `~/.uipath/.skills/`, co-versioned with the CLI — `uipath-rpa` at
+`@uipath/skills 1.204.1` against host `1.204.0` on this machine.
+
+This repo's skills are the other way round: `npx skills add` is the only route, and
+[a pinned tag](#recommendation-for-uc-projects) is the recommendation. The two sets coexist —
+[precedence is decided below](#official-uipath-skills--how-they-coexist).
+
 ## Prerequisite: publish the libraries to your feed
 
 > The Finnova/Avaloq `.nupkg`s must already be published to `<your feed>` **before** opening
@@ -260,8 +403,9 @@ a release. Treat it like one.
 
 1. **Work on a branch**, one commit per change, each with the command and output that prove it.
 2. **Open a PR and let CI pass** — [`.github/workflows/checks.yml`](.github/workflows/checks.yml)
-   runs the skill lint, `validate-project -TemplateMode` on all three templates, `bash -n` on
-   every shipped script, and a check that the template workbooks still regenerate.
+   runs the skill lint, `validate-project -TemplateMode` on all three templates, **the rule
+   fixtures** ([`tests/`](tests/) — one bad/good pair per rule, both directions asserted),
+   `bash -n` on every shipped script, and a check that the template workbooks still regenerate.
 3. **Work [`evals/trigger-prompts.md`](evals/trigger-prompts.md)** on the agents the estate uses.
    A skill that does not load is a skill that does not exist, and CI cannot test that.
 4. **Update [`CHANGELOG.md`](CHANGELOG.md)**, including a *Known open* entry for anything carried
@@ -385,25 +529,31 @@ editing the file by hand. Then commit.
 
 ## Development lifecycle
 
-**Eleven stages** (ten numbered, plus 7b), each a short prompt you can paste into Claude Code (or any agent with these
-skills installed). Every prompt routes to skills that already exist in this repo — none of them
-duplicate skill content, they just point the agent at the right ones for that stage.
+**Ten stages** (4 and 5 are one loop; 7b sits between 7 and 8), each a short prompt you can paste
+into Claude Code (or any agent with these skills installed). Every prompt routes to skills that
+already exist in this repo — none of them duplicate skill content, they just point the agent at
+the right ones for that stage.
 
 ```
-PDD → SDD → Project → Wire → Capture → Develop → Test → Review → E2E run → UAT → Deploy
-                                                                          ↑________|
-                                                                    Change / Enhancement
+PDD → SDD → Project → Wire → Capture+Develop → Test → Review → E2E run → UAT → Deploy
+                                                                      ↑________|
+                                                                Change / Enhancement
 ```
 
-Two stages are new, and both were missing for the same reason — they are the work *between*
-"the project exists" and "the workflows are written":
+Three stages carry the work that used to fall between "the project exists" and "the workflows are
+written":
 
-- **Wire** — connecting the SDD's transactions to the Framework. Skipping it produces a project
-  with good leaf workflows that runs green and processes **zero** transactions.
-- **Capture** — resolving every `TODO_SELECTOR` against the live application with `uip rpa uia`.
-- **End-to-end run** (7b) — the first time the automation runs as a **job in the Orchestrator
-  folder, on a robot**, rather than in a developer's session. This is **L4**, and nothing before
-  it proves the automation works.
+- **Wire** (3) — connecting the SDD's transactions to the Framework. Skipping it produces a
+  project with good leaf workflows that runs green and processes **zero** transactions. A
+  Framework wired to stubs is a skeleton, not a process.
+- **Capture + Develop** (4–5) — **one loop, per workflow**: capture the targets, author the real
+  activity against them, run the workflow once, pack, write the ledger row. These were two
+  stages; separating them is what let a project with a live session ship `TODO_SELECTOR`
+  placeholders and no capture at all.
+- **End-to-end run** (7b) — the first time the **packed package** runs, rather than the project
+  sources in a developer's session. Two steps: **L4-local** by default (the local UiRobot, in an
+  Orchestrator folder, no `uip login`), then **L4** — a job on a robot — which is **ask-first**
+  because it changes the tenant. Nothing before 7b proves the automation works.
 
 ### Working rules — paste this at the top of any stage prompt
 
@@ -414,11 +564,23 @@ stages 1 and 3. Rather than repeat it unreliably, it lives here as one block to 
 Working rules: never invent a selector, activity, argument, API, config value, credential or
 business rule — if the source is silent it is an Open Question / TODO. Report the highest
 check level reached, with the command used: L1 validate-project, L2 uip rpa validate+build,
-L2b uip rpa pack, L3 Studio Error List clean, L4 a real job on TST in the Orchestrator folder
-on a robot with the SDD acceptance table. A local run or a mocked run is L3 at most, never L4.
-"Needs Studio" only with the exact command and its error. Commit locally after each item; keep
-Documentation/Progress.md updated. Do not stop between items — log a blocker and continue with
-the next.
+L2b uip rpa pack, L3 Studio Error List clean, L4-local the packed package run by the UiRobot on
+this machine in an Orchestrator folder, L4 a real job on TST in the Orchestrator folder on a
+robot with the SDD acceptance table. A mocked run is L3 at most. "Needs Studio" only with the
+exact command and its error. Commit locally after each item; keep Documentation/Progress.md
+updated. Do not stop between items — log a blocker and continue with the next.
+
+ASK ME FIRST before anything that authenticates to, or changes, Orchestrator — naming the exact
+command and why, then wait. That includes `uip login`, ANY `uip or ...` command (even a read
+like `or folders list`), `uip rpa publish`, `uip or packages upload`, `uip or jobs start`,
+creating or changing a process/asset/queue/trigger/folder, `UiRobot connect` or `disconnect`,
+`uip rpa restore` where the feed is Orchestrator-hosted, and installing anything
+(`uip skills install`, `npx skills add`). Reading files and running `--help` are always fine,
+as are `uip --version`, `uip tools list`, `uip login status`, validate-project, and
+`uip rpa validate`/`build`/`pack`/`analyze`. Do not run it and tell me afterwards.
+
+Load the official `uipath-rpa` skill for CLI mechanics. If preflight says it is missing, ask me
+once, then install it and record the result.
 ```
 
 ### 1. PDD → SDD
@@ -459,37 +621,74 @@ decision), apply the template README deltas, work the instantiation checklist in
 ```
 Load `standards` (wiring-the-framework) and `security`. Wire the Framework from <SDD>, in
 order: Config, GetTransactionData, InitAllApplications, Process dispatch, SetTransactionStatus,
-CloseAllApplications. Author the XAML with the CLI (`uip rpa activities get-default-xaml`,
+CloseAllApplications, KillAllProcesses. All seven — KillAllProcesses force-kills the same set
+CloseAllApplications closes, and left empty it leaks a session that the next run's idempotent
+login probe then finds half-open. Never `KillProcess chrome`: it takes down any other automation
+on the runner. Author the XAML with the CLI (`uip rpa activities get-default-xaml`,
 `uip rpa activities find`). If a configured source yields 0 transactions, fail loudly.
 Credentials from the Orchestrator asset only. Transaction types come from the SDD; if it is
 silent, record an Assumption and ask. Leaf workflows must follow the `_System` contract —
-in_Config, an out_ outcome, SecureString secrets. Report which Framework files are wired and the
-level reached.
+in_Config, an out_ outcome, SecureString secrets.
+
+Count the applications: every application opened in InitAllApplications appears in BOTH
+CloseAllApplications and KillAllProcesses. Report which Framework files are wired and the level
+reached. This stage is "wired, gate open" — not done — until you have watched the 0-transaction
+guard fire (point the source at nothing). That needs a run, and a run needs the Orchestrator
+asset; if it is missing, say so and continue.
 ```
 
-### 4. Capture targets (browser apps)
+### 4–5. Capture and develop — one workflow at a time
+
+**These were two stages and are now one loop.** Capturing every screen first and authoring
+afterwards is what produced the failure this stage exists to prevent: on a project that *had* a
+live session, the agent scaffolded `TODO_SELECTOR` placeholders for whole workflows and captured
+nothing. Capture and authoring are the same unit of work, per workflow, and the unit ends with a
+run and a ledger row — not with a file that exists.
+
+Per workflow: **capture → author → run once → pack → ledger row → commit → next workflow.**
+
+Before the first capture command, two prechecks the `web` skill owns: `project.json` must carry
+`UiPath.UIAutomation.Activities` and `UiPath.UIAutomation.CLI` both at `26.10.4` (fix and restore
+first), and the signed-in account must be at the **least-privilege role the robot runs as**, with
+the admin-only controls absent from the screen. A capture made at a higher role is untrusted and
+is re-captured. Commit every 2–3 screens and keep going.
 
 ```
-Load `web`. First read project.json: UiPath.UIAutomation.Activities and UiPath.UIAutomation.CLI
-must both be 26.10.4 — fix and restore before anything else. Capture targets for the workflows
-listed in the *.selectors-todo.md files, 2–3 screens per run, following
-`web/references/capture-troubleshooting.md`. After any page navigation: navigate explicitly,
-fresh snapshot, fresh work folder. `evaluate` must match only the target — if not, leave
-TODO_SELECTOR and record why. Identify list items by business key, never position. Commit
-`.objects/` — it holds the captured selectors. Update each todo file and Progress.md.
+Load `standards` for where each step belongs, plus the application skill(s) the SDD names
+(`finnova-library`, `avaloq-library`, `web`) and, for CLI mechanics, the official `uipath-rpa`
+skill (estate rules win on structure, naming and security). Use modern activities only — this
+is a Windows/modernBehavior project: no classic Excel write activities, no raw selector outside
+`Tests/` or Avaloq's `Web_Nav_System/`. Never invent an activity, API, selector, argument or
+config value.
+
+Step 0 — choose the mode and say which you chose:
+  LIVE:    a live application session exists. State the URL and, if there is a login, the
+           account role (it must be the least-privilege role the robot will run as).
+  OFFLINE: no session. Scaffold per `pdd-sdd-scaffolding` with TODO_SELECTOR / APPROX_SELECTOR
+           and tell me plainly that capture is still needed.
+In LIVE mode never defer a whole workflow to TODO_SELECTOR. Use TODO_SELECTOR only for a target
+that fails the registration gate (it must match only the target), and record why.
+
+For each leaf workflow, in order, one commit per workflow:
+ 1. Contract: in_Config, a business-key argument, an out_ outcome, SecureString for secrets. Fail
+    visibly: an unconfirmed step must throw or return False with a Warn — never pass silently.
+ 2. LIVE: capture each target (`web`: navigate explicitly, fresh snapshot, fresh work folder per
+    screen), then author the real activity and link the captured element through the `uia`
+    object-repository verbs (names per `--help`). No typed selectors.
+ 3. Run the workflow once against the live application, then run validate-project,
+    `uip rpa validate` and `build`, and `pack`.
+ 4. Update Documentation/Leaf_Ledger.md and the *.selectors-todo.md.
+Continue to the next workflow without asking. Stop only when every ledger row is yes, or a row
+needs something only I can do (say exactly what).
+
+Report the highest level reached with the command used: L1 validate-project, L2 build, L2b pack,
+L3 Studio Error List (I check this), L4 a real job. Never write PASS without the command.
 ```
 
-### 5. Develop leaf workflows
-
-```
-Load `standards` for where each step belongs, plus the application skill(s) the SDD names —
-`finnova-library`, `avaloq-library`, `web`. Use `pdd-sdd-scaffolding` for any screenshot-driven
-step, or anything that can't be confirmed against a live application yet. Use modern
-activities only — this is a Windows/modernBehavior project, so no classic Excel write
-activities and no raw selector outside `Tests/` or Avaloq's `Web_Nav_System/`. Never invent an
-activity, API, selector, or config value: mark it `TODO_SELECTOR` / `APPROX_SELECTOR` (per
-`pdd-sdd-scaffolding`) or a config `TODO` instead.
-```
+**The gate on this stage is the ledger, not the file count:** every row in
+`Documentation/Leaf_Ledger.md` reads `yes` in every column, **and** each workflow has been run
+once against the live application with the command recorded. Template and column meanings:
+[`leaf-ledger.md`](.claude/skills/standards/references/leaf-ledger.md).
 
 ### 6. Test data → tests
 
@@ -530,38 +729,60 @@ that actually load — see `standards/references/code-quality.md`. Fix findings;
 rule to pass.
 ```
 
-### 7b. End-to-end run in the Orchestrator folder
+### 7b. End-to-end run — L4-local first, then L4
 
-The first run that proves anything. Everything before this is a developer's session.
+The first run that proves anything. Everything before this is a developer's session running
+project *sources*.
+
+**Default is L4-local:** pack, then run the package with the UiRobot on this machine, pointed at
+an Orchestrator folder so the credential asset resolves. **No `uip login`, nothing changed in the
+tenant.** The Orchestrator job is a second, separate step — and it is ask-first.
 
 ```
 Load `standards` (end-to-end-run) and `security`. This estate is Automation Suite, not
-Automation Cloud — read the Environment block in the project's AGENTS.md for the Orchestrator
-host, tenant, folder path, robot machine and feed; if it is missing, create it first.
+Automation Cloud.
 
-1. Preflight: `preflight.sh <project> --skip-capture` plus
-   `preflight.ps1 -ProjectPath <project> -FolderPath <folder>`. Fix anything blocking. The
-   robot-side prerequisites are NOT scriptable — robot version vs the package pins, the robot's
-   own package sources, an interactive session, the browser extension for the service account,
-   the app being reachable from the robot machine. Confirm them with whoever owns the robot and
-   say which are unverified.
+Ask me ONCE, together, and record the answers in the project's AGENTS.md Environment block
+(committed file — NON-SECRET facts only, never an asset value):
+  - the UiRobot install path
+  - the Orchestrator folder (e.g. Modern/RAP-Demo)
+  - the robot user
+  - whether the robot is connected to the Automation Suite Orchestrator
+Do not probe for the connection state: UiRobot has no status verb, and connect/disconnect
+rebind the machine's robot service. Ask.
+
+1. Preflight: `preflight.sh <project> --skip-capture`. Fix anything blocking. Do NOT pass
+   -FolderPath unless you have asked me — those are `uip or` calls.
 2. Pack (L2b): `uip rpa pack <project> --output-path <dir>` from a clean checkout. Do not pass
    --ignored-rules or --skip-analyze.
-3. Publish: `uip or packages upload <.nupkg>`, then `uip or packages versions <id>` to confirm.
-4. Confirm the folder: process bound to that version, credential asset, queue (if any), and a
-   TST config with no [UC-SPECIFIC — replace] and no undefined key.
-5. Start the job: `uip or jobs start <process-key> --folder-path <folder>
-   --input-arguments '{"in_ENV":"TST"}'`. Keep the job key.
-6. Read it back: `uip or jobs get`, `uip or jobs history`, `uip or jobs logs --level Warning`,
-   and the queue results via `uip or queue-items list --status Successful|Failed`.
-7. Complete the SDD acceptance table: SDD step → evidence → pass/fail, with the application
+3. Run it locally (L4-local). Read `UiRobot help execute` first and use what it prints — do not
+   guess flags:
+     UiRobot execute --file "<dir>\<Package>.<ver>.nupkg" --folder "<folder>"
+                     --input "{\"in_ENV\" : \"TST\"}" [--entry "<EntryPoint>.xaml"]
+   `--folder` is what makes the credential asset resolve. If it does not resolve, the documented
+   fallback is `UiRobot installprocess --process-name <name> --folder <folder>` then
+   `UiRobot execute --package-id <id> --folder <folder>` — record which worked.
+4. A missing asset, or a robot user without access to that folder, is a CHECKPOINT for me:
+   report the exact error text, name the asset and the folder, and carry on with the next item.
+   Never print an asset value. Do not retry with other folders and do not substitute a literal.
+5. Complete the SDD acceptance table: SDD step → evidence → pass/fail, with the application
    state read back INDEPENDENTLY of the robot's logs, per-transaction results compared with the
    test data, negative-data rows producing the expected Business exceptions, no [MOCK] or
    TODO_SELECTOR anywhere, and transaction count equal to input count.
 
-Report the level reached with the command that proved it. A Successful job that processed 0
-transactions is a failure, not a pass. If you could not start a job, say so and report L2b or
-L3 — do not describe a local run as L4.
+Report it as "L4-local (folder: <folder>)" with the command verbatim, the package and version,
+transactions processed vs input, and every Warn and Error. Say plainly what it does NOT prove:
+it ran as my interactive account, so not the unattended service-account session, not the
+trigger, and not permissions beyond that one folder.
+
+THEN STOP AND ASK before the Orchestrator job. Publishing and starting a job change the tenant:
+`uip login`, `uip rpa publish` / `uip or packages upload`, `uip or processes create`,
+`uip or jobs start`. Name the commands and wait. Once I agree, reuse the SAME package from
+step 2 — do not re-pack — and follow end-to-end-run.md Part 3, then report L4 with the job key,
+state, duration, folder, published version and job log.
+
+A Successful job that processed 0 transactions is a failure, not a pass. If you reached only
+L4-local, say L4-local — never describe it as L4, and never describe a sources run as either.
 ```
 
 ### 8. UAT Readiness
@@ -570,11 +791,19 @@ L3 — do not describe a local run as L4.
 Confirm: every SDD requirement traces to a workflow and a test case; every
 `APPROX_SELECTOR` / `TODO_SELECTOR` in every `*.selectors-todo.md` is resolved against the
 live application; `Config_TST.xlsx` has no remaining `[UC-SPECIFIC — replace]`;
-`validate-project` runs clean (or every suppressed rule has a written reason in
-`validate-project.ignore`); `Tests/RunAllTests.xaml` passes. Additionally require **L4** on the
-evidence ladder — a real run of `Main.xaml` on TST, with a log excerpt — and a clean
-`uip rpa analyze` result, naming which rule set ran. List anything still open as a named
-blocker, not a soft caveat.
+`Documentation/Leaf_Ledger.md` reads yes in every column of every row;
+`Tests/RunAllTests.xaml` passes. Run the checker in stage-8 mode, which promotes
+`leaf-body-stub` to an error — a leaf workflow whose body does nothing is not shippable:
+
+  validate-project.sh <project> --uat-readiness
+  pwsh -File validate-project.ps1 <project> -UatReadiness
+
+It must run clean, or every suppressed rule has a written reason in `validate-project.ignore`.
+Additionally require **L4** on the evidence ladder — a real run of `Main.xaml` on TST, with a log
+excerpt — and a clean `uip rpa analyze` result, naming which rule set ran. Read the application
+state back independently of the robot's logs: a green job with a non-zero transaction count is
+exactly what a stub-bodied automation produces. List anything still open as a named blocker, not
+a soft caveat.
 ```
 
 ### 9. Deployment Readiness
@@ -622,13 +851,21 @@ So "validated" on its own is not a claim. Name the level and the command:
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
 | **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
+| **L4-local** | The **packed package** runs on the **local UiRobot**, pointed at an Orchestrator folder so the credential asset resolves | `UiRobot execute --file <.nupkg> --folder "<folder>"` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a **robot**, as the robot's own account, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` — **ask first** |
 
-A wiring or "project ready" stage is **not done below L3**. "Tested" means **L4** — a real job
-started in the Orchestrator folder on a robot, with job state, logs and the SDD acceptance table.
-**A local run of `Main.xaml` is L3 evidence, not L4**, and a **mocked** run reaches L3 at most.
-L2b is a rung of its own because a missing assembly reference and `ST-SEC-008` both pass
-`validate` and `build` and fail only at `pack`. Detail:
+A wiring or "project ready" stage is **not done below L3**. **L4-local is the default end-to-end
+run** — no `uip login`, nothing changed in the tenant — and it is quoted with its folder:
+`L4-local (folder: Modern/RAP-Demo)`. It runs the same artefact the robot would, so it catches a
+packaging defect, a missing assembly reference or an asset that does not resolve; it runs as
+**your** interactive account, so it proves nothing about the unattended service-account session,
+the trigger, or permissions beyond that folder.
+
+"Tested" still means **L4** — a real job started in the Orchestrator folder on a robot, with job
+state, logs and the SDD acceptance table. **L4-local is not L4**; a local run of `Main.xaml` from
+*sources* is neither (that is L3 evidence); and a **mocked** run reaches L3 at most. L2b is a rung
+of its own because a missing assembly reference and `ST-SEC-008` both pass `validate` and `build`
+and fail only at `pack`. Detail:
 [`evidence-ladder.md`](.claude/skills/project-scaffolding/references/evidence-ladder.md);
 procedure: [`end-to-end-run.md`](.claude/skills/standards/references/end-to-end-run.md).
 
@@ -691,10 +928,17 @@ it does not clone the sample workflow files.
 ```bash
 pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/lint-skills.ps1
 pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/validate-project.ps1   templates/REFramework-Dispatcher-Base templates/REFramework-Performer-Finnova   templates/REFramework-Performer-Avaloq -TemplateMode
+pwsh -NoProfile -File tests/run-fixtures.ps1
 ```
 
-Both run in CI ([`.github/workflows/checks.yml`](.github/workflows/checks.yml)) alongside
+All three run in CI ([`.github/workflows/checks.yml`](.github/workflows/checks.yml)) alongside
 `bash -n` on every shipped script and a check that the template workbooks still regenerate.
+
+**The three check different things, and the third is the one that was missing.** The lint checks
+the skills; `-TemplateMode` checks that the rules do not *false-positive* on conformant
+scaffolding; [`tests/run-fixtures.ps1`](tests/README.md) checks that each rule still *fires* at
+all. Without it, a rule whose pattern stopped matching would report nothing and CI would stay
+green — which is how a conformance checker becomes a no-op without anyone noticing.
 
 Then work [`evals/trigger-prompts.md`](evals/trigger-prompts.md) — a skill that does not load is
 a skill that does not exist, and trigger reliability is what a user actually experiences. Record

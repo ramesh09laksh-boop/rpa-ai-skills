@@ -162,9 +162,12 @@ Fetched $# template(s). This is scaffolding, not a project yet:
      entry-points.json, Data/ and Tests/ over what Studio generated.
   2. Apply the 'Deltas to apply to the generated skeleton' section in each fetched
      template's README.md.
-  3. Work the instantiation checklist in templates/README.md - project name, fresh
-     GUIDs, every [UC-SPECIFIC - replace] in Config_TST.xlsx AND Config_PRD.xlsx,
-     and the shared queue name.
+  3. Work the instantiation checklist in this skill's own
+     references/instantiating-templates.md - project name, fresh GUIDs, in_ENV wired
+     to Config_<ENV>.xlsx, every [UC-SPECIFIC - replace] in Config_TST.xlsx AND
+     Config_PRD.xlsx, and the shared queue name.
+     (It is NOT templates/README.md: this script sparse-checks-out templates/<name>/
+     only, so that file is never fetched. The checklist ships with this script.)
 
 project.json ships "name": "<PROJECT-NAME-TBD-ask-team>", which fails the
 publishability check on purpose. Ask the team for the name before the first publish.

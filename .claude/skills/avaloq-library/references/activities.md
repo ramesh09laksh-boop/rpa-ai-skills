@@ -1,5 +1,12 @@
 # Avaloq library — activity reference
 
+<!-- maintainer-provenance: this file's content is derived from the estate's own library and
+     sample projects, which sit one level above the rpa-ai-skills repo on a maintainer's
+     machine. Every `../Finnova/...`, `../Avaloq/...`, `../REFramework-*/` and `templates/...`
+     path below is cited so a claim can be traced back to where it was read. NONE of them is
+     delivered by `npx skills add` and none will resolve in your project. The install-simulation
+     lint honours this marker for the whole file; see lint-skills.ps1 .NOTES. -->
+
 > **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
 > `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
 > what the estate does**, not conformance targets. The library **activity APIs** quoted here are
@@ -60,7 +67,7 @@ Launches and logs into the Smart Client.
 | `User` | in | String | |
 | `Password` | in | SecureString | |
 | `StringPassword` | in | String | Plaintext alternative — **do not use.** |
-| `SmartClientPath` | in | String | e.g. `C:\Program Files (x86)\AvaloqClient\TATG11\SmartClient.exe`. From an Orchestrator asset. |
+| `SmartClientPath` | in | String | e.g. `<program-files>\AvaloqClient\<SYSID>\SmartClient.exe`. From an Orchestrator asset — never a literal. |
 | `SmartClientArguments` | in | String | `-integrationServerHost … -integrationServerPort … -avaloqSystemId …`. From an Orchestrator asset. |
 | `SmartClientCitrixApp` | in | String | Citrix published-app name. |
 | `TimeOutInSeconds` | in | Int32 | Sample uses `60`. |

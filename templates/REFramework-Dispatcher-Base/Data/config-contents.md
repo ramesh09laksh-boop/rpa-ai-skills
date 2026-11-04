@@ -41,5 +41,5 @@ never let the two sheets diverge in their key set.
 | Name | Asset | OrchestratorAssetFolder | Description (Assets will always overwrite other config) |
 |---|---|---|---|
 | Source_System_Credential | [UC-SPECIFIC — replace] | *(empty)* | Credential asset for the system the Dispatcher reads its source from. ONE ROW PER AUTHENTICATED APPLICATION — duplicate this row if the Dispatcher signs in to more than one, and rename the Name column to &lt;Application&gt;_System_Credential. If the Dispatcher reads an unauthenticated source (a share the robot already has rights to), DELETE this row rather than leaving it as [UC-SPECIFIC — replace]. |
-| Mail_System_Exception_To | [UC-SPECIFIC — replace] | *(empty)* | Text asset — recipients of the exception mail. Wire to a real Orchestrator Text asset; see .claude/skills/security/references/orchestrator-assets.md. |
+| Mail_System_Exception_To | [UC-SPECIFIC — replace] | *(empty)* | Text asset — recipients of the exception mail. Wire to a real Orchestrator Text asset; see the `security` skill, references/orchestrator-assets.md. |
 

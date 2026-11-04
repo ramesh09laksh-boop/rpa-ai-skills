@@ -1,0 +1,15 @@
+# Fixture base config. Shared by Config_TST.xlsx and Config_PRD.xlsx, so config-parity and
+# assets-parity are silent by default. Format: Sheet<TAB>Name<TAB>Value
+#
+# Values are chosen so that NO value-driven rule fires: a real queue name, a real
+# business-process name, a non-zero circuit breaker, ShouldMarkJobAsFaulted True, and an
+# absolute path (a relative one would trip relative-persisted-path).
+Settings	OrchestratorQueueName	UC99_Fixture_Queue
+Settings	OrchestratorQueueFolder
+Settings	logF_BusinessProcessName	UC99_Fixture
+Settings	File_System_Output_Path	C:\Data\UC99\Output\result.xlsx
+Constants	MaxRetryNumber	0
+Constants	MaxConsecutiveSystemExceptions	3
+Constants	ShouldMarkJobAsFaulted	True
+Constants	ExScreenshotsFolderPath	Exceptions_Screenshots
+Assets	Mail_System_Exception_To	Email_Recipients_Error

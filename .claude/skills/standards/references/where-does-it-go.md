@@ -2,7 +2,7 @@
 
 > **Provenance: Legacy samples.** The `UC39`, `UC81` and `TKB-UC11` projects cited below are
 > `targetFramework: Legacy` (`modernBehavior: false`, Studio 20.10–21.10). They are **evidence of
-> what the estate does**, not conformance targets. Modern equivalent: `templates/`
+> what the estate does**, not conformance targets. Modern equivalent: the REFramework templates (maintainer provenance -- `templates/` lives in the rpa-ai-skills repo, not in your project; the `project-scaffolding` skill fetches one)
 > (Windows / `modernBehavior: true`, Studio 23.10.8.0), plus `wiring-the-framework.md` in the
 > `standards` skill. Folder layout and the `_System`/`Logic` split carry over
 > unchanged; `project.json` values, activity choices and `Framework/` internals do not.

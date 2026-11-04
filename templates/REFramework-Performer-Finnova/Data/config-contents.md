@@ -41,7 +41,7 @@ never let the two sheets diverge in their key set.
 | Name | Asset | OrchestratorAssetFolder | Description (Assets will always overwrite other config) |
 |---|---|---|---|
 | Finnova_System_Launch_Cmd_&lt;TOWER&gt; | [UC-SPECIFIC — replace] | *(empty)* | Text asset — the command that starts the Finnova Java client for one tower. One row per tower; the key is built by concatenation with in_TOWER. |
-| Finnova_System_PHI_Account_Name_&lt;TOWER&gt; | [UC-SPECIFIC — replace] | *(empty)* | Text asset — the CyberArk object name for this tower (e.g. Bposecbot@FinnovaEntris). The object name is an identifier, not a secret. One row per tower. |
+| Finnova_System_PHI_Account_Name_&lt;TOWER&gt; | [UC-SPECIFIC — replace] | *(empty)* | Text asset — the CyberArk object name for this tower (e.g. &lt;ROBOT_ACCOUNT&gt;@&lt;FinnovaTower&gt;). The object name is an identifier, not a secret. One row per tower. |
 | Finnova_System_Credential_&lt;TOWER&gt; | [UC-SPECIFIC — replace] | *(empty)* | Credential asset for the Finnova login. Estate convention: name the Orchestrator credential after the CyberArk vault object it mirrors, so switching between Get Credential and Get PHI Vault stays a config change. One row per tower. |
-| Mail_System_Exception_To | [UC-SPECIFIC — replace] | *(empty)* | Text asset — recipients of the exception mail. Wire to a real Orchestrator Text asset; see .claude/skills/security/references/orchestrator-assets.md. |
+| Mail_System_Exception_To | [UC-SPECIFIC — replace] | *(empty)* | Text asset — recipients of the exception mail. Wire to a real Orchestrator Text asset; see the `security` skill, references/orchestrator-assets.md. |
 

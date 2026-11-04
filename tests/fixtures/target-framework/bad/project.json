@@ -1,0 +1,10 @@
+{
+  "name": "Proj",
+  "description": "Fixture: a Legacy project.",
+  "main": "Main.xaml",
+  "projectId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "targetFramework": "Windows - Legacy",
+  "designOptions": { "modernBehavior": false },
+  "runtimeOptions": { "isAttended": false, "requiresUserInteraction": false },
+  "dependencies": {}
+}

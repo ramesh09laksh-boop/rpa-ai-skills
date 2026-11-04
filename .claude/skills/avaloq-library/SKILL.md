@@ -11,7 +11,9 @@ error conventions) see the `standards` skill, `references/systems/avaloq-system.
 
 - NuGet: `Swisscom.UiPath.UIAutomation.Avaloq` (sample pins `[2.6.5]`), described in
   `project.json` as "Avaloq Smart Client Library"
-- Source: `../Avaloq/Swisscom.UiPath.UIAutomation.Avaloq/`
+- Source (maintainer provenance — not in your project):
+  `../Avaloq/Swisscom.UiPath.UIAutomation.Avaloq/`, a sibling of the skills repo on a
+  maintainer's machine. You consume the package from the feed, not the source
 - Depends on `UiPath.System.Activities` 24.10.8, `UiPath.UIAutomation.Activities` 24.10.17
 
 ## How you address a control

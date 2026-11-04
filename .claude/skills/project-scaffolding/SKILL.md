@@ -6,8 +6,14 @@ description: Use when starting a new UC project — determines which Dispatcher/
 # Fetching a project template
 
 `templates/` in `rpa-ai-skills` has no `SKILL.md` of its own, so `npx skills add` never brings
-it along — that command carries skill folders only. This skill is the fetch step, wrapped so it
-travels like any other skill: install it, and `scripts/fetch-template.*` comes with it.
+it along — that command carries skill folders only, which means **`templates/` is not in your
+project** and no path starting with it will resolve there. This skill is the fetch step, wrapped
+so it travels like any other skill: install it, and `scripts/fetch-template.*` comes with it.
+
+Read every `templates/<name>/` below as *"the folder the fetch script copies into your project
+as `<name>/`"* — the `templates/` prefix names a path in the skills repo and is **not in your
+project**. Anything this skill tells you to open is either under this skill (`references/…`,
+`scripts/…`) or inside a template you have already fetched.
 
 ## Before anything else: preflight
 
@@ -20,10 +26,52 @@ pwsh -NoProfile -File scripts/preflight.ps1 -ProjectPath <project-dir>
 ```
 
 It checks Node 22.20+, git and GitHub auth (the skills repo is private), PowerShell 7,
-`uip` and its login, Studio **and whether an instance has the project open**, the
-`UiPath.UIAutomation` 26.10.4 capture pin, that the Swisscom libraries actually restore from
-your feed, and a capture smoke test. Pass `-NoProfile` if you invoke the `.ps1` directly — a
-slow or prompting PowerShell profile makes it look like it has hung.
+**.NET SDK 8.0**, `uip` and its login, **the official `uipath-rpa` skill**, Studio **and whether
+an instance has the project open**, the `UiPath.UIAutomation` 26.10.4 capture pin, that the
+Swisscom libraries actually restore from your feed, and a capture smoke test. Pass `-NoProfile`
+if you invoke the `.ps1` directly — a slow or prompting PowerShell profile makes it look like it
+has hung.
+
+**Two checks reach the tenant, and both are opt-in** — see `AGENTS.md`, *Ask before anything
+that authenticates to, or changes, Orchestrator*:
+
+| | |
+|---|---|
+| `-FolderPath "<folder>"` | runs `uip or folders/processes/assets/queues list`. **Passing the switch is the asking.** Omitted, they are skipped |
+| the library-feed check | runs `uip rpa restore`. On Automation Suite the feed is Orchestrator-hosted, so that is an authenticated read — it changes nothing, but it signs in. `-SkipFeedCheck` / `--skip-feed-check` turns it off |
+
+**On the official-skill check.** Every `uip rpa` invocation asks for the `uipath-rpa` skill, and
+this estate now routes CLI mechanics there deliberately — the `web` skill carries no `uia`
+command table. Where it lands depends on the agent *and* the install route, so the check looks
+in every known location rather than one: the `uip skills install` store under
+`~/.uipath/.skills/`, the Claude Code marketplace plugin under `~/.claude/plugins/`, each
+agent's own global folder in your home directory (Claude Code, Codex, Copilot — both of its
+locations — and OpenCode), and each agent's project-level folder when `-ProjectPath` is given.
+The script holds the exact list; it is deliberately not duplicated here, because it moves when
+an agent changes where it reads from.
+
+It also compares each copy's `targetCli` against the installed host and **warns on a mismatch**.
+That is not theoretical: on this machine the Claude Code plugin copy was `skills 1.201.0` /
+`targetCli ^1.201.0` against a `1.204.0` host, while the `uip skills install` store was
+`1.204.1`. Claude Code loads the plugin copy, so the agent reading those docs was a minor
+version behind the tool it was documenting.
+
+Preflight **does not install it** — it changes nothing, by design. Installing is an ask-first
+action: ask once, then
+`npx skills add https://github.com/uipath/skills --skill uipath-rpa --agent <id> -y` (confirm
+`<id>` with `npx skills add --help`), or `uip skills install`.
+
+**On the .NET SDK check.** It is a prerequisite of the **`uip rpa` tool**, not of capture
+specifically: the official `uipath-rpa` skill states that `uip rpa` runs against a headless
+Studio (`UiPath.Studio.Helm.<Platform>`) *auto-launched by a silent `dotnet restore`* the first
+time a command needs one — so `validate`, `build`, `pack`, `analyze`, `restore`,
+`activities find` and the `uia` group all sit on it. The `uip` host itself is Node and does not.
+Reported as a **warning**, because `uip login` and `uip or …` work without it.
+
+It checks `--list-sdks` **and** `--list-runtimes`, and reports a runtime-only install as its own
+case: `dotnet --version` prints a version there while `--list-sdks` is empty, which reads as
+"installed" and is not. Fix hint points at the official UiPath CLI installer, which provisions
+.NET SDK 8.0 — see the repo README, *Prerequisites*.
 
 ## What to fetch
 
@@ -65,8 +113,10 @@ scripts\fetch-template.ps1 -Template REFramework-Dispatcher-Base,REFramework-Per
 ```
 
 Both do a blobless, depth-1 sparse checkout of only the matched `templates/<name>/` paths, then
-move them into place. Neither will overwrite an existing folder — that is deliberate, so a
-re-run cannot silently discard work in progress. `-d` / `-Destination` sets where they land
+move them into place as `<name>/`. Nothing else from the repo comes with them — **the rest of
+`templates/` is not in your project**, which is why the instantiation checklist ships in this
+skill rather than there. Neither script will overwrite an existing folder — that is deliberate,
+so a re-run cannot silently discard work in progress. `-d` / `-Destination` sets where they land
 (default: the current directory); `-b` / `-Ref` pins a branch or tag.
 
 ### Pointing at a fork or an internal mirror
@@ -132,9 +182,13 @@ The template is project-level scaffolding only. Three things still have to happe
    template's own `README.md`. That section is what turns a stock REFramework skeleton into a
    Dispatcher or a Finnova/Avaloq Performer — it is the substance of the template, not an
    appendix.
-3. **Work the instantiation checklist** in `templates/README.md` — project name, fresh GUIDs,
-   every `[UC-SPECIFIC — replace]` in `Config_TST.xlsx` *and* `Config_PRD.xlsx`, and the shared
-   queue name.
+3. **Work the instantiation checklist** — `references/instantiating-templates.md`. Project name,
+   fresh GUIDs, `in_ENV` wired to `Config_<ENV>.xlsx`, every `[UC-SPECIFIC — replace]` in
+   `Config_TST.xlsx` *and* `Config_PRD.xlsx`, and the shared queue name.
+
+   It is **not** in the templates repo's `README.md`, which is what this step used to say.
+   `scripts/fetch-template.*` sparse-checks-out `templates/<name>/` only, so that README is
+   **not in your project** — the step pointed at a file you never received.
 4. **Run the conformance checker and get it to zero errors.**
 
    ```bash
@@ -158,13 +212,15 @@ The template is project-level scaffolding only. Three things still have to happe
    **A `WARN` is not "pre-existing, therefore harmless".** `relative-persisted-path` in
    particular is a documented silent-failure trap — fix it before the first real run.
 
-   **The three sample projects under `../Finnova/` and `../Avaloq/` are `targetFramework:
-   Legacy`** (`modernBehavior: false`, Studio 20.10–21.10). Running this checker on them is
+   **The three sample projects are `targetFramework: Legacy`** — maintainer provenance, not in
+   your project: they live under `../Finnova/` and `../Avaloq/`, siblings of the skills repo on a
+   maintainer's machine (`modernBehavior: false`, Studio 20.10–21.10). Running this checker on
+   them is
    **informational only** — the rules encode the modern estate's contract, which those projects
    predate. Calibrate against the templates and modern UC projects instead, and **never tune a
    rule to lower a Legacy sample's count**. See `README.md`.
 
-   ### The four leaf-workflow-contract rules
+   ### The four leaf-workflow-contract rules, and the body rule
 
    | Rule | Fires when |
    |---|---|
@@ -177,12 +233,55 @@ The template is project-level scaffolding only. Three things still have to happe
    that trips them does not meet the `_System` contract in
    `standards/references/project-layout.md`.
 
+   **All four check the *contract*. `leaf-body-stub` checks the *body*.**
+
+   | Rule | Fires when |
+   |---|---|
+   | `leaf-body-stub` | an `<App>_System/` or `Logic/` workflow's body contains **no activity that does the step** — only logging, only containers, or nothing at all |
+
+   This is the gap the four rules above leave: a file can satisfy every one of them and still be
+   a `Log Message` in a `Sequence`. A Framework correctly wired to workflows like that reads its
+   transactions, dispatches them, marks them Successful, and performs no work — and it passes
+   `validate`, `build`, `analyze`, `pack`, Studio's Error List, and a real Orchestrator job with
+   a non-zero transaction count. The official UiPath UIA docs name the same shape: *"That XAML
+   compiles, validates, runs — and does nothing. It is the most expensive kind of stub."*
+
+   Deliberately narrow — it fires only when there is **no** substantive activity at all, so a
+   workflow with one real activity and ten logs is not reported. Partial work is not its
+   business. **A declared mock is carved out**: a workflow under `Mock*/`, or named `Mock-*` /
+   `Mock_*`, is *supposed* to do nothing, and the mock layer is `unresolved-mock`'s to report.
+
+   **Calibration on a real modern project** (UC252, `targetFramework: Windows`, 85 workflows,
+   63 of them leaf), measured 2026-11-04:
+
+   | | Before the carve-out | After |
+   |---|---|---|
+   | `leaf-body-stub` | **7** — 6 under `Mock_System/`, 1 real | **1** |
+   | `unresolved-mock` | **0** | **26** |
+
+   The one real finding is `Bottomline_System/Bottomline_Logout.xaml`: a logout whose body is a
+   `Comment` and a `Log Message`. The six mock findings were the kind of noise that gets a rule
+   blanket-suppressed — and that suppression would have hidden the true positive next to them.
+
+   The `unresolved-mock` jump is the other half: that project has **22** workflows under
+   `Mock_System/` and **not one** carries the `[MOCK]` string, so the marker-only rule was blind
+   to the whole layer and `mocking.md`'s *"a mocked run reaches L3 at most"* cap applied to
+   nothing. It now also fires on a declared mock, asking for the marker to be added.
+
+   | Mode | `leaf-body-stub` is |
+   |---|---|
+   | default (mid-build) | **warning** — a stub body is honest work in progress |
+   | `--uat-readiness` / `-UatReadiness` (stage 8) | **error** — shipping a stub to UAT is not a backlog item |
+
+   Keep a `TODO_SELECTOR` on an unresolved *target* and author the real activity around it.
+   Replacing the activity with a log is the thing this rule exists to stop.
+
    **Calibration on modern projects** (`targetFramework: Windows`), measured 2026-10-26 with
    `grep -a`:
 
-   | Project | `no-config` | `no-outcome` | `logic-no-arguments` | `secret-argument-string` |
+   | Project (maintainer provenance — measured here, not in your project) | `no-config` | `no-outcome` | `logic-no-arguments` | `secret-argument-string` |
    |---|---|---|---|---|
-   | all three `templates/` | 0 | 0 | 0 | 0 |
+   | all three REFramework templates | 0 | 0 | 0 | 0 |
    | Lanes (a real modern UC project) | **6** | **6** | **2** | **1** |
 
    Zero on the templates, so the rules do not fire on conformant modern scaffolding. The Lanes
@@ -215,14 +314,17 @@ Studio showed a compile error in `Framework/InitAllSettings.xaml` and every run 
 | **L2** | Compiles and passes the analyzer | `uip rpa validate --min-severity error`, then `uip rpa build` |
 | **L2b** | **Packs** — survives the UiRobot packaging step | `uip rpa pack <project> --output-path <dir>` |
 | **L3** | Studio opens it with an **empty Error List** | Studio |
-| **L4** | A **real job on TST** in the Orchestrator folder, on a robot, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` |
+| **L4-local** | The **packed package** runs on the **local UiRobot**, in an Orchestrator folder so the credential asset resolves | `UiRobot execute --file <.nupkg> --folder "<folder>"` |
+| **L4** | A **real job on TST** in the Orchestrator folder, on a **robot**, as the robot's own account, with the SDD's expected results checked | `uip or jobs start`, then `jobs get` / `jobs logs` — **ask first** |
 
 Every report names the highest level reached **and the command that proved it**. A wiring or
 "project ready" stage is not done below **L3** — L1 and L2 both passed on a project Studio
 could not compile. **L2b is separate because `validate` and `build` are not the last
 compile-time gate** — a missing assembly reference and `ST-SEC-008` both pass them and fail at
-`pack`. **A local `uip rpa run` is L3 evidence, not L4**: L4 is a real job in the Orchestrator
-folder on a robot. A mocked run reaches **L3 at most**. Never write PASS without the level.
+`pack`. **L4-local is the default end-to-end run**, quoted with its folder, and needs no
+`uip login`; it is **not** L4, because it runs as your interactive account. **A local
+`uip rpa run` is L3 evidence**, being a run of the *sources* in the developer's session. A mocked
+run reaches **L3 at most**. Never write PASS without the level.
 
 Full detail, the two traps in those commands, and why `validate` is not a superset of the
 analyzer: `references/evidence-ladder.md`. **Command names are per-tool and per-version** —
@@ -263,6 +365,8 @@ jobs finish green in Orchestrator with no work done.
 
 ## References
 
+- `references/instantiating-templates.md` — the eight-step instantiation checklist, which ships
+  with this skill because the fetch script does not deliver the templates repo's own README
 - `references/generating-the-skeleton.md` — Route A (Studio) and Route B (`uip rpa init`) for
   `Main.xaml` + `Framework/`, what 26.10.1 actually produces, and the deltas against this estate
 - `references/evidence-ladder.md` — L1–L4, and why a PASS without a level is not a report

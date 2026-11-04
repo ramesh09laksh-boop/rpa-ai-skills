@@ -37,19 +37,27 @@ update the status column and date.
 
 Run this per flow, in a **test** environment with an account you are authorised to use.
 
-1. Record the window baseline: `uip rpa uia snapshot capture --folder-path "$W"`.
-2. Open the flow's entry URL: `uip rpa uia interact browser open <url> --browser Chrome`.
-3. Capture the page tree at each step: `uip rpa uia snapshot capture <bN> --folder-path "$W"`,
-   then read `tree.yml`. Use it to pick each element's `eN` ref — not to read attributes.
-4. For each element the flow touches, run the capture loop in `../SKILL.md` and confirm with
-   `selector-intelligence evaluate` that the selector matches that element **and nothing
-   else**. Do not re-type attributes by hand; `resolve-defaults` and `selector-intelligence`
-   own selector construction.
-5. Advance the application only with `uip rpa uia interact`, and only after every element on
-   the current screen is registered (complete-then-advance).
-5. Walk the flow to completion, recording every interstitial (consent banner, "Login
-   anyway", error page, session-expiry prompt).
-6. Update the table above and note any drift in the flow's section below.
+0. Confirm the account is at the **role the robot runs as** and the admin-only controls are
+   absent — `../SKILL.md`, *Prerequisite — capture under the role the robot runs as*. A capture
+   made at a higher role is untrusted, so verifying a flow under one proves nothing.
+1. Record the window baseline with the snapshot CLI, and note which windows were already there.
+2. Open the flow's entry URL with the interaction CLI.
+3. Capture the page tree at each step and read it. Use it to pick each element's `eN` ref — not
+   to read attributes.
+4. For each element the flow touches, run the official capture flow (`../SKILL.md`, *The loop*)
+   and confirm at its registration gate that the selector matches that element **and nothing
+   else**. Do not re-type attributes by hand, and do not hand-call the internal
+   selector-building CLIs — the capture flow owns selector construction and registration.
+5. Advance the application only with the interaction CLI, and only after every element on the
+   current screen is registered (complete-then-advance).
+6. Walk the flow to completion, recording every interstitial (consent banner, "Login anyway",
+   error page, session-expiry prompt).
+7. Update the table above and note any drift in the flow's section below — including the role
+   the verification was done under.
+
+Exact command names come from the UIA package's own
+`ui-automation-guide.md`, which is co-versioned with the package the robot runs. They are
+deliberately not pinned here.
 
 Never paste a credential into a prompt. Enter it in the browser directly, or use an
 environment variable the tool reads.
