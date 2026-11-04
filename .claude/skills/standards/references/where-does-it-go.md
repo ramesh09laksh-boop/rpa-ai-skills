@@ -100,14 +100,32 @@ folder.
 Name it `<Application>_System/` (`Finnova_System`, `Camunda_System`). Two reference folders
 deviate — `UBS KeyTrader/` and `AI/` — but new folders should follow the `_System` suffix.
 
+**Do not reuse another application's folder because the technology matches.** Four of the
+estate's folders are browser surfaces and each has its own: `SIX_ID_System/`, `CardOne_System/`
+and `Web_Nav_System/` — the last meaning the browser embedded *inside* the Avaloq Smart Client
+specifically, not "the web folder". A new portal gets `<Portal>_System/`. The folder names the
+application, not the automation technique; two applications in one folder makes every workflow in
+it ambiguous about what it talks to, and it breaks the naming rule below, which derives the file
+prefix from the folder.
+
 When you create one, add a matching `references/systems/<application>-system.md` here so the
 next developer's agent can find it.
+
+## Then name the file for the folder
+
+The folder decides the file name: `<Application>-<Subject>_<Verb>.xaml`, verb last, prefix
+derived from the folder — `Web_Nav_System/Web_Nav-Table_Extract.xaml`,
+`Finnova_System/Finnova-Valoren_Search.xaml`. Do it when you create the file. Nothing in the
+toolchain needs the name to be right, and once the workflow is wired every rename also costs an
+edit to each `Invoke Workflow File` that points at it. See `naming-conventions.md`; the checker
+reports an unprefixed leaf as `leaf-name-prefix`.
 
 ## Placement checklist
 
 Before committing a new workflow:
 
 - [ ] Is it in the folder its content implies (UI → `_System`, decision → `Logic`)?
+- [ ] Is it **named for that folder** — `<Application>-<Subject>_<Verb>.xaml`?
 - [ ] Does a `_System` workflow avoid making business decisions?
 - [ ] Does a `Logic` workflow avoid touching the UI?
 - [ ] Does it take `in_Config` rather than reading `Config_*.xlsx` itself?

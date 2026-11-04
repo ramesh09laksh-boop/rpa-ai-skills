@@ -146,7 +146,35 @@ Details: `references/fetched-files-crlf.md`.
 
 ## After fetching — this is not a finished project
 
-The template is project-level scaffolding only. Three things still have to happen, in order:
+The template is project-level scaffolding only.
+
+### First: rename the folder off the template's name
+
+Each template lands in a folder named after the **template** — `REFramework-Dispatcher-Base` —
+because the fetch script has no other name to use. On the CLI route below that folder *is* the
+project (step 1 generates into a scratch folder and you copy `Main.xaml` + `Framework/` **into**
+the fetched one), so unless it is renamed deliberately, the finished project ships under the
+template's name.
+
+```bash
+git mv REFramework-Dispatcher-Base <Project-Name>
+```
+
+**This is the one instantiation step with no symptom.** A project whose folder still says
+`REFramework-Dispatcher-Base` compiles, packs, publishes and runs exactly like one that was
+renamed — nothing downstream forces it, so it survives to review unless someone does it on
+purpose. What it costs: a reviewer cannot tell an instantiated project from an untouched
+template, and a second UC fetched into the same parent directory collides with it (the fetch
+script refuses to overwrite, by design, so the next fetch fails outright).
+
+The name belongs in three places and they must agree: the **folder**, `project.json → name`,
+`project.uiproj → Name`. `validate-project` reports the template name on the folder as
+`project-folder-not-renamed` (**error**) and a folder/name disagreement as
+`folder-name-mismatch`. If the name is not agreed yet, that is the ask in *Three decisions to
+settle before the first publish* below — the folder keeps the template's name only for as long
+as the question is open, and that is a reported finding, not a resting state.
+
+### Then four more things, in order
 
 1. **Generate `Main.xaml` and `Framework/*.xaml`.** The templates deliberately ship no `.xaml`
    — the REFramework skeleton comes from UiPath so it stays in step with your Studio version.
@@ -275,6 +303,26 @@ The template is project-level scaffolding only. Three things still have to happe
 
    Keep a `TODO_SELECTOR` on an unresolved *target* and author the real activity around it.
    Replacing the activity with a log is the thing this rule exists to stop.
+
+   ### And `leaf-name-prefix` checks the *name*
+
+   | Rule | Fires when |
+   |---|---|
+   | `leaf-name-prefix` | a workflow under `<App>_System/` is not named `<App>-…` or `<App>_…` |
+
+   The estate's convention derives the prefix from the folder — `Web_Nav_System/` → `Web_Nav-`,
+   `Finnova_System/` → `Finnova-` — so a missing prefix is mechanical, not a judgement call. It
+   is also invisible to every other gate: `Web_Nav_System/Login.xaml` compiles, validates,
+   analyzes, packs and runs. The cost is that a file name is the only index into a 60-workflow
+   project, so a leaf that does not say which application it drives is what sends the next
+   developer to the wrong folder — or to writing a second copy of a workflow that already
+   exists.
+
+   **Fix it at authoring time.** After a workflow is wired, renaming it also means editing every
+   `Invoke Workflow File` that points at it, which is why a wrong name stays wrong. Both
+   separators pass and the comparison is case-insensitive; a declared mock is carved out, the
+   same way `leaf-body-stub` carves one out. Convention: the `standards` skill,
+   `references/naming-conventions.md`.
 
    **Calibration on modern projects** (`targetFramework: Windows`), measured 2026-10-26 with
    `grep -a`:

@@ -29,6 +29,29 @@ Both are decisions, not defaults, and both are settled with the team — see `SK
 - `OrchestratorQueueFolder` scopes a queue-per-environment setup; leave it empty for classic
   folders.
 
+### Rename the fetched folder as soon as the name is agreed
+
+`scripts/fetch-template.*` lands each template in a folder named after the **template** —
+`REFramework-Dispatcher-Base` — because that is the only name it has. That folder is the project
+on the CLI route (`SKILL.md` step 1 generates `Main.xaml` + `Framework/` into a *scratch* folder
+and copies them **into** the fetched one), so unless it is renamed deliberately, the finished
+project ships under the template's name.
+
+```bash
+git mv REFramework-Dispatcher-Base TKB-UC11.Kreditverletzung
+```
+
+Do it here, before anything is built on top. **It is the one step with no symptom** — a project
+whose folder still says `REFramework-Dispatcher-Base` compiles, packs, publishes and runs exactly
+like one that was renamed, so nothing downstream will force it. What it costs: a reviewer cannot
+tell an instantiated project from an untouched template, and a second UC fetched into the same
+parent directory collides with it — the fetch script refuses to overwrite, deliberately, so the
+next fetch fails rather than merging.
+
+`validate-project` reports it as `project-folder-not-renamed` (**error**), and a folder that
+disagrees with `project.json → name` as `folder-name-mismatch` (warning). Step 4 sets the other
+two places the same name has to appear.
+
 ## 2. Create the project with the right compatibility
 
 Studio: **File → New → Robotic Enterprise Process**. Name it the agreed project name, in the
@@ -44,12 +67,17 @@ The CLI route (`uip rpa init`) is preferred and needs no Studio session — `SKI
 `project.json`, `project.uiproj`, `entry-points.json`, `Data/` and `Tests/`, replacing what
 Studio produced.
 
-## 4. Set the identity fields — three files, one set of values
+## 4. Set the identity fields — three files **and the folder**, one set of values
+
+- **The folder name** — the agreed project name, not the template's. If step 1's `git mv` has
+  not happened yet, this is the last point at which it is cheap. `project-folder-not-renamed`
+  and `folder-name-mismatch` are what catch a missed one.
 
 In the copied `project.json`:
 
-- **`"name"`** — the agreed project name. **No spaces, anywhere.** It propagates verbatim into
-  the published package name and the Orchestrator process name.
+- **`"name"`** — the agreed project name, **byte-identical to the folder**. **No spaces,
+  anywhere.** It propagates verbatim into the published package name and the Orchestrator process
+  name.
 - **`"projectId"`** and **`entryPoints[0].uniqueId`** — fresh GUIDs. The shipped values are
   placeholders; two projects sharing a `projectId` confuses Studio and Orchestrator.
 - **`"description"`** — what the process does.

@@ -7,6 +7,57 @@ Tag each release (`git tag -a v<x.y> -m ...`) so a project can pin or roll back.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
+## [Unreleased] — v0.2.3
+
+Two reported defects from a real run, both of the same shape: **a stage step with no symptom**.
+Nothing downstream fails, so the step survives the gate and is found by a person reading the tree.
+
+| | Reported | Why it survived |
+|---|---|---|
+| after stage 2 | the `REFramework-Dispatcher-Base` copy stayed under the template's own folder name | the project compiles, packs, publishes and runs under it — and the prompt sent the agent to `templates/README.md` for the checklist, which the fetch never delivers |
+| after stage 4–5 | leaf workflows in `Web_Nav_System/` not named for the application | the convention derives the prefix from the folder, so it was never written down as a step, never checked, and a mis-named leaf passes every other gate |
+
+### Added
+
+- **`project-folder-not-renamed`** validate-project rule (**error**). The project folder is still
+  `REFramework-Dispatcher-Base` / `-Performer-Finnova` / `-Performer-Avaloq`. Same family as
+  `template-default-left`: an un-instantiated artefact must not pass for a finished one. Also
+  blocks the next fetch into the same parent directory, which refuses to overwrite by design.
+- **`folder-name-mismatch`** validate-project rule (warning), **split out of
+  `name-no-whitespace`**, which used to report it. A stale *folder* name reported under a rule
+  about *whitespace* reads as cosmetic — which is how it survives a stage gate.
+- **`leaf-name-prefix`** validate-project rule (warning). A workflow under `<App>_System/` not
+  named `<App>-…` / `<App>_…`. The prefix is derivable from the path, so this is mechanical
+  rather than a judgement call. Case-insensitive, either separator, declared mocks carved out
+  (the `leaf-body-stub` calibration lesson), leading `_` stripped rather than excused.
+- **Fixtures for all three**, bad and good. 34 rules, 70 assertions; `-TemplateMode` treats the
+  two folder rules as expected, so `templates/` stays green.
+- **`naming-conventions.md`** — *The prefix is derived from the folder — strip `_System`* (a
+  folder → prefix → example table, `Web_Nav_System/` included; it had no row before), and
+  *Rename the fetched template folder — the name lands in three places*.
+
+### Changed
+
+- **Stage 2's prompt** now names the rename explicitly (`git mv`, then `project.json → name` and
+  `project.uiproj → Name`) and points the checklist at `instantiating-templates.md` **in the
+  `project-scaffolding` skill** instead of `templates/README.md`, which `npx skills add` and the
+  fetch script both leave out of a project. The stale path had already been fixed inside the
+  skill; the README prompt still carried it.
+- **Stage 4–5's loop gains a first step: place and name.** `place and name → capture → author →
+  run once → pack → ledger row → commit`. Naming after the fact is not a tidy-up — once a
+  workflow is wired, every rename also costs an edit to each `Invoke Workflow File` pointing at
+  it, which is why a wrong name is never fixed later (and why the estate still carries five
+  production workflows under a `_` that means *scratchpad*).
+- **`Web_Nav_System/` is documented as one specific surface** — the browser embedded inside the
+  Avaloq Smart Client — **not "the browser folder"**. Four browser surfaces, four folders; a new
+  portal gets its own. Stated in `standards/SKILL.md`, `where-does-it-go.md` and the `web` skill,
+  which previously carried no folder or naming guidance at all.
+- The `web` skill gains *Where the captured work lands, and what it is called*; the leaf ledger
+  states that the `Workflow` column is the conformant name and that the row is the last
+  comfortable moment to rename; `fetch-template.ps1` / `.sh` print the rename as step 0.
+- `File_System/Tracelog_Append.xaml` is now labelled a **deviation** in the examples table rather
+  than sitting among the conformant names unmarked.
+
 ## [Unreleased] — v0.2.2
 
 **Merged to `main` on 2026-11-04 via PR #4, not tagged.** Branched from `main` (which was

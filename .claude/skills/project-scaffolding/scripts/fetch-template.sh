@@ -157,6 +157,15 @@ cat <<EOF
 
 Fetched $# template(s). This is scaffolding, not a project yet:
 
+  0. RENAME THE FOLDER. Each one above is named after the TEMPLATE, because that is the
+     only name this script has. Once the project name is agreed:
+
+       git mv ${TEMPLATES[0]} <Project-Name>
+
+     Then set project.json -> name and project.uiproj -> Name to the same value. This
+     step has NO symptom - the project compiles, packs, publishes and runs under the
+     template's name - so nothing later will force it. validate-project reports it as
+     project-folder-not-renamed (error).
   1. Studio: File > New > Robotic Enterprise Process, Compatibility: Windows
      (not 'Windows - Legacy'), then copy the fetched project.json, project.uiproj,
      entry-points.json, Data/ and Tests/ over what Studio generated.

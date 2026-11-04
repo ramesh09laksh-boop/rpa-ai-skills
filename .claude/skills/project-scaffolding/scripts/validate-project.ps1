@@ -45,10 +45,12 @@ param(
 
     # For checking templates/ itself, in CI. The templates SHIP their placeholders on purpose -
     # "<PROJECT-NAME-TBD-ask-team>", "[UC-SPECIFIC - replace]", the un-regenerated template
-    # GUIDs - so template-default-left and name-no-whitespace fire on every one of them by
-    # design. In this mode those two are reported as 'expected' and do not fail the run, while
-    # every other rule still does. An EMPTY expected list is itself a failure: it means the
-    # tripwires have gone missing from the templates.
+    # GUIDs - and they legitimately live in a folder named after the template, so
+    # template-default-left, name-no-whitespace, folder-name-mismatch and
+    # project-folder-not-renamed fire on every one of them by design. In this mode those four
+    # are reported as 'expected' and do not fail the run, while every other rule still does. An
+    # EMPTY expected list is itself a failure: it means the tripwires have gone missing from the
+    # templates.
     #
     # Never pass this for a real UC project. The whole point of those rules is that a
     # half-instantiated project cannot pass for a finished one.
@@ -271,9 +273,18 @@ function Test-Project {
         Add-Finding error 'name-no-whitespace' $name `
             "project.json name '$projName' contains whitespace - the package id derives from it"
     }
+    # --- folder-name-mismatch -----------------------------------------------
+    # Its own rule id rather than a branch of name-no-whitespace. The two failures have
+    # different causes and different fixes, and a stale FOLDER name reported under a rule about
+    # WHITESPACE reads as cosmetic - which is how it survives a stage gate. The folder is half
+    # the project's identity: it is the repository name and the working path every script, CI
+    # job and relative reference quotes, while project.json -> name is the package id and the
+    # Orchestrator process name. A project renamed in one place and not the other is worked on
+    # under one name and published under another.
     if ($projName -ne $name) {
-        Add-Finding warning 'name-no-whitespace' $name `
-            "project.json name '$projName' does not match the folder name '$name'"
+        Add-Finding warning 'folder-name-mismatch' $name `
+            ("project.json name '$projName' does not match the folder name '$name'. Set the " +
+             'folder, project.json name and project.uiproj Name to the one agreed project name.')
     }
     $uiprojPath = Join-Path $abs 'project.uiproj'
     if (Test-Path $uiprojPath) {
@@ -313,6 +324,29 @@ function Test-Project {
             Add-Finding error 'template-default-left' $name `
                 "template GUID $guid was never regenerated - two projects sharing a projectId confuse Orchestrator"
         }
+    }
+
+    # --- project-folder-not-renamed -----------------------------------------
+    # fetch-template lands each template in a folder named after the TEMPLATE, because that is
+    # the only name it has. Renaming it to the agreed project name is step 1 of the
+    # instantiation checklist, and it is the step that gets skipped - because nothing
+    # downstream needs it. project.json -> name can be filled in correctly, the project
+    # compiles, packs and runs, and the folder on disk still says REFramework-Dispatcher-Base.
+    #
+    # Not cosmetic, three ways. The folder is the repository name and the working path every
+    # script, CI job and relative reference quotes. A second UC fetched into the same parent
+    # directory collides with it, and fetch-template then refuses to run at all ("already
+    # exists"). And a reviewer reading the tree cannot tell an instantiated project from an
+    # untouched template, which is the same class of defect as an unreplaced placeholder -
+    # hence the same severity as template-default-left.
+    if ($name -in @('REFramework-Dispatcher-Base',
+                    'REFramework-Performer-Finnova',
+                    'REFramework-Performer-Avaloq')) {
+        Add-Finding error 'project-folder-not-renamed' $name `
+            ("the project folder is still the template's own name '$name'. Rename it to the agreed " +
+             "project name (git mv '$name' '<Project-Name>') and set the folder, project.json " +
+             'name and project.uiproj Name to that one value. Until then the tree cannot be ' +
+             'told apart from an untouched template, and the next fetch into this directory fails.')
     }
 
     # --- missing-gitignore --------------------------------------------------
@@ -510,6 +544,44 @@ function Test-Project {
                  'marker in the file. Add the marker per mocking.md so a grep finds it, and note ' +
                  'that while any mock is in the dispatch path the run reaches L3 at most - a mock ' +
                  'layer nothing detects is a mock layer nobody remembers to remove.')
+        }
+
+        # --- leaf-name-prefix ---------------------------------------------------
+        # naming-conventions.md: <Application>-<Subject>_<Verb>.xaml, and "the application
+        # prefix MATCHES THE FOLDER". The prefix is therefore derivable from the path -
+        # Finnova_System/ -> Finnova-, Web_Nav_System/ -> Web_Nav- - which is exactly why
+        # nothing checked it, and why a capture-and-develop loop can fill Web_Nav_System/ with
+        # Login.xaml, Search.xaml and Extract_Table.xaml. Nothing downstream cares: they
+        # compile, analyze, pack and run.
+        #
+        # The cost lands on the reader. A file name is the only index into a 60-workflow
+        # project, and a leaf that does not say which application it drives is what sends the
+        # next developer to the wrong folder - or to writing a second copy of a workflow that
+        # already exists (where-does-it-go.md, "Reusing versus duplicating": one estate project
+        # invokes its single save workflow 12 times, and that only works if it can be found).
+        #
+        # Fix it at authoring time. Every rename after the workflow is wired costs an edit to
+        # each Invoke Workflow File that points at it, which is what turns a ten-second fix
+        # into one nobody makes - exactly why the estate still carries
+        # Web_Nav_System/_Web_Nav_Table_Extract.xaml under a '_' that means "scratchpad".
+        #
+        # Case-insensitive, and either separator: SIX_ID_System/ holds SIX_iD-Anlagefonds_...,
+        # and both 'Finnova-' and 'Finnova_' are live. Neither is this rule's business - the
+        # missing application prefix is. A leading '_' (scratchpad) is stripped before the
+        # comparison rather than excused, and a declared mock is carved out for the reason
+        # given on leaf-body-stub below.
+        $sysSeg = [regex]::Match($rel, '(?:^|[\\/])([A-Za-z0-9 _]+)_System[\\/]')
+        if ($sysSeg.Success -and -not $isDeclaredMock) {
+            $app = $sysSeg.Groups[1].Value
+            $stem = $x.Name -replace '^_+', ''
+            if ($stem -notlike "$app-*" -and $stem -notlike "${app}_*") {
+                Add-Finding warning 'leaf-name-prefix' $name `
+                    ("$rel sits in $($app)_System/ but is not named for that application. " +
+                     'naming-conventions.md derives the prefix from the folder: ' +
+                     "$($app)-<Subject>_<Verb>.xaml (verb last) - e.g. $($app)-Login.xaml, " +
+                     "$($app)-Table_Extract.xaml. Rename it now; after it is wired, every " +
+                     'rename also costs an edit to each Invoke Workflow File pointing at it.')
+            }
         }
 
         # classic-excel-write: broken on Windows/.NET 6, see standards/excel-activities.md
@@ -931,7 +1003,8 @@ else {
 }
 
 if ($TemplateMode) {
-    $expectedRules = @('template-default-left', 'name-no-whitespace')
+    $expectedRules = @('template-default-left', 'name-no-whitespace',
+                       'folder-name-mismatch', 'project-folder-not-renamed')
     $expected = @($script:Findings | Where-Object { $_.Rule -in $expectedRules })
     $errors = @($errors | Where-Object { $_.Rule -notin $expectedRules })
     $warnings = @($warnings | Where-Object { $_.Rule -notin $expectedRules })

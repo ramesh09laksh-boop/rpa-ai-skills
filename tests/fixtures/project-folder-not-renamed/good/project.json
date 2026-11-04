@@ -1,0 +1,12 @@
+{
+  "name": "TKB-UC11.Kreditverletzung",
+  "description": "Fixture: an instantiated project - the folder, project.json name and project.uiproj Name are one agreed value, not the template's.",
+  "main": "Main.xaml",
+  "projectId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "targetFramework": "Windows",
+  "expressionLanguage": "VisualBasic",
+  "studioVersion": "23.10.8.0",
+  "designOptions": { "modernBehavior": true },
+  "runtimeOptions": { "isAttended": false, "requiresUserInteraction": false },
+  "dependencies": {}
+}

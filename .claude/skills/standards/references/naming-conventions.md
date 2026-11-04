@@ -133,6 +133,31 @@ a question the team has not yet been asked.
 
 Same rule, same reason, for the folder name and the repository name.
 
+### Rename the fetched template folder — the name lands in three places
+
+A fetched template arrives in a folder named after the **template**
+(`REFramework-Dispatcher-Base`), because the fetch script has no other name to use. The agreed
+project name then has to be applied to **three places, in one commit**:
+
+| | |
+|---|---|
+| the **folder** | the repository name and the working path every script, CI job and relative reference quotes |
+| `project.json → name` | the published package id and the Orchestrator process name |
+| `project.uiproj → Name` | must equal `project.json → name`, or Studio and the CLI disagree |
+
+```bash
+git mv REFramework-Dispatcher-Base TKB-UC11.Kreditverletzung
+```
+
+**The folder is the one that gets left behind**, because it is the only one of the three with no
+symptom: a project whose folder still says `REFramework-Dispatcher-Base` compiles, packs,
+publishes and runs exactly like one that was renamed. The costs are a reviewer who cannot tell an
+instantiated project from an untouched template, and a second UC fetched into the same parent
+directory colliding with it — the fetch script refuses to overwrite, by design. The checker
+reports it as `project-folder-not-renamed` (error), and a folder/name disagreement as
+`folder-name-mismatch` — the `project-scaffolding` skill,
+`references/instantiating-templates.md`.
+
 ### Dispatcher/Performer pairs — undecided
 
 **There is no working two-project (Dispatcher + Performer) pair in this estate yet.** With no
@@ -168,14 +193,51 @@ jobs finish green with no work done. See
 The **application prefix matches the folder**, and the verb goes **last** (German-influenced
 word order — this is consistent across the estate).
 
+### The prefix is derived from the folder — strip `_System`
+
+Nothing has to be remembered or looked up here, which is why a missing prefix is never a
+judgement call:
+
+```
+<App>_System/   →   prefix  <App>-
+```
+
+| Folder | Prefix | A new file in it |
+|---|---|---|
+| `Finnova_System/` | `Finnova-` | `Finnova-Valoren_Search.xaml` |
+| `Avaloq_System/` | `Avaloq-` | `Avaloq-Ticket_Edit.xaml` |
+| `Web_Nav_System/` | `Web_Nav-` | `Web_Nav-Table_Extract.xaml` |
+| `SIX_ID_System/` | `SIX_ID-` | `SIX_ID-Instrument_Search.xaml` |
+| `CardOne_System/` | `CardOne-` | `CardOne-Page_Message_Check.xaml` |
+| `Mail_System/` | `Mail-` | `Mail-Archiv_Move.xaml` |
+
+`Logic/` has no application, so its prefix is the literal `Logic-`. `UBS KeyTrader/` and `AI/`
+predate the `_System` suffix and keep their own prefixes (`AI-`); new folders take the suffix,
+see `where-does-it-go.md`.
+
+**Name the file when you create it, not when you tidy up.** Nothing downstream needs the name to
+be right — a mis-prefixed leaf compiles, validates, analyzes, packs and runs — so the only
+pressure to fix it is a reader's. And once the workflow is wired, renaming it also means editing
+every `Invoke Workflow File` that points at it, which is how `Web_Nav_System/` ended up with five
+production workflows under a `_` that is supposed to mean *scratchpad* (see *Prefixes with
+meaning* below). The checker reports a leaf whose name does not start with its folder's prefix as
+`leaf-name-prefix` — the `project-scaffolding` skill, `scripts/validate-project.ps1`.
+
+The convention is also what makes a workflow **findable**, which is what stops it being written
+twice: `where-does-it-go.md` records one estate save workflow invoked 12 times. That only works
+if `Finnova-System_Save.xaml` can be found by guessing its name.
+
+### Examples from the reference projects
+
 | Folder | Examples |
 |---|---|
 | `Finnova_System/` | `Finnova-Valoren_Search.xaml`, `Finnova-Fee_Update.xaml`, `Finnova-System_Save.xaml`, `Finnova-Borsen_Abrechnungen_Extract.xaml` |
 | `Avaloq_System/` | `Avaloq_Login.xaml`, `Avaloq_Ticket_bearbeiten.xaml`, `Avaloq_Navigator_Desk_Extract.xaml` |
 | `SIX_ID_System/` | `SIX_iD_Instrument_Search.xaml`, `SIX_ID-Anlagefonds_Beschreibung_Get.xaml` |
 | `CardOne_System/` | `CardOne_Login.xaml`, `CardOne_Page_Message_Check.xaml` |
+| `Web_Nav_System/` | `_Web_Nav_Table_Extract.xaml`, `_Web_Nav_Table_Get_Row.xaml` — all five carry the scratchpad `_`; see `systems/web-nav-system.md`. Prefix conformant, `_` not. Do not extend the pattern |
 | `Mail_System/` | `Mail-Process.xaml`, `Mail-Archiv_Move.xaml`, `Mail_Send.xaml` |
-| `File_System/` | `File-Excel_Read.xaml`, `File-PDF_To_Text_File_Conversion.xaml`, `Tracelog_Append.xaml` |
+| `File_System/` | `File-Excel_Read.xaml`, `File-PDF_To_Text_File_Conversion.xaml`, and `Tracelog_Append.xaml` — the last one is a **deviation**, not a pattern: no `File-` prefix, so nothing in the name says which folder it lives in |
 | `Logic/` | `Logic-Get_Credential.xaml`, `Logic-Risikodomizil_Identification.xaml`, `Logic-CP_UBS_Extract.xaml` |
 | `Camunda_System/` | `Camunda-Process_Logic.xaml` |
 | `AI/` | `AI-Commission_Get_By_Text.xaml` |

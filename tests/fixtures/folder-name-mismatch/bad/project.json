@@ -1,0 +1,12 @@
+{
+  "name": "TKB-UC11.Kreditverletzung",
+  "description": "Fixture: project.json was renamed and the folder was not.",
+  "main": "Main.xaml",
+  "projectId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "targetFramework": "Windows",
+  "expressionLanguage": "VisualBasic",
+  "studioVersion": "23.10.8.0",
+  "designOptions": { "modernBehavior": true },
+  "runtimeOptions": { "isAttended": false, "requiresUserInteraction": false },
+  "dependencies": {}
+}

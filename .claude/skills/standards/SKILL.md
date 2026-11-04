@@ -117,7 +117,7 @@ their arguments:
 | `Avaloq_System/` | Avaloq Smart Client | `references/systems/avaloq-system.md` |
 | `SIX_ID_System/` | SIX iD portal (Chrome) | `references/systems/six-id-system.md` |
 | `CardOne_System/` | CardOne (Chrome) | `references/systems/cardone-system.md` |
-| `Web_Nav_System/` | Avaloq embedded report browser | `references/systems/web-nav-system.md` |
+| `Web_Nav_System/` | Avaloq embedded report browser — **not** a general browser folder | `references/systems/web-nav-system.md` |
 | `UBS KeyTrader/` | UBS KeyTrader Java client | `references/systems/ubs-keytrader.md` |
 | `Camunda_System/` | Camunda DMN decision REST API | `references/systems/camunda-system.md` |
 | `AI/` | LLM chat completion endpoint | `references/systems/ai-system.md` |
@@ -126,6 +126,26 @@ their arguments:
 
 For the activity APIs of the two custom libraries, use the `finnova-library` skill and
 the `avaloq-library` skill.
+
+**`Web_Nav_System/` is not "the browser folder".** In this estate it means one specific surface:
+the browser embedded *inside* the Avaloq Smart Client (`app='smartclient.exe'`, `WindowScope`,
+no browser process to attach to). A different web application — a portal, an internal tool, a
+single-page app — gets **its own** `<Application>_System/` named after that application, even
+though the `web` skill drives all of them. Two applications sharing one folder makes every
+workflow in it ambiguous about what it talks to. If a project does use `Web_Nav_System/` for a
+generic browser surface, the naming rules are unchanged: the prefix still comes from the folder,
+so the files are `Web_Nav-<Subject>_<Verb>.xaml`.
+
+### Name each leaf workflow for its folder
+
+`<Application>_System/<Application>-<Subject>_<Verb>.xaml`, verb last, and the **application
+prefix is derived from the folder**: `Finnova_System/Finnova-Valoren_Search.xaml`,
+`Web_Nav_System/Web_Nav-Table_Extract.xaml`. Nothing in the toolchain needs the name to be right
+— a mis-named leaf compiles, validates, analyzes, packs and runs — so **name the file when you
+create it**. After it is wired, renaming it also means editing every `Invoke Workflow File` that
+points at it, which is why a wrong name is never fixed later. Full rules, separators, verbs and
+the names to avoid: `references/naming-conventions.md`. The checker reports an unprefixed leaf as
+`leaf-name-prefix` — the `project-scaffolding` skill, `scripts/validate-project.ps1`.
 
 ## References
 

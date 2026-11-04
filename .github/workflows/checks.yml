@@ -57,7 +57,7 @@ jobs:
       #
       # This job asserts both directions per rule - bad/ must fire, good/ must be silent - and
       # fails if a rule has no fixture directory at all. See tests/README.md.
-      - name: bad -> finding, good -> none, for all 31 rules
+      - name: bad -> finding, good -> none, for all 34 rules
         shell: pwsh
         run: |
           ./tests/run-fixtures.ps1

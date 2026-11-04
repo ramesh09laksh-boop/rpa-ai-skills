@@ -111,7 +111,9 @@ Get-ChildItem tests -Recurse -File -Force | ForEach-Object { git check-ignore $_
 
 1. Write the rule in `validate-project.ps1`.
 2. Create `tests/fixtures/<rule>/bad/` and `good/`, plus `notes.md`.
-3. Run the suite. **A new rule with no fixture directory fails the run** — the coverage check
+3. Run the suite (34 rules, 70 assertions as of the `leaf-name-prefix` /
+   `project-folder-not-renamed` / `folder-name-mismatch` additions). **A new rule with no fixture
+   directory fails the run** — the coverage check
    compares the rule ids it can find in the checker against the fixture directories, both ways.
    That is the half that makes the suite hard to cheat: without it, adding a rule and no fixture
    leaves the suite green and the new rule untested, which is the same hole one rule along.
@@ -121,7 +123,7 @@ faking the fixture.
 
 ## Coverage, and what is honestly not covered
 
-31 rules, 31 fixture directories, 64 assertions. Two things inside existing rules are **not**
+34 rules, 34 fixture directories, 70 assertions. Two things inside existing rules are **not**
 exercised, and are recorded here rather than implied:
 
 - **`object-repository-not-shared`, the git-ignored branch.** The rule has two halves: `.objects/`
@@ -168,4 +170,4 @@ way — break something and watch it go red:
 ```
 
 Both were run against this suite and both failed as required; restore the file afterwards and
-confirm the clean run is back to 62 passed.
+confirm the clean run is back to 70 passed.

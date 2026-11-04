@@ -54,6 +54,13 @@ A row is done only when every column is `yes`. `no` needs a reason in the same r
 
 Notes on filling it:
 
+- **The `Workflow` column is the conformant path and name**, written as
+  `<App>_System/<App>-<Subject>_<Verb>.xaml` with the prefix derived from the folder. Writing the
+  row is the last comfortable moment to fix a name: by then the workflow is wired, and every
+  rename from here costs an edit to each `Invoke Workflow File` that points at it. If the file on
+  disk does not match what you are about to write in the row, rename the file — do not write the
+  name the file happens to have. `naming-conventions.md`, and `leaf-name-prefix` in
+  `validate-project`.
 - **`n/a` is a legitimate value, a blank is not.** A `Logic/` workflow captures nothing, so its
   capture columns are `n/a`. A login screen has no per-item target, so its
   parametrized-by-business-key column is `n/a`. Write the `n/a`.

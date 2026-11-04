@@ -117,7 +117,7 @@ end-to-end run and needs no `uip login`; L4 is **ask-first**.
 | # | Stage | Load | Gate |
 |---|---|---|---|
 | 1 | PDD → SDD | `standards`, `security` | Every transaction type and its work-item columns defined; Open Questions listed |
-| 2 | SDD → Project | `project-scaffolding` | **L3** |
+| 2 | SDD → Project | `project-scaffolding` | **L3**, and the project folder renamed off the template's name |
 | 3 | Wire the Framework | `standards` (`references/wiring-the-framework.md`), `security` | **L3**, and the 0-transaction guard observed firing |
 | 4–5 | Capture **and** develop, one workflow at a time | `web` + `standards` + the app skill(s); `pdd-sdd-scaffolding` only in OFFLINE mode | Every row of `Documentation/Leaf_Ledger.md` reads `yes`, **and** each workflow was run once against the live application with the command recorded. `.objects/` committed |
 | 6 | Test data → tests | `standards` (`references/test-data.md`), `security` | `Tests.xlsx` built; no case marked passed without a run |
@@ -127,12 +127,32 @@ end-to-end run and needs no `uip login`; L4 is **ask-first**.
 | 9 | Deployment readiness | `standards` (`references/deployment.md`), `security` | TST first, at **L2b** and **L4**. PRD only with named approval |
 | 10 | Change / enhancement | whatever the project already uses | Re-run 6–8 for what the change touches |
 
-**Stages 4 and 5 are one loop, not two stages.** Per workflow: capture → author → run once →
-pack → ledger row → commit → next workflow. Capturing every screen first and authoring afterwards
-is what let a project with a live session ship `TODO_SELECTOR` placeholders and no capture at all.
-In LIVE mode a whole workflow is never deferred to `TODO_SELECTOR`; only an individual target that
-fails the registration gate is, with the reason recorded. Ledger template and column meanings:
-the `standards` skill, `references/leaf-ledger.md`.
+**Stage 2 is not done while the project folder still carries the template's name.** The fetch
+lands each template in a folder named after the *template* — `REFramework-Dispatcher-Base` —
+because that is the only name it has. The rename is the one instantiation step with **no
+symptom**: the project compiles, packs and runs perfectly well under the template's name, so
+nothing downstream forces it and it survives to review. Apply the agreed project name to all
+three places in one commit — the **folder**, `project.json → name`, `project.uiproj → Name` —
+and treat `project-folder-not-renamed` (error) or `folder-name-mismatch` (warning) from
+`validate-project` as blocking the stage. Checklist: the `project-scaffolding` skill,
+`references/instantiating-templates.md`.
+
+**Stages 4 and 5 are one loop, not two stages.** Per workflow: place and name → capture →
+author → run once → pack → ledger row → commit → next workflow. Capturing every screen first and
+authoring afterwards is what let a project with a live session ship `TODO_SELECTOR` placeholders
+and no capture at all. In LIVE mode a whole workflow is never deferred to `TODO_SELECTOR`; only
+an individual target that fails the registration gate is, with the reason recorded. Ledger
+template and column meanings: the `standards` skill, `references/leaf-ledger.md`.
+
+**Name each leaf before authoring it, not after.** The folder is `<Application>_System/` — one
+per application the SDD names — and the file is `<Application>-<Subject>_<Verb>.xaml` with the
+prefix **derived from the folder**: `Web_Nav_System/Web_Nav-Table_Extract.xaml`,
+`Finnova_System/Finnova-Valoren_Search.xaml`. Nothing downstream cares about the name either, so
+this is the same class of step as the folder rename above — and it is worse to postpone: once a
+workflow is wired, every rename costs an edit to each `Invoke Workflow File` pointing at it,
+which is why a wrong name stays wrong. `validate-project` reports an unprefixed leaf as
+`leaf-name-prefix`. Rules: the `standards` skill, `references/naming-conventions.md`; folder
+choice: the `standards` skill, `references/where-does-it-go.md`.
 
 Stages 3 and 4–5 are the ones most often skipped, and both fail silently: an unwired Framework
 runs green on **zero** transactions, and an unresolved selector fails only when the robot runs.

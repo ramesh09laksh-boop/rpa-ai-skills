@@ -23,6 +23,25 @@ Use it for any browser-based target — see `references/capture-troubleshooting.
 refresh or kill. Use `WindowScope`, not `BrowserScope`; browser-level activities do not
 apply. Details: the `standards` skill, `references/systems/web-nav-system.md`.
 
+### Where the captured work lands, and what it is called
+
+This skill owns the capture; the **estate** owns the folder and the file name, and getting them
+from here costs nothing later while getting them wrong does.
+
+- **One `<Application>_System/` folder per application**, named after that application. All four
+  surfaces above are browsers, and they do **not** share a folder: `SIX_ID_System/`,
+  `CardOne_System/`, `Web_Nav_System/` (the Avaloq embedded report *specifically* — not a
+  general-purpose browser folder), and a new portal gets its own.
+- **`<Application>-<Subject>_<Verb>.xaml`, verb last, prefix derived from the folder** —
+  `CardOne_System/CardOne-Page_Message_Check.xaml`,
+  `Web_Nav_System/Web_Nav-Table_Extract.xaml`.
+- **Name the file before you author it.** Once a workflow is wired, renaming it also means
+  editing every `Invoke Workflow File` that points at it — so a name that was wrong at capture
+  time stays wrong.
+
+Rules: the `standards` skill, `references/naming-conventions.md`, and the `standards` skill,
+`references/where-does-it-go.md`. The checker reports an unprefixed leaf as `leaf-name-prefix`.
+
 ## Core rules
 
 1. **Probe before you log in.** Every web login here is idempotent — check for a

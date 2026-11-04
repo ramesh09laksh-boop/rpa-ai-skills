@@ -496,9 +496,12 @@ pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/validate-projec
 ```
 
 Likely new findings: `config-key-undefined`, `unresolved-mock`, `object-repository-not-shared`,
-and the four leaf-workflow-contract warnings. On an **existing** project the contract warnings
-are a backlog — a blanket suppression with a written reason in `validate-project.ignore` is
-legitimate. `config-key-undefined` and `object-repository-not-shared` are **errors** and are not.
+`leaf-name-prefix`, `folder-name-mismatch`, `project-folder-not-renamed`, and the four
+leaf-workflow-contract warnings. On an **existing** project the contract warnings and
+`leaf-name-prefix` are a backlog — a blanket suppression with a written reason in
+`validate-project.ignore` is legitimate, and renaming a wired workflow costs an edit to every
+`Invoke Workflow File` that points at it. `config-key-undefined`,
+`object-repository-not-shared` and `project-folder-not-renamed` are **errors** and are not.
 
 **2. If `object-repository-not-shared` fires, remove `.objects/` from the project's
 `.gitignore`.** A project instantiated before v0.2.0 inherited an ignore rule that hides its
@@ -611,10 +614,28 @@ fetch the matching template(s). Carry forward the config-format and credential d
 the SDD — don't re-ask if they're already recorded there. Ask only for the project name and the
 shared Orchestrator queue name if unsettled. Generate Main.xaml + Framework via the CLI route
 (scratch folder, `--help` first, `--template-package-version` matching the config-format
-decision), apply the template README deltas, work the instantiation checklist in
-`templates/README.md`, then run `validate-project`, `uip rpa validate` per entry point, and
-`uip rpa build`. This stage is done at L3 — Studio opens the project with an empty Error List.
+decision), apply the deltas from the fetched template's own README.md, then work the
+instantiation checklist — it is `references/instantiating-templates.md` inside the
+`project-scaffolding` skill, NOT `templates/README.md`, which the fetch never delivers.
+
+The fetch lands the template in a folder named after the TEMPLATE. Once the project name is
+agreed, put it in all three places in the same commit, before anything else is built on top:
+`git mv REFramework-<Template> <Project-Name>`, `project.json → name`, `project.uiproj → Name`.
+Leaving the folder as `REFramework-Dispatcher-Base` is the default outcome, not a rare slip —
+nothing downstream needs it, so it survives unless this step is done deliberately.
+
+Then run `validate-project`, `uip rpa validate` per entry point, and `uip rpa build`. Report
+`project-folder-not-renamed`, `folder-name-mismatch` and `template-default-left` as blocking —
+a half-instantiated project must not pass for a finished one. This stage is done at L3 — Studio
+opens the project with an empty Error List.
 ```
+
+**Why the rename is in the prompt rather than left to the checklist:** nothing downstream fails
+without it. The project compiles, packs and runs with the template's name on the folder, so the
+step has no symptom — it is only visible to the next person reading the tree, who cannot tell an
+instantiated project from an untouched template. `validate-project` now reports it as
+[`project-folder-not-renamed`](.claude/skills/project-scaffolding/scripts/validate-project.ps1)
+(error), so the gate catches it even when the prompt is paraphrased.
 
 ### 3. Wire the Framework
 
@@ -645,7 +666,15 @@ live session, the agent scaffolded `TODO_SELECTOR` placeholders for whole workfl
 nothing. Capture and authoring are the same unit of work, per workflow, and the unit ends with a
 run and a ledger row — not with a file that exists.
 
-Per workflow: **capture → author → run once → pack → ledger row → commit → next workflow.**
+Per workflow: **place and name → capture → author → run once → pack → ledger row → commit → next
+workflow.**
+
+**Naming is the first step, not a tidy-up.** The folder is `<Application>_System/` and the file
+is `<Application>-<Subject>_<Verb>.xaml`, with the prefix **derived from the folder** — so
+`Web_Nav_System/Web_Nav-Table_Extract.xaml`, not `Web_Nav_System/Extract_Table.xaml`. Once a
+workflow is wired, every rename also costs an edit to each `Invoke Workflow File` that points at
+it, which is why a wrong name is never fixed later. `validate-project` reports an unprefixed leaf
+as `leaf-name-prefix`.
 
 Before the first capture command, two prechecks the `web` skill owns: `project.json` must carry
 `UiPath.UIAutomation.Activities` and `UiPath.UIAutomation.CLI` both at `26.10.4` (fix and restore
@@ -670,14 +699,20 @@ In LIVE mode never defer a whole workflow to TODO_SELECTOR. Use TODO_SELECTOR on
 that fails the registration gate (it must match only the target), and record why.
 
 For each leaf workflow, in order, one commit per workflow:
- 1. Contract: in_Config, a business-key argument, an out_ outcome, SecureString for secrets. Fail
+ 1. Place and name it FIRST, per `standards/references/naming-conventions.md`:
+    `<Application>_System/<Application>-<Subject>_<Verb>.xaml`, verb last, application prefix
+    DERIVED FROM THE FOLDER (`Web_Nav_System/` → `Web_Nav-…`, `Finnova_System/` → `Finnova-…`).
+    One folder per application the SDD names; do not reuse another application's folder because
+    it is also a browser. Say the folder and file name back to me before authoring, and do not
+    rename after the workflow is wired.
+ 2. Contract: in_Config, a business-key argument, an out_ outcome, SecureString for secrets. Fail
     visibly: an unconfirmed step must throw or return False with a Warn — never pass silently.
- 2. LIVE: capture each target (`web`: navigate explicitly, fresh snapshot, fresh work folder per
+ 3. LIVE: capture each target (`web`: navigate explicitly, fresh snapshot, fresh work folder per
     screen), then author the real activity and link the captured element through the `uia`
     object-repository verbs (names per `--help`). No typed selectors.
- 3. Run the workflow once against the live application, then run validate-project,
+ 4. Run the workflow once against the live application, then run validate-project,
     `uip rpa validate` and `build`, and `pack`.
- 4. Update Documentation/Leaf_Ledger.md and the *.selectors-todo.md.
+ 5. Update Documentation/Leaf_Ledger.md and the *.selectors-todo.md.
 Continue to the next workflow without asking. Stop only when every ledger row is yes, or a row
 needs something only I can do (say exactly what).
 
@@ -881,6 +916,12 @@ procedure: [`end-to-end-run.md`](.claude/skills/standards/references/end-to-end-
 - [ ] `Config_TST.xlsx` and `Config_PRD.xlsx` carry the same key set, with no
       `[UC-SPECIFIC — replace]` remaining
 - [ ] `project.json → name` has no placeholder, no whitespace, and matches `project.uiproj`
+- [ ] **The project folder carries the project name, not the template's** — no
+      `REFramework-Dispatcher-Base` / `-Performer-*` folder, and the folder,
+      `project.json → name` and `project.uiproj → Name` are one value
+- [ ] Every leaf workflow is **named for its folder** —
+      `<Application>_System/<Application>-<Subject>_<Verb>.xaml` — and one application does not
+      share another's `_System` folder
 - [ ] A Dispatcher/Performer pair share one byte-identical `OrchestratorQueueName`
 - [ ] Every `APPROX_SELECTOR` / `TODO_SELECTOR` resolved against the live application
 - [ ] `validate-project` runs with zero errors, or every suppressed rule has a written reason
