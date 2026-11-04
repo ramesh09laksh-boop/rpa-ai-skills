@@ -9,8 +9,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
 ## [Unreleased] — v0.2.2
 
-Not tagged, not merged. Branch `feat/v0.2.2-correctness`, branched from `main` (which is
-content-identical to `chore/post-release-0.2.1` — the diff is empty).
+**Merged to `main` on 2026-11-04 via PR #4, not tagged.** Branched from `main` (which was
+content-identical to `chore/post-release-0.2.1` — the diff was empty). CI green on all six jobs
+on the PR before merge.
+
+> **Merged with three follow-up items still open**, at Ramesh's explicit decision after the
+> release consequence was stated: the `designOptions.modernBehavior` comparison and proposal,
+> `leaf-body-stub` calibration against the Lanes and Google projects, and two further *Known
+> open* entries. Tracking continues against `main`.
+>
+> **No tag was cut.** A UC project that needs to stay still cannot pin this release by tag —
+> `owner/repo#v0.2.2` does not exist. Cut one, or pin a branch, before telling anyone to pin it.
 
 A correctness release. Most of it comes from two real runs — a Lanes capture and a Google
 search demo — that each produced a project passing every check while doing nothing.
