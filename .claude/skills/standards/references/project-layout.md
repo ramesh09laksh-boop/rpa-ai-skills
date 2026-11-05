@@ -80,10 +80,23 @@ Contract for a workflow in this folder:
 
 - **in**: `in_Config` (Dictionary&lt;String,Object&gt;), the window/session coordinates it needs
   (`in_WinTitel`, `in_Tower`), and business inputs
+- **in**, **where the application is driven through an Application Card**:
+  `in_<App>Element` (`InArgument(ui:UiElement)`) — the instance *this run* opened. Every card
+  binds it via `InUiElement`. The one exception is `<App>-Open`, which declares
+  `out_<App>Element` from its card's `OutUiElement`. A card attached by selector alone
+  identifies the *application*, not the *instance*
 - **out**: plain values — `out_Status`, `out_ISIN`, `out_ValidKonto`, `out_ExtractDT`
-- It opens what it needs and **closes what it opened** before returning
+- It opens what it needs and **closes what it opened** before returning — identified by the
+  instance element where there is one, and never by process name
 - It throws `BusinessRuleException` with the application's own message text when the
   application refuses
+
+> **The instance-element rows apply only where the application is driven through an Application
+> Card** — browsers, and anything else on modern UI Automation. **Finnova and Avaloq are driven
+> through the Swisscom libraries, which address a window by title and expose no instance
+> handle**, so the contract cannot be stated for them. The exposure is real and is recorded as
+> such: `references/systems/finnova-system.md` and `references/systems/avaloq-system.md`,
+> *Shutdown*. Full contract where it does apply: `references/wiring-the-framework.md`.
 
 ## `Logic/`
 

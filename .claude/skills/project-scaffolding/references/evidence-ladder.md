@@ -41,8 +41,39 @@ Rules:
   neither: that is L3 evidence.
 - **A mocked run reaches L3 at most.** By definition: a mock proves the wiring, not the process.
   See the `standards` skill, `references/mocking.md`.
+- **An exit code is not a level.** `UiRobot execute` exits `0` on a failed transaction, so a
+  report resting on it has established nothing — see below. At L4-local and L4 the outcome comes
+  out of the log.
 - **Never write PASS without the level.** A bare PASS is the failure mode this ladder exists to
   stop.
+
+### L4-local is read out of the execution log, never out of the exit code
+
+**`UiRobot execute` returns exit code `0` and prints `{}` on a run whose transaction failed.** It
+returns exactly the same on a run that succeeded. The exit status carries **no outcome information
+at all**:
+
+| 2026-11-04, same package, same shell | Transaction | `Error` lines | Exit code | stdout |
+|---|---|---|---|---|
+| run 1 | **`ApplicationException`** | **3** | `0` | `{}` |
+| run 2 | **`ApplicationException`** | **3** | `0` | `{}` |
+| runs 3–7 | `Success` | 0 | `0` | `{}` |
+
+Seven runs, two failures, one exit code. Failed and passed are indistinguishable from outside the
+process, so:
+
+> **L4-local reads `%LOCALAPPDATA%\UiPath\Logs\<yyyy-MM-dd>_Execution.log`. Never
+> `$LASTEXITCODE`, never stdout.**
+
+Read `"level":"Error"`, `logF_TransactionStatus` and `logF_TransactionNumber` out of it. A wrapper
+or CI step keyed on the exit status reports a silent false pass — which is the same shape as the
+green job that processed 0 transactions, arriving through the one channel that looked mechanical
+enough to trust. The command, the log lines and the full run table: the `standards` skill,
+`references/end-to-end-run.md`, Step 2a.
+
+This is **observed, not inferred** — the two failed runs are in the log with three `Error` lines
+each, and both ended on *"Process finished due to no more transaction data"* followed by
+*"execution ended"*, which is what a clean finish also looks like.
 
 ### Why L4-local is a rung and not a footnote
 
@@ -75,6 +106,27 @@ Both are in the `standards` skill, `references/silent-failure-traps.md`. The fir
 bisect across a 30-workflow project; `validate-project`'s `xmlns-assembly-unreferenced` rule now
 finds it in a second, which is L1 catching an L2b failure — a reason to run the whole ladder
 rather than the top of it.
+
+### And `pack` does not always catch the first one either
+
+**Observed 2026-11-04: `uip rpa build` and `uip rpa pack` both reported Success with 14
+unreferenced assemblies in the project.** Only `validate-project` reported them. So the heading
+above — *fails at pack* — is where that failure was first met, not a guarantee.
+
+The cause is a **generated** edit, which is why it is worth knowing about. The Object Repository
+linker injects `sd:` / `sd1:` (`System.Drawing.Common` / `System.Drawing.Primitives`) into every
+card-bearing workflow it links, and adds neither to `ReferencesForImplementation` — 7 workflows ×
+2 assemblies = the 14.
+
+Two consequences for how the ladder is used:
+
+- **`pack` passing is not evidence that the references are complete.** Run L1 as well. The point
+  of six rungs is that no single one of them is a superset of the others — and here the *lowest*
+  rung is the only one that fired.
+- **L1 is not a once-before-authoring gate.** It is static, cheap and re-runnable, and the two
+  moments it earns its keep most are *after* a generated edit: **after linking a captured screen**,
+  and after a template fetch. Anything that rewrites a `.xaml` you did not type invalidates the
+  last L1 run. The `web` skill puts the re-run at the end of its capture loop for exactly this.
 
 **Do not reach L2b by relaxing the analyzer.** `--ignored-rules`, `--skip-analyze` or a
 governance file chosen to make the finding disappear produces a package that packs and a problem

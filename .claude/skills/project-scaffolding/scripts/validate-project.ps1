@@ -724,6 +724,106 @@ function Test-Project {
             }
         }
 
+        # card-instance-unbound: an Application Card that identifies the APPLICATION but not the
+        # INSTANCE.
+        #
+        # REFramework splits work across workflows; the modern Application Card is a scope that
+        # cannot span them. So every leaf after the first re-attaches - and a selector screen
+        # (url/title pattern) matches ANY window of that application, including one a person
+        # already had open. The card then drives it, and a shutdown card closes it.
+        #
+        # This is the worst defect recorded in this estate, and it is completely silent: on the
+        # Google run the Performer opened its own browser window, drove the operator's, and closed
+        # a window it never opened, with validate-project, uip rpa validate, build, pack, an empty
+        # Studio Error List and a Successful L4-local run of 1 transaction of 1 all green. Nothing
+        # in the toolchain looks at WHICH window.
+        #
+        # The supported mechanism is the card's own element pair: the opening card publishes
+        # OutUiElement, every downstream card binds InUiElement. Verified 2026-11-05 against
+        # UiPath.UIAutomation.Activities.Runtime 26.10.4 assembly metadata - NApplicationCard
+        # declares OutUiElement and INHERITS InUiElement from RecoverableNativeActivity, so both
+        # are settable on the card. See the standards skill,
+        # references/wiring-the-framework.md.
+        #
+        # The carve-out is the rule's whole precision: exactly one card per application
+        # legitimately has no InUiElement - the one that OPENS the application, which is
+        # identifiable because it declares OutUiElement to hand the instance on. A card with
+        # neither is attaching to a stranger.
+        #
+        # NOT gated on $props.Count like the two rules above. A _System workflow with a card and
+        # no arguments at all is the WORST case, not an exempt one: it has nothing to bind
+        # InUiElement to, so every card in it attaches by selector. Gating would have skipped it.
+        #
+        # Warning, not error, for the reason the other leaf-contract rules are: it is new, and a
+        # new rule that fails a build on first contact gets switched off rather than fixed.
+        #
+        # Both serialisation forms are checked. Studio writes an argument as an attribute
+        # (InUiElement="[in_X]") but will emit the property-element form
+        # (<uix:NApplicationCard.InUiElement>) for a non-trivial expression, and a rule that knew
+        # only the attribute would report every one of those as a false positive.
+        #
+        # The (?=[\s/>]) lookahead is what keeps the match on the ELEMENT. Without it, \b after
+        # the class name also matches the property-element tags every card carries -
+        # <uix:NApplicationCard.Body>, .TargetApp, .InUiElement - each of which looks like a card
+        # with no element bound. Caught by the good fixtures: the rule fired on all three.
+        #
+        # "{x:Null}" DOES NOT COUNT AS BOUND, and that distinction is the whole rule on real
+        # Studio output. Studio serialises an unset argument EXPLICITLY - a card it has round-
+        # tripped carries InUiElement="{x:Null}" OutUiElement="{x:Null}" alongside Timeout,
+        # ConnectionId and six others, all null. Keying on the attribute's PRESENCE therefore
+        # carves out exactly the cards that most need reporting. Calibrated against the Google
+        # project's pre-fix package: presence-only matching missed 2 of its 7 unbound cards,
+        # including Google-Results_Verify.xaml - the file that threw in both failed runs - because
+        # Studio had written both attributes as explicit nulls. Match the VALUE.
+        if ($rel -match '(^|[\\/])[A-Za-z0-9 _]+_System[\\/]' -and $x.Name -notlike '_*') {
+            # Bound as an ATTRIBUTE: present, and not an explicit null or empty.
+            $boundAttr = {
+                param($t, $attr)
+                $m = [regex]::Match($t, "\b$attr\s*=\s*`"([^`"]*)`"")
+                $m.Success -and $m.Groups[1].Value.Trim() -notmatch '^(\{x:Null\})?$'
+            }
+            # Bound as a PROPERTY ELEMENT: present, and carrying something other than x:Null.
+            # Strip the nulls, strip the tags, and see whether an expression is left - that
+            # handles both <x:Null /> directly and the <InArgument><x:Null /></InArgument> nesting
+            # without a regex per shape.
+            $boundElem = {
+                param($scope, $prefix, $attr)
+                $m = [regex]::Match($scope,
+                    "<$prefix`:NApplicationCard\.$attr\b[^>]*>(.*?)</$prefix`:NApplicationCard\.$attr>",
+                    'Singleline')
+                if (-not $m.Success) { return $false }
+                $inner = [regex]::Replace($m.Groups[1].Value, '<x:Null\s*/>', '')
+                ([regex]::Replace($inner, '<[^>]*>', '')).Trim().Length -gt 0
+            }
+
+            # Each card gets a DISJOINT region: its own tag up to the next card's tag, or EOF.
+            # The property-element search has to be scoped, not file-wide - one correctly bound
+            # card would otherwise carve out every other card in the same file.
+            $cards = @([regex]::Matches($text, '<(\w+):NApplicationCard(?=[\s/>])[^>]*>'))
+            for ($ci = 0; $ci -lt $cards.Count; $ci++) {
+                $card = $cards[$ci]
+                $tag = $card.Value
+                $prefix = $card.Groups[1].Value
+                $end = if ($ci + 1 -lt $cards.Count) { $cards[$ci + 1].Index } else { $text.Length }
+                $scope = $text.Substring($card.Index, $end - $card.Index)
+
+                if ((& $boundAttr $tag 'InUiElement') -or
+                    (& $boundElem $scope $prefix 'InUiElement')) { continue }
+                # The opener: it publishes the instance instead of consuming one.
+                if ((& $boundAttr $tag 'OutUiElement') -or
+                    (& $boundElem $scope $prefix 'OutUiElement')) { continue }
+
+                $dn = [regex]::Match($tag, '\bDisplayName="([^"]*)"')
+                $which = if ($dn.Success) { " ('$($dn.Groups[1].Value)')" } else { '' }
+                Add-Finding warning 'card-instance-unbound' $name `
+                    ("$rel has an Application Card$which with neither InUiElement nor OutUiElement. " +
+                     'It attaches by selector, which identifies the application and not the instance - ' +
+                     'so it can drive or close a window the operator already had open. Bind ' +
+                     'InUiElement to the element <App>-Open published as OutUiElement, or declare ' +
+                     'OutUiElement if this IS the card that opens the application.')
+            }
+        }
+
         # secret-argument-string: a SecureString demoted to String. ST-SEC-009 calls the cast a
         # security breach, and the security skill forbids a plaintext secret crossing a
         # workflow boundary at all.

@@ -137,12 +137,21 @@ and treat `project-folder-not-renamed` (error) or `folder-name-mismatch` (warnin
 `validate-project` as blocking the stage. Checklist: the `project-scaffolding` skill,
 `references/instantiating-templates.md`.
 
-**Stages 4 and 5 are one loop, not two stages.** Per workflow: place and name → capture →
-author → run once → pack → ledger row → commit → next workflow. Capturing every screen first and
-authoring afterwards is what let a project with a live session ship `TODO_SELECTOR` placeholders
-and no capture at all. In LIVE mode a whole workflow is never deferred to `TODO_SELECTOR`; only
-an individual target that fails the registration gate is, with the reason recorded. Ledger
-template and column meanings: the `standards` skill, `references/leaf-ledger.md`.
+**Stages 4 and 5 are one loop, not two stages.** Per workflow: place and name → capture → link →
+**re-run `validate-project`** → author → run once → pack → ledger row → commit → next workflow.
+Capturing every screen first and authoring afterwards is what let a project with a live session
+ship `TODO_SELECTOR` placeholders and no capture at all. In LIVE mode a whole workflow is never
+deferred to `TODO_SELECTOR`; only an individual target that fails the registration gate is, with
+the reason recorded. Ledger template and column meanings: the `standards` skill,
+`references/leaf-ledger.md`.
+
+**`validate-project` is in that loop because linking is a code-generation step, and L1 is not a
+once-before-authoring gate.** Linking rewrites the workflow and injects `sd:` / `sd1:`
+(`System.Drawing.Common` / `System.Drawing.Primitives`) without declaring the assemblies — 14
+findings on the Google project, **with `uip rpa build` and `uip rpa pack` both reporting
+Success**. Only `validate-project` reported them. L1 is cheap, static and re-runnable; re-run it
+after anything that rewrites a `.xaml` you did not type, which means after a link and after a
+template fetch. The `web` skill, the end of the capture loop.
 
 **Name each leaf before authoring it, not after.** The folder is `<Application>_System/` — one
 per application the SDD names — and the file is `<Application>-<Subject>_<Verb>.xaml` with the

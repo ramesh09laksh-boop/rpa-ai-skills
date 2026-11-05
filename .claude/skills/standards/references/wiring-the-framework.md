@@ -64,8 +64,169 @@ before `GetTransactionData` yields anything is built against a guess.
 | 3 | `Framework/InitAllApplications.xaml` | Log in to every application the SDD names, via `<App>_System/<App>-Login.xaml`. Credentials from the Orchestrator asset. |
 | 4 | `Process.xaml` | Dispatch on transaction type to the right `<App>_System` workflow. Decisions stay in `Logic/`. |
 | 5 | `Framework/SetTransactionStatus.xaml` | Map the classified exception to Success / Business / System. |
-| 6 | `Framework/CloseAllApplications.xaml` | Close, in reverse order of opening. |
-| 7 | `Framework/KillAllProcesses.xaml` | Force-kill the same set. Usually the same body as 6. |
+| 6 | `Framework/CloseAllApplications.xaml` | Close, in reverse order of opening — **only the instances this run opened**. |
+| 7 | `Framework/KillAllProcesses.xaml` | Force-close the same set, by the same instance identity. Usually the same body as 6. |
+
+Steps 3, 4, 6 and 7 all touch the same application instance, and **which instance** is a wiring
+decision in its own right. It has its own section, immediately below, because getting it wrong
+produces the worst defect this estate has recorded.
+
+## Carrying the application instance between workflows
+
+**REFramework splits work across workflows; the modern Application Card is a scope that cannot
+span them.** So every leaf after the first re-attaches — and a selector screen identifies the
+*application*, never the *instance*. A card attached by selector alone takes whichever matching
+window it finds first, which may be the operator's.
+
+> On the Google run, a Performer with a clean `validate-project`, a clean `uip rpa validate`,
+> `build` and `pack`, an empty Studio Error List and a `Successful` L4-local run with 1
+> transaction of 1 **opened its own browser window, drove the operator's, and then closed a
+> window it had never opened.** Every gate stayed green. The only reason it was found is that a
+> person was watching their own screen at the time.
+
+The automation was not confused about *what* application to drive. It was never told *which copy*.
+
+### Where this applies
+
+**Only where the application is driven through an Application Card** — a browser, or anything
+else on modern UI Automation. The mechanism *is* the card's element pair, so a project that never
+uses a card has nothing to thread.
+
+**It does not transfer to Finnova or Avaloq.** Those are driven through the Swisscom libraries,
+which compose a `wnd` selector from a window **title** and expose no instance handle — `ui:UiElement`
+appears in their signatures only as table child-collections, never as a window or session. The
+exposure is the same and the fix is not available: a window of the same title belonging to the
+operator is addressable, and the libraries' own shutdown activities kill by **image name**. What
+they actually do, read from the library rather than assumed, and the open question:
+`references/systems/finnova-system.md` and `references/systems/avaloq-system.md`, *Shutdown*.
+
+So: apply everything below to card-driven applications. For Finnova and Avaloq, treat the
+exposure as known and unmitigated, and do not invent a handle the library does not have.
+
+### The contract
+
+`<App>-Open` publishes the instance; `Main.xaml` holds it; every downstream card binds it.
+
+| Where | What it does |
+|---|---|
+| `<App>_System/<App>-Open.xaml` | The card that **opens** the application declares `OutUiElement`, published as `out_<App>Element` |
+| `Framework/InitAllApplications.xaml` | Passes it up as `out_<App>Element` |
+| `Main.xaml` | Holds it for the whole run, in one variable |
+| `Framework/Process.xaml` → each `<App>_System` leaf | Threads it down as `in_<App>Element`; **every** card binds `InUiElement` |
+| `Framework/CloseAllApplications.xaml`, `KillAllProcesses.xaml` | Take it as `in_<App>Element` and close **that** instance, guarded on `IsNot Nothing` |
+
+The element is a `UiElement`, so the arguments are typed
+`OutArgument(ui:UiElement)` / `InArgument(ui:UiElement)`, with `ui` bound to
+`http://schemas.uipath.com/workflow/activities`.
+
+### The property names, and where they come from
+
+`OutUiElement` is declared on `NApplicationCard` itself. **`InUiElement` is not** — it is
+inherited from `RecoverableNativeActivity`, which is why it does not show up when you list the
+card's own members and is easy to conclude does not exist. Both are settable as attributes on
+`<uix:NApplicationCard>`:
+
+| | Declared on | Verified |
+|---|---|---|
+| `OutUiElement` | `UiPath.UIAutomationNext.Activities.NApplicationCard` | **Verified** |
+| `InUiElement` | `UiPath.UIAutomationNext.Activities.RecoverableNativeActivity` (base of `NApplicationCard`) | **Verified** |
+
+Method, 2026-11-05: assembly metadata of
+`UiPath.UIAutomation.Activities.Runtime 26.10.4`,
+`lib/net6.0-windows7.0/UiPath.UIAutomationNext.Activities.dll` — type definitions, their declared
+properties and the `NApplicationCard` base chain, read directly rather than inferred. The three
+mode enums come from `UiPath.UIAutomationNext.dll` in the same package:
+
+| Enum | Values |
+|---|---|
+| `NAppOpenMode` | `Never`, `IfNotOpen`, `Always` |
+| `NAppCloseMode` | `Never`, `IfOpenedByAppBrowser`, `Always` |
+| `NAppAttachMode` | `ByProcessName`, `ByInstance`, `SingleWindow` |
+
+`uip rpa activities get-default-xaml --activity-class-name UiPath.UIAutomationNext.Activities.NApplicationCard`
+is the other way to read this, and the one to prefer when a Studio instance has the project open —
+it returns the card exactly as Studio would drop it in. It was **not** the source here: it is a
+Studio-IPC command and needs a Studio instance holding *that* project, which this check did not
+have. Both routes should agree; if they ever do not, the package the robot runs wins.
+
+### The shape, per role
+
+Three roles, three settings. This is the shape that ran green **and** left the operator's windows
+alone:
+
+| Role | `OpenMode` | `CloseMode` | Element binding |
+|---|---|---|---|
+| `<App>-Open` | `Always` | `Never` | `OutUiElement="[out_<App>Element]"` |
+| Every working leaf | `Never` | `Never` | `InUiElement="[in_<App>Element]"` |
+| `<App>-Close`, `<App>-Kill` | `Never` | `Always` | `InUiElement="[in_<App>Element]"` |
+
+`AttachMode="ByInstance"` throughout — it is the mode that means "this instance", as against
+`ByProcessName`, which means "anything running that executable".
+
+`CloseMode="Never"` on the opening card is what lets the session outlive the workflow that
+created it; the run would otherwise lose the application at the end of `<App>-Open`.
+
+### Close only what this run opened
+
+`CloseAllApplications` and `KillAllProcesses` are where an unbound card does its real damage: a
+close is irreversible, and the window it closes may be someone's work.
+
+Two mechanisms exist, and only one of them works here:
+
+| | What it does | Use it? |
+|---|---|---|
+| `CloseMode="IfOpenedByAppBrowser"` | The card closes the application on scope exit **only if that card opened it** | **No** — not across workflows. The card that opened the application is in `<App>-Open`, and its scope ended there. The shutdown workflow's card did not open anything, so this closes nothing |
+| `InUiElement` + `CloseMode="Always"`, guarded | The shutdown card attaches to **the instance handed to it** and closes that one | **Yes.** It is the only form that survives the workflow split |
+
+So both shutdown workflows look like this:
+
+```xml
+<!-- Framework/CloseAllApplications.xaml, and KillAllProcesses.xaml -->
+<If Condition="[in_BrowserElement IsNot Nothing]" DisplayName="Only if this run opened a session">
+  <If.Then>
+    <uix:NApplicationCard AttachMode="ByInstance" OpenMode="Never" CloseMode="Always"
+                          InUiElement="[in_BrowserElement]" Version="V2"> … </uix:NApplicationCard>
+```
+
+**The `IsNot Nothing` guard is load-bearing, not defensive padding.** Stock `Main.xaml` invokes
+`KillAllProcesses` **before** anything is opened, on the first pass. At that moment the element
+is `Nothing`; an unguarded card falls back to attaching by selector and force-closes the first
+matching window on the machine — which on the first pass can only ever be somebody else's. The
+guard turns the first-pass invocation into a no-op, which is what it should always have been.
+
+- **Never close by process name.** `KillProcess chrome` takes down every Chrome on the runner:
+  other automations, and real people. This rule predates the section and is unchanged — the
+  instance element is what makes it *keepable*, since it gives the shutdown workflow something
+  precise to close instead.
+- **A PID is not available here, and reaching for one is the wrong turn.** `NApplicationCard`
+  publishes a `UiElement` and no process id, and `UiElement` exposes none. An `Int32` PID
+  threaded through the Framework is a contract that cannot be honoured; `InUiElement` is the
+  supported equivalent and carries strictly more information.
+- **A session leaked by a previous crashed run is not force-closed**, because this run never
+  attached to it. That is a deliberate limitation, not an oversight: finding it would mean
+  matching by process name. If leaked sessions become a real problem, persist the instance
+  identity across runs — do not widen the kill.
+
+### Reviewing it
+
+`validate-project`'s **`card-instance-unbound`** rule reports an Application Card in an
+`<App>_System/` workflow with no `InUiElement` bound, carving out the one card per application
+that legitimately opens it — the one that declares `OutUiElement`. It is a **warning**, for the
+same reason the other leaf-contract rules are.
+
+What the rule cannot see, and a reviewer must:
+
+- **The thread is continuous.** `out_` on `InitAllApplications` → a variable in `Main.xaml` →
+  `in_` on `Process.xaml`, `CloseAllApplications` and `KillAllProcesses`. A card that binds
+  `InUiElement` to an argument nobody populates binds it to `Nothing`, which is the unbound case
+  with extra steps.
+- **One element per application.** Two applications means two arguments, not one reused.
+- **The guard is on both shutdown workflows**, not just the graceful one.
+
+**And watch your own screen during the first run.** This defect is invisible in the logs — the
+robot reports every step as successful, because from its point of view every step *was*. Have the
+application open in a window the automation has no business touching, and see that it is still
+there afterwards. That is the only check that catches it directly.
 
 ## SDD element → Framework file
 
@@ -191,13 +352,17 @@ here rather than in the checklist.
 | `InitAllApplications.xaml` | One `<App>-Login.xaml` invoke per application the SDD names | Empty, with the login moved into `Process.xaml` — then it re-authenticates per transaction. (UC81 does this deliberately; it is a decision, not a default) |
 | `Process.xaml` | A `Switch` on the transaction type, one arm per SDD type | An inline `If` about business meaning, or a UI activity directly in the file |
 | `SetTransactionStatus.xaml` | Business vs Application mapped from the classifier; retry and circuit-breaker counters intact | Queue calls removed **along with** the counters, when going queue-less. The circuit breaker goes with them, silently |
-| `CloseAllApplications.xaml` | Closes everything `InitAllApplications` opened, in reverse | Closes one application and leaves the rest. The next run's idempotent-login probe then finds a half-open session |
-| `KillAllProcesses.xaml` | Force-kills the same set | Empty, or `KillProcess chrome` — which takes down any other automation on the runner |
+| `CloseAllApplications.xaml` | Closes everything `InitAllApplications` opened, in reverse, **bound to `in_<App>Element`** | Closes one application and leaves the rest. The next run's idempotent-login probe then finds a half-open session. Or: a card with no `InUiElement`, which closes whichever window matched first — possibly the operator's |
+| `KillAllProcesses.xaml` | Force-closes the same set, by the same instance, guarded on `IsNot Nothing` | Empty, or `KillProcess chrome` — which takes down any other automation on the runner. Or unguarded, so the first-pass invocation force-closes a stranger's window |
 
-Two cross-file checks that no single file reveals:
+Three cross-file checks that no single file reveals:
 
 - **Count the applications.** Every application opened in `InitAllApplications` appears in
   **both** `CloseAllApplications` and `KillAllProcesses`. A mismatch leaks a session.
+- **Follow the instance element end to end.** `<App>-Open`'s `OutUiElement` →
+  `InitAllApplications`'s `out_` → a `Main.xaml` variable → `in_` on `Process.xaml` and both
+  shutdown files → `InUiElement` on every card. A break anywhere leaves a card attaching by
+  selector, and nothing fails. See *Carrying the application instance between workflows*.
 - **Count the transaction types.** Arms in `Process.xaml` == transaction types in the SDD. Fewer
   arms means a type falls through; more means one was invented.
 
@@ -211,6 +376,11 @@ Two cross-file checks that no single file reveals:
       it is blocked on
 - [ ] No `leaf-body-stub` finding on a workflow the Framework dispatches to. A wired Framework
       over stub bodies is a skeleton, not a process
+- [ ] **The application instance is threaded**: `<App>-Open` publishes `OutUiElement`, `Main.xaml`
+      holds it, every downstream card binds `InUiElement`, and both shutdown workflows close
+      **that** instance under an `IsNot Nothing` guard. No `card-instance-unbound` finding
+- [ ] **A window the automation had no business touching was open during the first run, and was
+      still open afterwards.** The logs cannot show this
 - [ ] Exceptions classified in `Logic/`, Business vs Application, application text carried
 - [ ] Every credential comes from an Orchestrator asset, fetched in its consuming scope
 - [ ] Every assumption about a transaction type is written in the SDD and `Progress.md`

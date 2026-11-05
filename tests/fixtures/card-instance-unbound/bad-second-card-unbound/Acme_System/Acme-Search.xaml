@@ -1,0 +1,34 @@
+<Activity xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:uix="clr-namespace:UiPath.UIAutomationNext.Activities;assembly=UiPath.UIAutomationNext.Activities" xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib">
+  <x:Members>
+    <x:Property Name="in_Config" Type="InArgument(scg:Dictionary(x:String, x:Object))" />
+    <x:Property Name="in_AcmeElement" Type="InArgument(ui:UiElement)" />
+    <x:Property Name="out_Status" Type="OutArgument(x:String)" />
+  </x:Members>
+  <TextExpression.ReferencesForImplementation>
+    <AssemblyReference>UiPath.UIAutomationNext.Activities</AssemblyReference>
+    <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+  </TextExpression.ReferencesForImplementation>
+  <Sequence DisplayName="Body">
+    <uix:NApplicationCard AttachMode="ByInstance" CloseMode="Never" DisplayName="Use Application/Browser (bound, correct)" OpenMode="Never" Version="V2">
+      <uix:NApplicationCard.InUiElement>
+        <InArgument x:TypeArguments="ui:UiElement">[in_AcmeElement]</InArgument>
+      </uix:NApplicationCard.InUiElement>
+      <uix:NApplicationCard.Body>
+        <ActivityAction>
+          <Sequence DisplayName="Do">
+            <ui:LogMessage DisplayName="Searched" Level="Info" Message="searched" />
+          </Sequence>
+        </ActivityAction>
+      </uix:NApplicationCard.Body>
+    </uix:NApplicationCard>
+    <uix:NApplicationCard AttachMode="ByInstance" CloseMode="Never" DisplayName="Use Application/Browser (UNBOUND, second card)" OpenMode="Never" Version="V2">
+      <uix:NApplicationCard.Body>
+        <ActivityAction>
+          <Sequence DisplayName="Do">
+            <ui:LogMessage DisplayName="Verified" Level="Info" Message="verified" />
+          </Sequence>
+        </ActivityAction>
+      </uix:NApplicationCard.Body>
+    </uix:NApplicationCard>
+  </Sequence>
+</Activity>

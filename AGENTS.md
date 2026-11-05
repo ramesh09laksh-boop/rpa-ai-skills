@@ -166,6 +166,7 @@ their name.
   state and authenticates nothing
 - `validate-project`, `lint-skills`, `tests/run-fixtures.ps1`, `preflight` **without**
   `-FolderPath`
+- `report-execution-log` — reads the local execution log and nothing else
 - `uip rpa validate` / `build` / `pack` / `analyze` — local, Studio-IPC or compiler, no tenant
 - `UiRobot version`, `UiRobot pack`
 
@@ -259,13 +260,23 @@ no workflow would run at all.
 - Every report names the **highest level reached and the command that proved it**.
 - A wiring or "project ready" stage is **not done below L3**.
 - **L2b is its own rung** — a used `xmlns` whose assembly is unreferenced, and `ST-SEC-008`,
-  both pass `validate` and `build` and fail at `pack`, which names no file.
+  both pass `validate` and `build` and fail at `pack`, which names no file. **And `pack` is not a
+  superset either:** on 2026-11-04 `build` *and* `pack` both reported Success with 14
+  unreferenced assemblies, injected by the Object Repository linker. Only L1 reported them. No
+  rung is a superset of the others — run them all.
+- **L1 is not a once-before-authoring gate.** It is static, cheap and re-runnable. Re-run it after
+  anything that rewrites a `.xaml` you did not type — **after linking a captured screen**, and
+  after a template fetch.
 - **L4-local is the default end-to-end run**, quoted with the folder in it:
   `L4-local (folder: Modern/RAP-Demo)`. It needs no `uip login` and changes nothing in the
   tenant, so it comes first. It runs the same artefact the robot would — catching a packaging
   defect, a missing assembly reference or an asset that does not resolve — but as **your**
   interactive account, so it proves nothing about the unattended service-account session, the
   trigger, or permissions beyond that one folder.
+- **The exit code is not the outcome.** `UiRobot execute` returns `0` and prints `{}` on a run
+  whose transaction failed — observed twice on 2026-11-04, identical to five passing runs. Read
+  `%LOCALAPPDATA%\UiPath\Logs\<yyyy-MM-dd>_Execution.log`; never `$LASTEXITCODE`, never stdout. A
+  CI step keyed on the exit status is a silent false pass.
 - **"Tested" means L4**: a real job in the Orchestrator folder, on a robot, with job state, logs
   and the SDD acceptance table. **L4-local is not L4.** A local `uip rpa run` or Studio Debug is
   neither — those run the *sources* in the developer's session and are **L3 evidence**. A

@@ -96,6 +96,31 @@ Two things to get right here:
 **`Framework/CloseAllApplications.xaml` / `KillAllProcesses.xaml`** — close whatever
 `InitAllApplications` opened, or leave stock-empty if it opened nothing.
 
+**Where the application is driven through an Application Card** — a browser, or anything else on
+modern UI Automation — **thread the instance element through the Framework.** It is four
+arguments and it is the difference between closing your own window and closing the operator's:
+
+| File | Argument |
+|---|---|
+| `Framework/InitAllApplications.xaml` | `out_<App>Element` — `OutArgument(ui:UiElement)`, from `<App>-Open`'s card `OutUiElement` |
+| `Main.xaml` | one variable holding it for the run |
+| `Framework/Process.xaml` | `in_<App>Element` — `InArgument(ui:UiElement)`, bound to every card's `InUiElement` |
+| `Framework/CloseAllApplications.xaml`, `KillAllProcesses.xaml` | the same `in_<App>Element`, with the card guarded by `[in_<App>Element IsNot Nothing]` |
+
+A card attached by selector alone identifies the **application**, never the **instance**, so it
+can drive or close a window the operator already had open — and nothing fails. The guard matters
+because stock `Main.xaml` invokes `KillAllProcesses` once *before* anything is opened; unguarded,
+that first pass force-closes the first matching window on the machine.
+
+Full contract, the per-role `OpenMode`/`CloseMode` table and why a PID is not the answer: the
+`standards` skill, `references/wiring-the-framework.md`. `validate-project` reports an unbound
+card as `card-instance-unbound`.
+
+> **This does not transfer to Finnova or Avaloq.** Those are driven through the Swisscom
+> libraries, which address a window by title and expose no instance handle. The two Performer
+> templates therefore say nothing about it, deliberately — the `standards` skill,
+> `references/systems/finnova-system.md` / `avaloq-system.md`, *Shutdown*.
+
 ## Config
 
 Filled-in rows and what each is for: [`Data/config-contents.md`](Data/config-contents.md).

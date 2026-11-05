@@ -184,6 +184,45 @@ the rule finds it in a second.
 Do **not** over-correct: `System.Private.CoreLib` and friends appear in every Studio-authored
 file and are entirely legitimate.
 
+#### Confirmed cause: the Object Repository linker does this to you
+
+This is not only something a person mistypes. **Linking a captured screen injects `xmlns`
+prefixes and does not add the matching assembly references.** The linker rewrites the workflow
+and materialises the Application Card's `OCREngine` delegate, whose signature is in
+`System.Drawing`:
+
+```xml
+<uix:NApplicationCard.OCREngine>
+  <ActivityFunc x:TypeArguments="sd:Image, scg:IEnumerable(scg:KeyValuePair(sd1:Rectangle, x:String))">
+```
+
+So two prefixes appear in every card-bearing workflow the moment it is linked —
+
+| Prefix | Namespace | Assembly |
+|---|---|---|
+| `sd:` | `System.Drawing` | `System.Drawing.Common` |
+| `sd1:` | `System.Drawing` | `System.Drawing.Primitives` |
+
+— and **neither is added to `TextExpression.ReferencesForImplementation`.**
+
+**Observed 2026-11-04 on the Google project: 14 findings, from 7 linked workflows × 2 assemblies.
+`uip rpa build` and `uip rpa pack` both reported Success with all 14 missing.** Only
+`validate-project` caught them. That is **L1 catching an L2b failure**, which is the whole
+argument for running the bottom of the ladder and not just the top.
+
+Two things follow, and the second is the one that gets skipped:
+
+- **The fix is additive and mechanical.** Add both assemblies to
+  `ReferencesForImplementation` in every workflow that carries an Application Card.
+- **Re-run `validate-project` *after* linking.** Not before authoring — *after*. Linking is a
+  code-generation step that edits files you already validated, so a clean L1 from before the link
+  says nothing about the file afterwards. See the `web` skill, the end of the capture loop.
+
+That `pack` did not catch it here, while this file's own heading above says a used-but-unreferenced
+`xmlns` *fails* the UiRobot pack, is not a contradiction to resolve by deleting one of them — both
+were observed. Treat `pack` as able to catch it and not guaranteed to, which is exactly why the
+static rule exists.
+
 ### A missing `System.Data.Common` reference compiles clean on the CLI and fails in Studio
 
 The mirror image of the rule above: the `xmlns` is fine, the **assembly reference** is missing,
