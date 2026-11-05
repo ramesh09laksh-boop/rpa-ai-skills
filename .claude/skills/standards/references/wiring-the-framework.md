@@ -86,6 +86,23 @@ window it finds first, which may be the operator's.
 
 The automation was not confused about *what* application to drive. It was never told *which copy*.
 
+### Where this applies
+
+**Only where the application is driven through an Application Card** — a browser, or anything
+else on modern UI Automation. The mechanism *is* the card's element pair, so a project that never
+uses a card has nothing to thread.
+
+**It does not transfer to Finnova or Avaloq.** Those are driven through the Swisscom libraries,
+which compose a `wnd` selector from a window **title** and expose no instance handle — `ui:UiElement`
+appears in their signatures only as table child-collections, never as a window or session. The
+exposure is the same and the fix is not available: a window of the same title belonging to the
+operator is addressable, and the libraries' own shutdown activities kill by **image name**. What
+they actually do, read from the library rather than assumed, and the open question:
+`references/systems/finnova-system.md` and `references/systems/avaloq-system.md`, *Shutdown*.
+
+So: apply everything below to card-driven applications. For Finnova and Avaloq, treat the
+exposure as known and unmitigated, and do not invent a handle the library does not have.
+
 ### The contract
 
 `<App>-Open` publishes the instance; `Main.xaml` holds it; every downstream card binds it.

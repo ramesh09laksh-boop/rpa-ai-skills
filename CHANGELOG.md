@@ -58,6 +58,11 @@ the worst case watching their own screen.
   Now 7 of 7 on the pre-fix package and 0 on the fixed one. `tests/README.md` records it as the
   third entry under *Fixtures are not a substitute for a real project*, and that a packed
   `.nupkg` is a usable stand-in when the project folder is gone.
+- **The instance-element contract in `project-layout.md`'s `_System` contract and the
+  `REFramework-Dispatcher-Base` README**, both stated **conditionally** — *"where the application
+  is driven through an Application Card"*. Four arguments, one table, and the `IsNot Nothing`
+  guard on the shutdown pair. **Not added to the Finnova/Avaloq Performer READMEs**: see
+  *Known open*.
 - **`end-to-end-run.md` Step 2a — *The exit code is not the outcome, read the log***, and the same
   finding in `evidence-ladder.md`. `UiRobot execute` returned exit `0` with stdout `{}` on both
   failed runs, identically to the five passing ones; **L4-local reads
@@ -138,18 +143,69 @@ the worst case watching their own screen.
   static, cheap and re-runnable; it belongs **after** anything that rewrites a `.xaml` nobody
   typed — after a link, and after a template fetch.
 
+### Known open
+
+- **Finnova and Avaloq have the same instance-identity exposure and no mechanism to fix it.**
+  Their activities address a window by **title**, composing a `wnd` selector, and expose no
+  instance handle — `ui:UiElement` appears in their signatures only as table child-collections,
+  never as a window or session. **An operator's window of the same title is therefore
+  addressable**, and the instance-element contract cannot be stated for them. The two Performer
+  template READMEs deliberately say nothing about it.
+
+  What the libraries do on shutdown is now **documented from the library sources** rather than
+  assumed, in `systems/finnova-system.md` and `systems/avaloq-system.md`, *Shutdown*. Both
+  branch on the `isRemoteApp` environment variable:
+
+  | | Local install | Citrix |
+  |---|---|---|
+  | **Finnova `Activities/Stop`** | PowerShell `TASKKILL /F /T /FI 'USERNAME eq <user>' /FI 'WindowTitle ne Administrator:  BOAL' /IM javaw.exe` — force-kill **by image name**, every `javaw.exe` of that user | `CloseWindow` on a hardcoded `title='*JURE*'` wildcard selector |
+  | **Avaloq `Stop`** | `KillProcess ProcessName="SmartClient" AppliesTo=OnlyCurrentUser` — **by process name**, current user | `CloseWindow` guarded by `Exists` |
+
+  `Finnova Activities/Stop BOAL` is PID-based, but resolves the PID from a CIM query **by
+  pattern**. `Finnova Activities/Close All Window` takes **no arguments at all**.
+
+  So the estate's own *never close by process name* rule **cannot be honoured through either
+  library**, and the `USERNAME` / `OnlyCurrentUser` filter is not protection on an attended
+  runner where the robot *is* the operator's account. Recorded as a known, unmitigated exposure
+  rather than worked around with a hand-written selector, which is itself a review finding.
+
+  Verified 2026-11-05 against library sources at Finnova `projectVersion 2026.1.0` and Avaloq
+  `2025.9.1` — the versions `templates/` pins. Re-check on the next bump; it is a diff.
+
 ### Proposed, not implemented — awaiting a decision
 
-- **The Framework argument thread for the instance element**, across the three templates and the
-  `<Application>_System/` contract. The instance-identity section above states the contract;
-  making it the *default shape* means adding an argument to `InitAllApplications`,
-  `CloseAllApplications`, `KillAllProcesses` and `Process.xaml`, and a row to the `_System`
-  contract in `project-layout.md`. **The diff was shown before implementing and is not applied.**
+- **A handle-free guard for Finnova/Avaloq: `InitAllApplications` refuses to start if a window of
+  that application is already open.** It inverts the problem — instead of trying to identify
+  which window is the robot's at shutdown, it guarantees there is only ever one. Sketch:
 
-  Note what this change can and cannot be: the templates ship **no `Main.xaml` and no
-  `Framework/*.xaml`** — those are generated from Studio's own REFramework. So this is a
-  *documented delta* each template's README lists, in the same place as the `in_ENV`
-  `InitAllSettings` edit, and not a XAML change in `templates/`.
+  ```vb
+  ' Framework/InitAllApplications.xaml, before launching the client
+  ' Finnova: Close Window exposes Exists without closing anything when the selector misses,
+  ' but a dedicated Element Exists on the composed wnd selector is the honest probe.
+  If <a window matching the application's selector already exists> Then
+      Throw New ApplicationException(
+          "A <App> window is already open on this machine. This run will not start: the " &
+          "library closes by process name and cannot tell its own session from yours. " &
+          "Close it, or run on a robot with no interactive user.")
+  ```
+
+  **Not built, and three things need deciding first:**
+
+  1. **It is a refusal, and refusals have an owner.** On an attended runner with a person's own
+     client open, every run fails until they close it. That may be exactly right, or unusable,
+     depending on whether these processes are meant to run attended at all — which the SDDs do
+     not say.
+  2. **It does not fit the unattended case it is least needed for.** On a dedicated unattended
+     robot there is no operator window, so the guard only ever costs a startup probe.
+     Config-gated (`<App>_System_Refuse_If_Open`) is the obvious shape, and a config switch that
+     defaults to *off* protects nobody.
+  3. **The probe itself must not be a raw selector**, or the fix trades one review finding for
+     another. Whether `Close Window`'s `Exists` out-argument can be used as a pure probe —
+     without its `CloseWindow` firing — has **not been verified** against the library.
+
+  Recommendation: decide (1) first. If these are unattended-only, the guard is cheap insurance;
+  if attended runs are real, the guard is the wrong tool and the exposure needs naming in the
+  SDD instead.
 - **A script that exits non-zero when the log shows a faulted transaction** — the natural
   follow-on from Step 2a, since the whole point is that no existing exit code does this.
   `scripts/check-execution-log.ps1`, reading `"level":"Error"` and `logF_TransactionStatus` out of

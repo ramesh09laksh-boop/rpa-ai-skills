@@ -91,6 +91,33 @@ Avaloq addresses windows by `ctrlname`, not title:
 library `Stop` on Avaloq, then `CardOne_System\CardOne_Logout.xaml`. There is no Avaloq
 logout activity.
 
+#### What the library's shutdown activities actually do
+
+Read from `../Avaloq/Swisscom.UiPath.UIAutomation.Avaloq/` rather than inferred. **`Stop.xaml`
+reads the `isRemoteApp` environment variable and takes a different path on each side of it:**
+
+| Activity | Arguments | What it does |
+|---|---|---|
+| `Stop.xaml` | `Process` (String) | **`isRemoteApp` empty (local install):** `Process` defaults to **`SmartClient`** and it runs `KillProcess` with `ProcessName="[Process]"` and `AppliesTo="[KillProcessApplyOn.OnlyCurrentUser]"` — a force-kill **by process name**, scoped to the current user.<br>**`isRemoteApp` set (Citrix):** `CloseWindow`, guarded by `Exists` |
+| `Close Window.xaml` | `WindowCtrlName`, `WindowTitle` | `CloseWindow` on the composed window selector, guarded by `Exists` |
+| `Close Tab.xaml` | `WindowCtrlName`, `WindowTitle`, `TabName` | Closes one tab inside the addressed window |
+
+**None takes an instance handle.** `Stop` on a local install kills **every** `SmartClient`
+process of the current user — a second Avaloq session, or the operator's own. `OnlyCurrentUser`
+is narrower than Finnova's `/IM` TASKKILL, and it is not protection on an attended runner, where
+the robot *is* the operator's account.
+
+So the estate's own rule — *never close by process name* — **cannot be honoured through this
+library**. Treat it as a known, unmitigated exposure rather than something to work around with a
+raw Avaloq selector, which is a review finding. Open question and the proposed handle-free guard:
+`CHANGELOG.md`, *Known open*.
+
+**`Close Tab` is the part you *can* keep tight.** The invariant below — a workflow that opens a
+tab closes it — is per-tab inside one addressed window, and it is unaffected by any of the above.
+
+Verified 2026-11-05 against the library sources at `projectVersion 2025.9.1`, which is the
+version `templates/` pins. Re-check on the next library bump.
+
 ## Workflow inventory
 
 | Workflow | In | Out |

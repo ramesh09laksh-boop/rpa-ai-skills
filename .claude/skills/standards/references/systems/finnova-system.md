@@ -74,6 +74,38 @@ No logout workflow exists in either project — `CloseAllApplications` / `KillAl
 terminate the process (`Stop`, `Stop BOAL`). If your SDD requires a clean logout you will
 have to build it; there is no library activity for it.
 
+#### What the library's shutdown activities actually do
+
+Read from `../Finnova/Swisscom FinnovaLibrary/` rather than inferred, because the argument names
+do not tell you and the behaviour differs by branch. **`Activities/Stop.xaml` reads the
+`isRemoteApp` environment variable and takes a different path on each side of it:**
+
+| Activity | Arguments | What it does |
+|---|---|---|
+| `Activities/Stop.xaml` | `Process` (String) | **`isRemoteApp` empty (local install):** `Process` defaults to **`javaw.exe`** and it runs PowerShell<br>`TASKKILL /F /T /FI 'USERNAME eq <CurrentUser>' /FI 'WindowTitle ne Administrator:  BOAL' /IM <Process>`<br>— a force-kill **by image name**, filtered only by the current user and one excluded window title.<br>**`isRemoteApp` set (Citrix):** `CloseWindow` on a **hardcoded** selector,<br>`<wnd app='java*.exe' cls='SunAwtFrame' isremoteapp='1' title='*JURE*' />` |
+| `Activities/Stop BOAL.xaml` | `LaunchCmd` (String) | Resolves a PID from a CIM process query matched against a pattern, then `KillProcess` on `Process.GetProcessById(<that PID>)`. **PID-based, but the PID is resolved by name** |
+| `Close Window.xaml` | `WindowTitle` (in), `Exists` (out) | `CloseWindow` on `<wnd app='java*.exe' cls='SunAwtFrame' [isremoteapp='…'] title='<WindowTitle>' />`, guarded by `Exists` |
+| `Activities/Close All Window.xaml` | *(none)* | No arguments at all — nothing identifies what it closes |
+
+**None of them takes an instance handle**, and two of the four consequences are worth stating
+plainly:
+
+- **`Stop` on a local install is the widest.** `/IM javaw.exe` takes down **every** `javaw.exe`
+  running as that user — a second Finnova session, the operator's own, and any unrelated Java
+  application. The `USERNAME` filter is not protection on an attended runner, where the robot
+  *is* the operator's account.
+- **`Stop` on Citrix closes by title wildcard.** `title='*JURE*'` matches any window whose title
+  contains `JURE`, whoever opened it.
+
+So the estate's own rule — *never close by process name* — **cannot be honoured through this
+library**. Treat it as a known, unmitigated exposure rather than something to work around with a
+selector you invented: the library is the supported path and a raw Finnova selector is a review
+finding. Open question and the proposed handle-free guard: `CHANGELOG.md`, *Known open*.
+
+Verified 2026-11-05 against the library sources at `projectVersion 2026.1.0`, which is the
+version `templates/` pins. Re-check on the next library bump — this is a diff, not a
+read-through.
+
 ## Workflow inventory — UC39 (order booking)
 
 Every workflow takes `in_WinTitel` unless noted.
