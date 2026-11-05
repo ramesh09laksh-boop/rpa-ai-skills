@@ -41,8 +41,39 @@ Rules:
   neither: that is L3 evidence.
 - **A mocked run reaches L3 at most.** By definition: a mock proves the wiring, not the process.
   See the `standards` skill, `references/mocking.md`.
+- **An exit code is not a level.** `UiRobot execute` exits `0` on a failed transaction, so a
+  report resting on it has established nothing — see below. At L4-local and L4 the outcome comes
+  out of the log.
 - **Never write PASS without the level.** A bare PASS is the failure mode this ladder exists to
   stop.
+
+### L4-local is read out of the execution log, never out of the exit code
+
+**`UiRobot execute` returns exit code `0` and prints `{}` on a run whose transaction failed.** It
+returns exactly the same on a run that succeeded. The exit status carries **no outcome information
+at all**:
+
+| 2026-11-04, same package, same shell | Transaction | `Error` lines | Exit code | stdout |
+|---|---|---|---|---|
+| run 1 | **`ApplicationException`** | **3** | `0` | `{}` |
+| run 2 | **`ApplicationException`** | **3** | `0` | `{}` |
+| runs 3–7 | `Success` | 0 | `0` | `{}` |
+
+Seven runs, two failures, one exit code. Failed and passed are indistinguishable from outside the
+process, so:
+
+> **L4-local reads `%LOCALAPPDATA%\UiPath\Logs\<yyyy-MM-dd>_Execution.log`. Never
+> `$LASTEXITCODE`, never stdout.**
+
+Read `"level":"Error"`, `logF_TransactionStatus` and `logF_TransactionNumber` out of it. A wrapper
+or CI step keyed on the exit status reports a silent false pass — which is the same shape as the
+green job that processed 0 transactions, arriving through the one channel that looked mechanical
+enough to trust. The command, the log lines and the full run table: the `standards` skill,
+`references/end-to-end-run.md`, Step 2a.
+
+This is **observed, not inferred** — the two failed runs are in the log with three `Error` lines
+each, and both ended on *"Process finished due to no more transaction data"* followed by
+*"execution ended"*, which is what a clean finish also looks like.
 
 ### Why L4-local is a rung and not a footnote
 

@@ -18,6 +18,8 @@ the worst case watching their own screen.
 | after stage 2 | the `REFramework-Dispatcher-Base` copy stayed under the template's own folder name | the project compiles, packs, publishes and runs under it — and the prompt sent the agent to `templates/README.md` for the checklist, which the fetch never delivers |
 | after stage 4–5 | leaf workflows in `Web_Nav_System/` not named for the application | the convention derives the prefix from the folder, so it was never written down as a step, never checked, and a mis-named leaf passes every other gate |
 | after stage 6 | the Performer **drove and closed the operator's browser window** | an Application Card attached by selector identifies the *application*, never the *instance*. Every gate was green — L1, L2, L2b, L3, and a `Successful` L4-local run of 1 transaction of 1. Nothing in the toolchain looks at *which* window |
+| after stage 7 | `UiRobot execute` **exited `0` with stdout `{}` on a failed transaction** | the exit status carries no outcome at all — it is identical on a passing run. Nothing failed, so nothing was reported |
+| after stage 5 | `build` and `pack` **passed with 14 missing assembly references** | the Object Repository linker injects them without declaring them, and `validate`/`build`/`pack` all accept it. Only `validate-project` caught it — L1 catching an L2b failure, for real |
 
 ### Added
 
@@ -44,6 +46,14 @@ the worst case watching their own screen.
 - **Fixtures `bad` / `good` / `good-opener`**, the third covering the carve-out as its own case —
   folded into `good`, the assertion would pass on the `InUiElement` branch alone while a broken
   carve-out reported every opening card in the estate. 35 rules, 73 assertions.
+- **`end-to-end-run.md` Step 2a — *The exit code is not the outcome, read the log***, and the same
+  finding in `evidence-ladder.md`. `UiRobot execute` returned exit `0` with stdout `{}` on both
+  failed runs, identically to the five passing ones; **L4-local reads
+  `%LOCALAPPDATA%\UiPath\Logs\<yyyy-MM-dd>_Execution.log`, never `$LASTEXITCODE` and never
+  stdout.** Carries the seven-run table, the three `Error` lines a failed transaction leaves, the
+  three log fields worth scripting against (`"level":"Error"`, `logF_TransactionStatus`,
+  `logF_TransactionNumber`), and the two closing lines that make a failed run read like a clean
+  finish. `AGENTS.md`'s ladder gains the one-line form.
 
 - **`project-folder-not-renamed`** validate-project rule (**error**). The project folder is still
   `REFramework-Dispatcher-Base` / `-Performer-Finnova` / `-Performer-Avaloq`. Same family as
@@ -83,6 +93,16 @@ the worst case watching their own screen.
   comfortable moment to rename; `fetch-template.ps1` / `.sh` print the rename as step 0.
 - `File_System/Tracelog_Append.xaml` is now labelled a **deviation** in the examples table rather
   than sitting among the conformant names unmarked.
+- **`end-to-end-run.md`'s *"documented, not run"* is replaced by what the runs established.** Part
+  1 of that file was a plan read off `--help`; seven real runs on 2026-11-04 walked it. The
+  PowerShell `--input` quoting the file carried — `'{\"in_ENV\" : \"TST\"}'`, transcribed from the
+  tool's own example — **could not have worked**: it fails with exit `-1` and *"Invalid property
+  identifier character: \\."*. The working form is `'{"in_ENV":"TST"}'`. The `bash` form is marked
+  still-unverified rather than quietly corrected alongside it.
+- **`--file` + `--folder` stays UNVERIFIED, and the file now says why the seven runs did not
+  settle it**: none of them passed `--folder`, because the project under test declares no asset
+  and there was nothing for a folder to resolve. A run without `--folder` is therefore **not** an
+  L4-local claim under the file's own definition — stated, so the rung is not borrowed.
 
 ### Proposed, not implemented — awaiting a decision
 
@@ -96,6 +116,14 @@ the worst case watching their own screen.
   `Framework/*.xaml`** — those are generated from Studio's own REFramework. So this is a
   *documented delta* each template's README lists, in the same place as the `in_ENV`
   `InitAllSettings` edit, and not a XAML change in `templates/`.
+- **A script that exits non-zero when the log shows a faulted transaction** — the natural
+  follow-on from Step 2a, since the whole point is that no existing exit code does this.
+  `scripts/check-execution-log.ps1`, reading `"level":"Error"` and `logF_TransactionStatus` out of
+  the day's `_Execution.log` for one `jobId`. **Shape proposed, not written.** Two things have to
+  be decided first, and both can make it worse than nothing: how it identifies *this* run's job in
+  a shared daily log (the `jobId` is in the log but not in `UiRobot`'s stdout, which is `{}`), and
+  whether a wrapper that exits non-zero re-creates the habit Step 2a exists to break — trusting an
+  exit code instead of reading the log.
 
 ## [Unreleased] — v0.2.2
 

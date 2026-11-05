@@ -266,6 +266,10 @@ no workflow would run at all.
   defect, a missing assembly reference or an asset that does not resolve — but as **your**
   interactive account, so it proves nothing about the unattended service-account session, the
   trigger, or permissions beyond that one folder.
+- **The exit code is not the outcome.** `UiRobot execute` returns `0` and prints `{}` on a run
+  whose transaction failed — observed twice on 2026-11-04, identical to five passing runs. Read
+  `%LOCALAPPDATA%\UiPath\Logs\<yyyy-MM-dd>_Execution.log`; never `$LASTEXITCODE`, never stdout. A
+  CI step keyed on the exit status is a silent false pass.
 - **"Tested" means L4**: a real job in the Orchestrator folder, on a robot, with job state, logs
   and the SDD acceptance table. **L4-local is not L4.** A local `uip rpa run` or Studio Debug is
   neither — those run the *sources* in the developer's session and are **L3 evidence**. A
