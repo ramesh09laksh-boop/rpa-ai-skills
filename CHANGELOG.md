@@ -9,6 +9,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
 ## [Unreleased] — v0.2.3
 
+**Merged to `main` on 2026-11-05 via PR #5, not tagged.** Branched from `main` at `339b2b9`;
+eight commits, merged with a merge commit rather than squashed, because the commit messages carry
+the evidence for each finding. CI green on all six jobs on the PR before merge. `npx skills
+update` now pulls this.
+
+> **Merged with four items still open**, all recorded below or in the files themselves rather
+> than carried as unstated risk: the Finnova/Avaloq instance-identity exposure and its proposed
+> guard (*Known open*), `--file` + `--folder` still unverified, the nested-card gap in
+> `card-instance-unbound`'s scoping, and every run finding resting on **one project**.
+
 Reported defects from a real run, all of the same shape: **a step with no symptom**. Nothing
 downstream fails, so the step survives the gate and is found by a person — reading the tree, or in
 the worst case watching their own screen.
