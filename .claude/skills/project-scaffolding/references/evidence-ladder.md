@@ -107,6 +107,27 @@ bisect across a 30-workflow project; `validate-project`'s `xmlns-assembly-unrefe
 finds it in a second, which is L1 catching an L2b failure — a reason to run the whole ladder
 rather than the top of it.
 
+### And `pack` does not always catch the first one either
+
+**Observed 2026-11-04: `uip rpa build` and `uip rpa pack` both reported Success with 14
+unreferenced assemblies in the project.** Only `validate-project` reported them. So the heading
+above — *fails at pack* — is where that failure was first met, not a guarantee.
+
+The cause is a **generated** edit, which is why it is worth knowing about. The Object Repository
+linker injects `sd:` / `sd1:` (`System.Drawing.Common` / `System.Drawing.Primitives`) into every
+card-bearing workflow it links, and adds neither to `ReferencesForImplementation` — 7 workflows ×
+2 assemblies = the 14.
+
+Two consequences for how the ladder is used:
+
+- **`pack` passing is not evidence that the references are complete.** Run L1 as well. The point
+  of six rungs is that no single one of them is a superset of the others — and here the *lowest*
+  rung is the only one that fired.
+- **L1 is not a once-before-authoring gate.** It is static, cheap and re-runnable, and the two
+  moments it earns its keep most are *after* a generated edit: **after linking a captured screen**,
+  and after a template fetch. Anything that rewrites a `.xaml` you did not type invalidates the
+  last L1 run. The `web` skill puts the re-run at the end of its capture loop for exactly this.
+
 **Do not reach L2b by relaxing the analyzer.** `--ignored-rules`, `--skip-analyze` or a
 governance file chosen to make the finding disappear produces a package that packs and a problem
 that ships.

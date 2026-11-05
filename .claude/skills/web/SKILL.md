@@ -181,6 +181,38 @@ this file guaranteed drift against the package the robot actually runs.
    target-generation gate, selector improvement and Object Repository registration as one
    operation. If the file is absent, the installed package predates it — treat that as below the
    minimum version.
+4. **Re-run `validate-project` after linking.** Linking is the last step of the capture, and it is
+   a **code-generation** step: it rewrites the workflow. A clean L1 from before the link says
+   nothing about the file afterwards.
+
+   ```bash
+   pwsh -NoProfile -File scripts/validate-project.ps1 <project-dir>
+   ```
+
+   **What it catches, every time, and nothing else does.** Linking materialises the Application
+   Card's `OCREngine` delegate, whose signature lives in `System.Drawing`, and injects the two
+   prefixes without declaring the assemblies:
+
+   | Prefix | Assembly | Added to `ReferencesForImplementation`? |
+   |---|---|---|
+   | `sd:` | `System.Drawing.Common` | **No** |
+   | `sd1:` | `System.Drawing.Primitives` | **No** |
+
+   On the Google project that was **14 findings — 7 linked workflows × 2 assemblies — with
+   `uip rpa build` and `uip rpa pack` both reporting Success.** Only `validate-project`
+   (`xmlns-assembly-unreferenced`) reported them. Add both assemblies to every card-bearing
+   workflow; the fix is additive and mechanical. Full note: the `standards` skill,
+   `references/silent-failure-traps.md`.
+
+   So the capture loop **ends** here, not at the link:
+
+   ```
+   place and name → capture → link → re-run validate-project → fix → author
+   ```
+
+   **L1 is not a once-before-authoring gate.** It is cheap, static and re-runnable, and the two
+   places it earns its keep most are *after* a generated edit: after linking, and after a
+   template fetch. Anything that rewrites a `.xaml` you did not type invalidates the last L1 run.
 
 Three things the official flow needs that are easy to get wrong, verified against the
 co-versioned docs and worth stating once:

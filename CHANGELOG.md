@@ -54,6 +54,18 @@ the worst case watching their own screen.
   three log fields worth scripting against (`"level":"Error"`, `logF_TransactionStatus`,
   `logF_TransactionNumber`), and the two closing lines that make a failed run read like a clean
   finish. `AGENTS.md`'s ladder gains the one-line form.
+- **The Object Repository linker is recorded as a confirmed cause of
+  `xmlns-assembly-unreferenced`** in `silent-failure-traps.md`, with the mechanism: linking
+  materialises the Application Card's `OCREngine` delegate, whose signature is in `System.Drawing`,
+  so `sd:` (`System.Drawing.Common`) and `sd1:` (`System.Drawing.Primitives`) appear in every
+  card-bearing workflow and **neither is added to `ReferencesForImplementation`**. 14 findings over
+  7 linked workflows on the Google project. Also in `troubleshooting.md` as its own row — keyed on
+  *"no symptom at all"*, which is how it presents — and in the rule's fixture `notes.md`.
+- **`validate-project` re-run after linking, as the end of the capture flow.** The `web` skill's
+  loop now reads *place and name → capture → link → re-run `validate-project` → fix → author*, and
+  `uc-delivery`'s stage 4–5 loop gains the same step. Linking is a **code-generation** step: it
+  rewrites a file that was already validated, so a clean L1 from before the link says nothing
+  about the file after it.
 
 - **`project-folder-not-renamed`** validate-project rule (**error**). The project folder is still
   `REFramework-Dispatcher-Base` / `-Performer-Finnova` / `-Performer-Avaloq`. Same family as
@@ -103,6 +115,16 @@ the worst case watching their own screen.
   settle it**: none of them passed `--folder`, because the project under test declares no asset
   and there was nothing for a folder to resolve. A run without `--folder` is therefore **not** an
   L4-local claim under the file's own definition — stated, so the rung is not borrowed.
+- **"`pack` is the last compile-time gate" is corrected to "no rung is a superset of the
+  others".** `AGENTS.md`, `evidence-ladder.md` and `project-scaffolding/SKILL.md` all said a
+  missing assembly reference *fails at `pack`*. It did, once; on 2026-11-04 `build` and `pack`
+  both reported Success with 14 of them and **L1 was the only rung that fired**. Both
+  observations are kept — treat `pack` as able to catch it and not guaranteed to, which is the
+  argument for the static rule rather than against it.
+- **Wording that implied L1 runs only before authoring is fixed** in `AGENTS.md`,
+  `evidence-ladder.md`, `project-scaffolding/SKILL.md`, the `web` skill and `uc-delivery`. L1 is
+  static, cheap and re-runnable; it belongs **after** anything that rewrites a `.xaml` nobody
+  typed — after a link, and after a template fetch.
 
 ### Proposed, not implemented — awaiting a decision
 

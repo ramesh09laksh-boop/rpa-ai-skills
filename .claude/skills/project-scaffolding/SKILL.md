@@ -369,10 +369,16 @@ Every report names the highest level reached **and the command that proved it**.
 "project ready" stage is not done below **L3** — L1 and L2 both passed on a project Studio
 could not compile. **L2b is separate because `validate` and `build` are not the last
 compile-time gate** — a missing assembly reference and `ST-SEC-008` both pass them and fail at
-`pack`. **L4-local is the default end-to-end run**, quoted with its folder, and needs no
-`uip login`; it is **not** L4, because it runs as your interactive account. **A local
-`uip rpa run` is L3 evidence**, being a run of the *sources* in the developer's session. A mocked
-run reaches **L3 at most**. Never write PASS without the level.
+`pack`. **No rung is a superset of the others, in either direction**: on 2026-11-04 `build` *and*
+`pack` both reported Success with 14 unreferenced assemblies that only **L1** reported, so run the
+whole ladder rather than the top of it. **L1 is also not a once-before-authoring gate** — it is
+static, cheap and re-runnable, and belongs after anything that rewrites a `.xaml` you did not
+type, which means **after linking a captured screen** and after a template fetch.
+**L4-local is the default end-to-end run**, quoted with its folder, and needs no
+`uip login`; it is **not** L4, because it runs as your interactive account. **Its outcome comes
+out of the execution log, never the exit code** — `UiRobot execute` returns `0` on a failed
+transaction. **A local `uip rpa run` is L3 evidence**, being a run of the *sources* in the
+developer's session. A mocked run reaches **L3 at most**. Never write PASS without the level.
 
 Full detail, the two traps in those commands, and why `validate` is not a superset of the
 analyzer: `references/evidence-ladder.md`. **Command names are per-tool and per-version** —
