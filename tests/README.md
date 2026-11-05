@@ -111,8 +111,7 @@ Get-ChildItem tests -Recurse -File -Force | ForEach-Object { git check-ignore $_
 
 1. Write the rule in `validate-project.ps1`.
 2. Create `tests/fixtures/<rule>/bad/` and `good/`, plus `notes.md`.
-3. Run the suite (34 rules, 70 assertions as of the `leaf-name-prefix` /
-   `project-folder-not-renamed` / `folder-name-mismatch` additions). **A new rule with no fixture
+3. Run the suite (35 rules, 73 assertions as of the `card-instance-unbound` addition). **A new rule with no fixture
    directory fails the run** — the coverage check
    compares the rule ids it can find in the checker against the fixture directories, both ways.
    That is the half that makes the suite hard to cheat: without it, adding a rule and no fixture
@@ -123,7 +122,7 @@ faking the fixture.
 
 ## Coverage, and what is honestly not covered
 
-34 rules, 34 fixture directories, 70 assertions. Two things inside existing rules are **not**
+35 rules, 35 fixture directories, 73 assertions. Three things inside existing rules are **not**
 exercised, and are recorded here rather than implied:
 
 - **`object-repository-not-shared`, the git-ignored branch.** The rule has two halves: `.objects/`
@@ -135,6 +134,12 @@ exercised, and are recorded here rather than implied:
   String) and on anything passed to `AssetName=`. Neither carve-out is fixtured; both are
   load-bearing on real estate code, and breaking one would make the rule cry wolf rather than go
   quiet — a failure the `good` case would not catch.
+- **`card-instance-unbound`, the property-element form.** The rule accepts `InUiElement` /
+  `OutUiElement` either as an attribute or as the `<uix:NApplicationCard.InUiElement>` child
+  element Studio emits for a non-trivial expression. All three fixtures use the attribute form,
+  which is what Studio wrote in the project this rule came from; the child-element branch is
+  **not** exercised. Breaking it would report a correctly-bound card — a false positive the `good`
+  case would not catch.
 
 Several rules also cover more trigger shapes than their fixture exercises —
 `template-default-left` alone covers the `[UC-SPECIFIC — replace]` marker, the

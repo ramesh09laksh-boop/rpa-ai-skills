@@ -724,6 +724,69 @@ function Test-Project {
             }
         }
 
+        # card-instance-unbound: an Application Card that identifies the APPLICATION but not the
+        # INSTANCE.
+        #
+        # REFramework splits work across workflows; the modern Application Card is a scope that
+        # cannot span them. So every leaf after the first re-attaches - and a selector screen
+        # (url/title pattern) matches ANY window of that application, including one a person
+        # already had open. The card then drives it, and a shutdown card closes it.
+        #
+        # This is the worst defect recorded in this estate, and it is completely silent: on the
+        # Google run the Performer opened its own browser window, drove the operator's, and closed
+        # a window it never opened, with validate-project, uip rpa validate, build, pack, an empty
+        # Studio Error List and a Successful L4-local run of 1 transaction of 1 all green. Nothing
+        # in the toolchain looks at WHICH window.
+        #
+        # The supported mechanism is the card's own element pair: the opening card publishes
+        # OutUiElement, every downstream card binds InUiElement. Verified 2026-11-05 against
+        # UiPath.UIAutomation.Activities.Runtime 26.10.4 assembly metadata - NApplicationCard
+        # declares OutUiElement and INHERITS InUiElement from RecoverableNativeActivity, so both
+        # are settable on the card. See the standards skill,
+        # references/wiring-the-framework.md.
+        #
+        # The carve-out is the rule's whole precision: exactly one card per application
+        # legitimately has no InUiElement - the one that OPENS the application, which is
+        # identifiable because it declares OutUiElement to hand the instance on. A card with
+        # neither is attaching to a stranger.
+        #
+        # NOT gated on $props.Count like the two rules above. A _System workflow with a card and
+        # no arguments at all is the WORST case, not an exempt one: it has nothing to bind
+        # InUiElement to, so every card in it attaches by selector. Gating would have skipped it.
+        #
+        # Warning, not error, for the reason the other leaf-contract rules are: it is new, and a
+        # new rule that fails a build on first contact gets switched off rather than fixed.
+        #
+        # Both serialisation forms are checked. Studio writes an argument as an attribute
+        # (InUiElement="[in_X]") but will emit the property-element form
+        # (<uix:NApplicationCard.InUiElement>) for a non-trivial expression, and a rule that knew
+        # only the attribute would report every one of those as a false positive.
+        #
+        # The (?=[\s/>]) lookahead is what keeps the match on the ELEMENT. Without it, \b after
+        # the class name also matches the property-element tags every card carries -
+        # <uix:NApplicationCard.Body>, .TargetApp, .InUiElement - each of which looks like a card
+        # with no element bound. Caught by the good fixtures: the rule fired on all three.
+        if ($rel -match '(^|[\\/])[A-Za-z0-9 _]+_System[\\/]' -and $x.Name -notlike '_*') {
+            foreach ($card in [regex]::Matches($text, '<(\w+):NApplicationCard(?=[\s/>])[^>]*>')) {
+                $tag = $card.Value
+                $prefix = $card.Groups[1].Value
+                if ($tag -match '\bInUiElement\s*=' -or
+                    $text -match "<$prefix`:NApplicationCard\.InUiElement\b") { continue }
+                # The opener: it publishes the instance instead of consuming one.
+                if ($tag -match '\bOutUiElement\s*=' -or
+                    $text -match "<$prefix`:NApplicationCard\.OutUiElement\b") { continue }
+
+                $dn = [regex]::Match($tag, '\bDisplayName="([^"]*)"')
+                $which = if ($dn.Success) { " ('$($dn.Groups[1].Value)')" } else { '' }
+                Add-Finding warning 'card-instance-unbound' $name `
+                    ("$rel has an Application Card$which with neither InUiElement nor OutUiElement. " +
+                     'It attaches by selector, which identifies the application and not the instance - ' +
+                     'so it can drive or close a window the operator already had open. Bind ' +
+                     'InUiElement to the element <App>-Open published as OutUiElement, or declare ' +
+                     'OutUiElement if this IS the card that opens the application.')
+            }
+        }
+
         # secret-argument-string: a SecureString demoted to String. ST-SEC-009 calls the cast a
         # security breach, and the security skill forbids a plaintext secret crossing a
         # workflow boundary at all.

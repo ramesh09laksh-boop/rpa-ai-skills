@@ -9,15 +9,41 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
 ## [Unreleased] — v0.2.3
 
-Two reported defects from a real run, both of the same shape: **a stage step with no symptom**.
-Nothing downstream fails, so the step survives the gate and is found by a person reading the tree.
+Reported defects from a real run, all of the same shape: **a step with no symptom**. Nothing
+downstream fails, so the step survives the gate and is found by a person — reading the tree, or in
+the worst case watching their own screen.
 
 | | Reported | Why it survived |
 |---|---|---|
 | after stage 2 | the `REFramework-Dispatcher-Base` copy stayed under the template's own folder name | the project compiles, packs, publishes and runs under it — and the prompt sent the agent to `templates/README.md` for the checklist, which the fetch never delivers |
 | after stage 4–5 | leaf workflows in `Web_Nav_System/` not named for the application | the convention derives the prefix from the folder, so it was never written down as a step, never checked, and a mis-named leaf passes every other gate |
+| after stage 6 | the Performer **drove and closed the operator's browser window** | an Application Card attached by selector identifies the *application*, never the *instance*. Every gate was green — L1, L2, L2b, L3, and a `Successful` L4-local run of 1 transaction of 1. Nothing in the toolchain looks at *which* window |
 
 ### Added
+
+- **Instance identity: *Carrying the application instance between workflows*** in
+  `standards/references/wiring-the-framework.md`. `<App>-Open` publishes the application's
+  `UiElement` as `OutUiElement`, `Main.xaml` holds it, every downstream Application Card binds
+  `InUiElement`, and both shutdown workflows close **that** instance under an `IsNot Nothing`
+  guard. Carries the per-role `OpenMode`/`CloseMode` table, why `CloseMode="IfOpenedByAppBrowser"`
+  does *not* work across a workflow split, why a PID is not available and not the right turn, and
+  the one check that catches this directly — a window the automation has no business touching,
+  open during the first run and still open afterwards.
+
+  The collision is structural: REFramework splits work across workflows, and the modern
+  Application Card is a scope that cannot span them. The skills covered the parts and never joined
+  them — `web` said "never `KillProcess chrome`", the official guide said "one card per attached
+  instance", and neither said how a card in workflow B attaches to the instance workflow A opened.
+- **`card-instance-unbound`** validate-project rule (warning). An Application Card in an
+  `<App>_System/` workflow with neither `InUiElement` nor `OutUiElement`. The carve-out is the
+  precision: exactly one card per application legitimately has no `InUiElement` — the one that
+  opens it, identifiable because it declares `OutUiElement` to hand the instance on. Deliberately
+  **not** gated on the workflow declaring arguments, unlike its two neighbours: a `_System`
+  workflow with a card and no arguments has nothing to bind, which is the worst case rather than
+  an exempt one.
+- **Fixtures `bad` / `good` / `good-opener`**, the third covering the carve-out as its own case —
+  folded into `good`, the assertion would pass on the `InUiElement` branch alone while a broken
+  carve-out reported every opening card in the estate. 35 rules, 73 assertions.
 
 - **`project-folder-not-renamed`** validate-project rule (**error**). The project folder is still
   `REFramework-Dispatcher-Base` / `-Performer-Finnova` / `-Performer-Avaloq`. Same family as
@@ -57,6 +83,19 @@ Nothing downstream fails, so the step survives the gate and is found by a person
   comfortable moment to rename; `fetch-template.ps1` / `.sh` print the rename as step 0.
 - `File_System/Tracelog_Append.xaml` is now labelled a **deviation** in the examples table rather
   than sitting among the conformant names unmarked.
+
+### Proposed, not implemented — awaiting a decision
+
+- **The Framework argument thread for the instance element**, across the three templates and the
+  `<Application>_System/` contract. The instance-identity section above states the contract;
+  making it the *default shape* means adding an argument to `InitAllApplications`,
+  `CloseAllApplications`, `KillAllProcesses` and `Process.xaml`, and a row to the `_System`
+  contract in `project-layout.md`. **The diff was shown before implementing and is not applied.**
+
+  Note what this change can and cannot be: the templates ship **no `Main.xaml` and no
+  `Framework/*.xaml`** — those are generated from Studio's own REFramework. So this is a
+  *documented delta* each template's README lists, in the same place as the `in_ENV`
+  `InitAllSettings` edit, and not a XAML change in `templates/`.
 
 ## [Unreleased] — v0.2.2
 
