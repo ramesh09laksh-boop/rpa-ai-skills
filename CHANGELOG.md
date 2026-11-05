@@ -58,6 +58,14 @@ the worst case watching their own screen.
   Now 7 of 7 on the pre-fix package and 0 on the fixed one. `tests/README.md` records it as the
   third entry under *Fixtures are not a substitute for a real project*, and that a packed
   `.nupkg` is a usable stand-in when the project folder is gone.
+
+  **`presence` was then found wrong a second time, in the property-element branch**, plus a
+  second hole beside it: that search was **file-scoped**, so one correctly bound card carved out
+  every card in the same file. Each card now gets a disjoint region, and the element's *content*
+  is tested rather than its presence. Both are fixtured (`bad-property-element-null`,
+  `bad-second-card-unbound`, `good-property-element`) and both were confirmed to **fail against
+  the previous rule** before the fix landed. 35 rules, 77 assertions. Still not covered, and
+  recorded rather than implied: a card nested inside another card's `Body`.
 - **The instance-element contract in `project-layout.md`'s `_System` contract and the
   `REFramework-Dispatcher-Base` README**, both stated **conditionally** — *"where the application
   is driven through an Application Card"*. Four arguments, one table, and the `IsNot Nothing`

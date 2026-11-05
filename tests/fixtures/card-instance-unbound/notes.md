@@ -16,8 +16,11 @@ application instance between workflows*.
 |---|---|
 | `bad` | a downstream card — `OpenMode="Never"` — with **no** `InUiElement` / `OutUiElement` attribute at all |
 | `bad-explicit-null` | the same card as Studio actually serialises it: `InUiElement="{x:Null}" OutUiElement="{x:Null}"`, among six other explicit nulls |
+| `bad-property-element-null` | the **property-element** form carrying nothing: `<uix:NApplicationCard.InUiElement><InArgument …><x:Null /></InArgument>` and an `OutUiElement` holding a bare `<x:Null />` |
+| `bad-second-card-unbound` | **two cards in one file** — the first correctly bound through the property-element form, the second bound to nothing. The second must still be reported |
 | `good` | the `bad` card with `InUiElement="[in_AcmeElement]"` and the matching `InArgument(ui:UiElement)` |
 | `good-opener` | the **carve-out**: the card that *opens* the application has no `InUiElement` and must not be reported. It is identifiable because it declares `OutUiElement` to hand the instance on |
+| `good-property-element` | `InUiElement` bound as a **property element**, which is what Studio emits for a non-trivial expression. Must be silent |
 
 `good-opener` is a separate case rather than a second card in `good`, because the carve-out is the
 rule's whole precision. Folded into one fixture, the assertion would be satisfied by the
@@ -40,6 +43,25 @@ that threw in both failed runs. The rule now matches the *value*. Calibration, r
 # all 7 cards reported on the pre-fix package, 0 on the fixed one
 pwsh -NoProfile -File validate-project.ps1 <extracted-package>/content
 ```
+
+**`presence` was wrong twice, in two different places.** The attribute fix above left the same
+hole one level down, in the property-element branch, plus a second one:
+
+| Hole | Why it mattered |
+|---|---|
+| `<uix:NApplicationCard.InUiElement>` holding only `<x:Null />` | presence of the *element* carved the card out, exactly as presence of the attribute had |
+| The property-element search was **file-scoped** | one correctly bound card carved out **every** card in the same file |
+
+Both are now fixtured (`bad-property-element-null`, `bad-second-card-unbound`) and both were
+confirmed to **fail against the previous rule** before the fix went in — the suite's own
+non-vacuousness check, applied to the cases rather than to the harness. Each card now gets a
+disjoint region (its own tag up to the next card's tag) and the element's *content* is tested,
+not its presence: strip `x:Null`, strip the tags, and see whether an expression is left.
+
+Known limitation, not fixtured: a card **nested inside another card's `Body`**. The outer card's
+region ends where the inner one begins, so an outer binding written *after* the inner card would
+not be seen. One card per leaf workflow is the estate's shape and nesting cards is its own
+anti-pattern, so this is recorded rather than engineered around.
 
 ## Property names
 

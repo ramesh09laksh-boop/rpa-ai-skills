@@ -111,7 +111,7 @@ Get-ChildItem tests -Recurse -File -Force | ForEach-Object { git check-ignore $_
 
 1. Write the rule in `validate-project.ps1`.
 2. Create `tests/fixtures/<rule>/bad/` and `good/`, plus `notes.md`.
-3. Run the suite (35 rules, 74 assertions as of the `card-instance-unbound` addition). **A new rule with no fixture
+3. Run the suite (35 rules, 77 assertions as of the `card-instance-unbound` addition). **A new rule with no fixture
    directory fails the run** — the coverage check
    compares the rule ids it can find in the checker against the fixture directories, both ways.
    That is the half that makes the suite hard to cheat: without it, adding a rule and no fixture
@@ -122,7 +122,7 @@ faking the fixture.
 
 ## Coverage, and what is honestly not covered
 
-35 rules, 35 fixture directories, 74 assertions. Three things inside existing rules are **not**
+35 rules, 35 fixture directories, 77 assertions. Three things inside existing rules are **not**
 exercised, and are recorded here rather than implied:
 
 - **`object-repository-not-shared`, the git-ignored branch.** The rule has two halves: `.objects/`
@@ -134,12 +134,12 @@ exercised, and are recorded here rather than implied:
   String) and on anything passed to `AssetName=`. Neither carve-out is fixtured; both are
   load-bearing on real estate code, and breaking one would make the rule cry wolf rather than go
   quiet — a failure the `good` case would not catch.
-- **`card-instance-unbound`, the property-element form.** The rule accepts `InUiElement` /
-  `OutUiElement` either as an attribute or as the `<uix:NApplicationCard.InUiElement>` child
-  element Studio emits for a non-trivial expression. All four fixtures use the attribute form,
-  which is what Studio wrote in the project this rule came from; the child-element branch is
-  **not** exercised. Breaking it would report a correctly-bound card — a false positive the `good`
-  case would not catch.
+- **`card-instance-unbound`, a card nested inside another card's `Body`.** Each card is scoped to
+  a disjoint region — its own tag up to the next card's tag — so an outer card's binding written
+  *after* a nested inner card would not be seen. One card per leaf workflow is the estate's shape
+  and nesting cards is its own anti-pattern, so this is recorded rather than engineered around.
+  The property-element branch and the two-cards-in-one-file case **are** now covered
+  (`bad-property-element-null`, `bad-second-card-unbound`, `good-property-element`).
 
 Several rules also cover more trigger shapes than their fixture exercises —
 `template-default-left` alone covers the `[UC-SPECIFIC — replace]` marker, the
@@ -185,4 +185,4 @@ way — break something and watch it go red:
 ```
 
 Both were run against this suite and both failed as required; restore the file afterwards and
-confirm the clean run is back to 74 passed.
+confirm the clean run is back to 77 passed.

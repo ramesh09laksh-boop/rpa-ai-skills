@@ -776,20 +776,42 @@ function Test-Project {
         # including Google-Results_Verify.xaml - the file that threw in both failed runs - because
         # Studio had written both attributes as explicit nulls. Match the VALUE.
         if ($rel -match '(^|[\\/])[A-Za-z0-9 _]+_System[\\/]' -and $x.Name -notlike '_*') {
-            # A real binding: anything that is not an explicit null and not empty.
-            $isBound = {
+            # Bound as an ATTRIBUTE: present, and not an explicit null or empty.
+            $boundAttr = {
                 param($t, $attr)
                 $m = [regex]::Match($t, "\b$attr\s*=\s*`"([^`"]*)`"")
                 $m.Success -and $m.Groups[1].Value.Trim() -notmatch '^(\{x:Null\})?$'
             }
-            foreach ($card in [regex]::Matches($text, '<(\w+):NApplicationCard(?=[\s/>])[^>]*>')) {
+            # Bound as a PROPERTY ELEMENT: present, and carrying something other than x:Null.
+            # Strip the nulls, strip the tags, and see whether an expression is left - that
+            # handles both <x:Null /> directly and the <InArgument><x:Null /></InArgument> nesting
+            # without a regex per shape.
+            $boundElem = {
+                param($scope, $prefix, $attr)
+                $m = [regex]::Match($scope,
+                    "<$prefix`:NApplicationCard\.$attr\b[^>]*>(.*?)</$prefix`:NApplicationCard\.$attr>",
+                    'Singleline')
+                if (-not $m.Success) { return $false }
+                $inner = [regex]::Replace($m.Groups[1].Value, '<x:Null\s*/>', '')
+                ([regex]::Replace($inner, '<[^>]*>', '')).Trim().Length -gt 0
+            }
+
+            # Each card gets a DISJOINT region: its own tag up to the next card's tag, or EOF.
+            # The property-element search has to be scoped, not file-wide - one correctly bound
+            # card would otherwise carve out every other card in the same file.
+            $cards = @([regex]::Matches($text, '<(\w+):NApplicationCard(?=[\s/>])[^>]*>'))
+            for ($ci = 0; $ci -lt $cards.Count; $ci++) {
+                $card = $cards[$ci]
                 $tag = $card.Value
                 $prefix = $card.Groups[1].Value
-                if ((& $isBound $tag 'InUiElement') -or
-                    $text -match "<$prefix`:NApplicationCard\.InUiElement\b") { continue }
+                $end = if ($ci + 1 -lt $cards.Count) { $cards[$ci + 1].Index } else { $text.Length }
+                $scope = $text.Substring($card.Index, $end - $card.Index)
+
+                if ((& $boundAttr $tag 'InUiElement') -or
+                    (& $boundElem $scope $prefix 'InUiElement')) { continue }
                 # The opener: it publishes the instance instead of consuming one.
-                if ((& $isBound $tag 'OutUiElement') -or
-                    $text -match "<$prefix`:NApplicationCard\.OutUiElement\b") { continue }
+                if ((& $boundAttr $tag 'OutUiElement') -or
+                    (& $boundElem $scope $prefix 'OutUiElement')) { continue }
 
                 $dn = [regex]::Match($tag, '\bDisplayName="([^"]*)"')
                 $which = if ($dn.Success) { " ('$($dn.Groups[1].Value)')" } else { '' }
