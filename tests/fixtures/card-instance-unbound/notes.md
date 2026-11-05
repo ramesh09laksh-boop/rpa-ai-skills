@@ -14,14 +14,32 @@ application instance between workflows*.
 
 | | |
 |---|---|
-| `bad` | a downstream card — `OpenMode="Never"` — with neither `InUiElement` nor `OutUiElement` |
-| `good` | the same card with `InUiElement="[in_AcmeElement]"` and the matching `InArgument(ui:UiElement)` |
+| `bad` | a downstream card — `OpenMode="Never"` — with **no** `InUiElement` / `OutUiElement` attribute at all |
+| `bad-explicit-null` | the same card as Studio actually serialises it: `InUiElement="{x:Null}" OutUiElement="{x:Null}"`, among six other explicit nulls |
+| `good` | the `bad` card with `InUiElement="[in_AcmeElement]"` and the matching `InArgument(ui:UiElement)` |
 | `good-opener` | the **carve-out**: the card that *opens* the application has no `InUiElement` and must not be reported. It is identifiable because it declares `OutUiElement` to hand the instance on |
 
 `good-opener` is a separate case rather than a second card in `good`, because the carve-out is the
 rule's whole precision. Folded into one fixture, the assertion would be satisfied by the
 `InUiElement` branch alone and a broken carve-out would report every opening card in the estate
 with CI still green.
+
+`bad-explicit-null` is a separate **shape**, not a cosmetic variant, and it is the one that
+matters on real Studio output. **Studio serialises an unset argument explicitly**, so a card it
+has round-tripped carries `InUiElement="{x:Null}"` and `OutUiElement="{x:Null}"` even though
+nothing is bound. A rule keyed on the attribute's *presence* therefore carves out exactly the
+cards that most need reporting.
+
+That was the first draft's behaviour, and the fixtures did not catch it — all three used the
+hand-written form. It was caught by running the rule against the **real** project it came from:
+presence-only matching reported 5 of the 7 unbound cards in the pre-fix package and silently
+missed `Google-Browser_Kill.xaml` and `Google-Results_Verify.xaml` — the latter being the file
+that threw in both failed runs. The rule now matches the *value*. Calibration, repeatable:
+
+```powershell
+# all 7 cards reported on the pre-fix package, 0 on the fixed one
+pwsh -NoProfile -File validate-project.ps1 <extracted-package>/content
+```
 
 ## Property names
 

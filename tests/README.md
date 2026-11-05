@@ -111,7 +111,7 @@ Get-ChildItem tests -Recurse -File -Force | ForEach-Object { git check-ignore $_
 
 1. Write the rule in `validate-project.ps1`.
 2. Create `tests/fixtures/<rule>/bad/` and `good/`, plus `notes.md`.
-3. Run the suite (35 rules, 73 assertions as of the `card-instance-unbound` addition). **A new rule with no fixture
+3. Run the suite (35 rules, 74 assertions as of the `card-instance-unbound` addition). **A new rule with no fixture
    directory fails the run** — the coverage check
    compares the rule ids it can find in the checker against the fixture directories, both ways.
    That is the half that makes the suite hard to cheat: without it, adding a rule and no fixture
@@ -122,7 +122,7 @@ faking the fixture.
 
 ## Coverage, and what is honestly not covered
 
-35 rules, 35 fixture directories, 73 assertions. Three things inside existing rules are **not**
+35 rules, 35 fixture directories, 74 assertions. Three things inside existing rules are **not**
 exercised, and are recorded here rather than implied:
 
 - **`object-repository-not-shared`, the git-ignored branch.** The rule has two halves: `.objects/`
@@ -136,7 +136,7 @@ exercised, and are recorded here rather than implied:
   quiet — a failure the `good` case would not catch.
 - **`card-instance-unbound`, the property-element form.** The rule accepts `InUiElement` /
   `OutUiElement` either as an attribute or as the `<uix:NApplicationCard.InUiElement>` child
-  element Studio emits for a non-trivial expression. All three fixtures use the attribute form,
+  element Studio emits for a non-trivial expression. All four fixtures use the attribute form,
   which is what Studio wrote in the project this rule came from; the child-element branch is
   **not** exercised. Breaking it would report a correctly-bound card — a false positive the `good`
   case would not catch.
@@ -152,15 +152,25 @@ distinction is why `unresolved-mock` has two cases and `template-default-left` h
 
 The fixtures prove each rule still *fires*. They cannot tell you whether it fires on the right
 things, because every fixture was written by the same person as the rule. Running the checker on
-a real Windows project is a different test, and it found two defects the suite could not:
+a real Windows project is a different test, and it has now found three defects the suite could
+not:
 
 - `leaf-body-stub` reported 6 declared mocks (`Mock_System/Mock-*.xaml`) alongside 1 true
   positive — noise that would have got the rule suppressed, hiding the true positive with it.
 - `unresolved-mock` reported **nothing** on a project with a 22-workflow mock layer, because
   none of those files carried the `[MOCK]` string.
+- `card-instance-unbound` reported **5 of 7** unbound Application Cards, silently missing the two
+  that Studio had serialised as `InUiElement="{x:Null}"` — including the file that threw in both
+  failed runs. All three fixtures were hand-written, so none of them carried Studio's explicit-null
+  form, and the rule's presence-only match carved out exactly the cards most worth reporting.
 
-Both are fixed, and both now have fixtures. **Re-run against a real project after changing a
-rule** — not instead of the suite, after it.
+All three are fixed, and all three now have fixtures (`bad-explicit-null` for the last).
+**Re-run against a real project after changing a rule** — not instead of the suite, after it.
+
+A packed `.nupkg` is a usable stand-in when the project folder is gone: `Expand-Archive` it and
+point the checker at `content/`. That is how the calibration above was done, against the pre-fix
+and post-fix packages of the same project — 7 findings and 0 respectively. Expect
+`object-repository-not-shared` from an extracted package regardless; `.objects/` is not in it.
 
 ## Verifying the suite is not vacuous
 
@@ -175,4 +185,4 @@ way — break something and watch it go red:
 ```
 
 Both were run against this suite and both failed as required; restore the file afterwards and
-confirm the clean run is back to 70 passed.
+confirm the clean run is back to 74 passed.

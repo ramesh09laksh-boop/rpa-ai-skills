@@ -43,9 +43,21 @@ the worst case watching their own screen.
   **not** gated on the workflow declaring arguments, unlike its two neighbours: a `_System`
   workflow with a card and no arguments has nothing to bind, which is the worst case rather than
   an exempt one.
-- **Fixtures `bad` / `good` / `good-opener`**, the third covering the carve-out as its own case —
-  folded into `good`, the assertion would pass on the `InUiElement` branch alone while a broken
-  carve-out reported every opening card in the estate. 35 rules, 73 assertions.
+- **Fixtures `bad` / `bad-explicit-null` / `good` / `good-opener`.** `good-opener` covers the
+  carve-out as its own case — folded into `good`, the assertion would pass on the `InUiElement`
+  branch alone while a broken carve-out reported every opening card in the estate.
+  `bad-explicit-null` covers **Studio's own serialisation**: an unset argument is written
+  explicitly, so a round-tripped card carries `InUiElement="{x:Null}"` and keying on the
+  attribute's *presence* carves out exactly the cards that most need reporting. The rule matches
+  the **value**. 35 rules, 74 assertions.
+
+  That defect was in the first draft and the fixtures did not catch it — all of them were
+  hand-written in a form Studio does not emit. It was caught by **running the rule against the
+  real project it came from**: 5 of 7 unbound cards reported, `Google-Browser_Kill.xaml` and
+  `Google-Results_Verify.xaml` missed, the latter being the file that threw in both failed runs.
+  Now 7 of 7 on the pre-fix package and 0 on the fixed one. `tests/README.md` records it as the
+  third entry under *Fixtures are not a substitute for a real project*, and that a packed
+  `.nupkg` is a usable stand-in when the project folder is gone.
 - **`end-to-end-run.md` Step 2a — *The exit code is not the outcome, read the log***, and the same
   finding in `evidence-ladder.md`. `UiRobot execute` returned exit `0` with stdout `{}` on both
   failed runs, identically to the five passing ones; **L4-local reads

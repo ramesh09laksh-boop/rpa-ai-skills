@@ -766,14 +766,29 @@ function Test-Project {
         # the class name also matches the property-element tags every card carries -
         # <uix:NApplicationCard.Body>, .TargetApp, .InUiElement - each of which looks like a card
         # with no element bound. Caught by the good fixtures: the rule fired on all three.
+        #
+        # "{x:Null}" DOES NOT COUNT AS BOUND, and that distinction is the whole rule on real
+        # Studio output. Studio serialises an unset argument EXPLICITLY - a card it has round-
+        # tripped carries InUiElement="{x:Null}" OutUiElement="{x:Null}" alongside Timeout,
+        # ConnectionId and six others, all null. Keying on the attribute's PRESENCE therefore
+        # carves out exactly the cards that most need reporting. Calibrated against the Google
+        # project's pre-fix package: presence-only matching missed 2 of its 7 unbound cards,
+        # including Google-Results_Verify.xaml - the file that threw in both failed runs - because
+        # Studio had written both attributes as explicit nulls. Match the VALUE.
         if ($rel -match '(^|[\\/])[A-Za-z0-9 _]+_System[\\/]' -and $x.Name -notlike '_*') {
+            # A real binding: anything that is not an explicit null and not empty.
+            $isBound = {
+                param($t, $attr)
+                $m = [regex]::Match($t, "\b$attr\s*=\s*`"([^`"]*)`"")
+                $m.Success -and $m.Groups[1].Value.Trim() -notmatch '^(\{x:Null\})?$'
+            }
             foreach ($card in [regex]::Matches($text, '<(\w+):NApplicationCard(?=[\s/>])[^>]*>')) {
                 $tag = $card.Value
                 $prefix = $card.Groups[1].Value
-                if ($tag -match '\bInUiElement\s*=' -or
+                if ((& $isBound $tag 'InUiElement') -or
                     $text -match "<$prefix`:NApplicationCard\.InUiElement\b") { continue }
                 # The opener: it publishes the instance instead of consuming one.
-                if ($tag -match '\bOutUiElement\s*=' -or
+                if ((& $isBound $tag 'OutUiElement') -or
                     $text -match "<$prefix`:NApplicationCard\.OutUiElement\b") { continue }
 
                 $dn = [regex]::Match($tag, '\bDisplayName="([^"]*)"')
