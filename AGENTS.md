@@ -166,6 +166,7 @@ their name.
   state and authenticates nothing
 - `validate-project`, `lint-skills`, `tests/run-fixtures.ps1`, `preflight` **without**
   `-FolderPath`
+- `report-execution-log` — reads the local execution log and nothing else
 - `uip rpa validate` / `build` / `pack` / `analyze` — local, Studio-IPC or compiler, no tenant
 - `UiRobot version`, `UiRobot pack`
 

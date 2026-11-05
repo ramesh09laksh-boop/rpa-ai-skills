@@ -376,7 +376,9 @@ static, cheap and re-runnable, and belongs after anything that rewrites a `.xaml
 type, which means **after linking a captured screen** and after a template fetch.
 **L4-local is the default end-to-end run**, quoted with its folder, and needs no
 `uip login`; it is **not** L4, because it runs as your interactive account. **Its outcome comes
-out of the execution log, never the exit code** — `UiRobot execute` returns `0` on a failed
+out of the execution log, never the exit code** — `scripts/report-execution-log.ps1 -Mark` before
+the run and `-Offset <mark>` after it prints the per-transaction table and every Warn/Error from
+the slice your run appended; `UiRobot execute` returns `0` on a failed
 transaction. **A local `uip rpa run` is L3 evidence**, being a run of the *sources* in the
 developer's session. A mocked run reaches **L3 at most**. Never write PASS without the level.
 

@@ -71,6 +71,36 @@ the worst case watching their own screen.
   is driven through an Application Card"*. Four arguments, one table, and the `IsNot Nothing`
   guard on the shutdown pair. **Not added to the Finnova/Avaloq Performer READMEs**: see
   *Known open*.
+- **`end-to-end-run.md` records what actually ran, with the one-project bound stated first.**
+  `DEMO-UC01.GoogleSearchHelloWorld 1.0.0`, run by **UiRobot 24.10.25** (7 runs, 2026-11-04) and
+  **UiRobot 26.0.204.0** (2 runs, 2026-11-05). Its UI Automation pin — **`[26.10.4]`** for both
+  `UiPath.UIAutomation.Activities.Runtime` and `.CLI` — is **confirmed from the `.nupkg`'s own
+  `project.json`**, not from the machine, which matters because it is also the assembly the
+  `NApplicationCard` property names were read out of: the thing that ran and the thing that was
+  inspected are the same version.
+
+  Two caveats recorded with it rather than under it: **one project only** — one transaction type,
+  one browser, no asset, no queue, no `--folder` — so nothing below is estate-wide until a second
+  project reproduces it; and **a robot older than its package ran it anyway**, UiRobot 24.10.25
+  executing a UIA 26.10.4 package across 7 runs, which is one counter-observation against Part 2
+  prerequisite 1 and not a licence to skip that check.
+- **`report-execution-log.ps1`** (`project-scaffolding/scripts/`) and **Step 2b** documenting it.
+  A **reporter**, not a gate: `-Mark` records the daily log's byte length, `-Offset <mark>` reads
+  only what the run appended, and it prints the process and job id(s), the per-transaction status
+  table and every Warn/Error **in full** — the *"closest matches found"* list is the part that
+  says which window the robot actually hit.
+
+  It states what it cannot do: **an offset bounds the slice in time, not by author**, so if
+  another robot or a Studio debug ran in the same window its lines are in the slice too. The
+  script prints every job id it found and says so explicitly above one. Exit code is non-zero
+  **only on a faulted transaction**, as a CI convenience — and the limitation is written down
+  rather than left to be discovered: a run that died *before* reaching a transaction exits 0,
+  which is why the (then empty) transaction table is printed first.
+
+  **Verified on real runs, 2026-11-05**, all seven cases in Step 2b — including the decisive one,
+  a second run read from the first run's end offset returning **only the second run's job id**,
+  and the faulted path against the 2026-11-04 log returning **exit 1** with both
+  `ApplicationException`s and the multi-job caveat.
 - **`end-to-end-run.md` Step 2a — *The exit code is not the outcome, read the log***, and the same
   finding in `evidence-ladder.md`. `UiRobot execute` returned exit `0` with stdout `{}` on both
   failed runs, identically to the five passing ones; **L4-local reads

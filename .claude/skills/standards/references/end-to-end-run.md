@@ -147,6 +147,36 @@ Add `--entry "<EntryPoint>.xaml"` when the package declares more than one entry 
 > `UiRobot execute --package-id <id> --folder <folder>` — which is the pairing the examples
 > show. Record which one worked, with the date, and delete the one that did not.
 
+### What actually ran — and it is one project
+
+Everything in Step 2a and Step 2b below comes from **one project**, and that bound belongs with
+the findings rather than under them:
+
+| | |
+|---|---|
+| **Package** | `DEMO-UC01.GoogleSearchHelloWorld` `1.0.0`, packed with `uip rpa pack` |
+| **Robot, 2026-11-04** | **UiRobot 24.10.25** at `C:\Program Files\UiPath\Studio\UiRobot.exe` — 7 runs |
+| **Robot, 2026-11-05** | **UiRobot 26.0.204.0** at `C:\Program Files\UiPathPlatform\Robot\26.0.204-cloud.25540\UiRobot.exe` — 2 runs |
+| **Project's own pins**, read from the `.nupkg`'s `project.json` | `UiPath.UIAutomation.Activities.Runtime [26.10.4]`, `UiPath.UIAutomation.CLI [26.10.4]`, `UiPath.System.Activities.Runtime [23.10.6]`, `UiPath.Excel.Activities [2.22.4]`, `UiPath.Mail.Activities [1.22.1]`, `UiPath.Testing.Activities [23.10.1]` |
+| **`studioVersion`** | `23.10.8.0`, `targetFramework: Windows` |
+
+**The UI Automation version is the one this estate pins for capture — 26.10.4 — confirmed from
+the package rather than from the machine**, which matters because it is also the assembly the
+`NApplicationCard` property names were read out of (`wiring-the-framework.md`). The thing that
+ran and the thing that was inspected are the same version.
+
+> **A robot older than the package it carries ran it anyway.** UiRobot **24.10.25** executed a
+> package pinning **UIA 26.10.4** without a load error, across 7 runs. Part 2, prerequisite 1
+> says a robot older than a package *"generally fails at load with a type or assembly error"* —
+> that remains the expectation to design for, and this is **one** counter-observation on **one**
+> project, not a licence to skip the check.
+
+**What this project is not.** One transaction type, one application (a browser), **no Orchestrator
+asset**, **no queue**, 1 transaction per run, and no `--folder`. So it exercises packaging, launch,
+dispatch, a UI interaction, exception classification and shutdown — and says nothing about asset
+resolution, queue retry, the circuit breaker, multiple transaction types, or a thick client. Do
+not read a finding below as estate-wide until a second project reproduces it.
+
 ### Step 2a. The exit code is not the outcome — read the log
 
 **`UiRobot execute` returned exit code `0` and printed `{}` on a run whose transaction failed.**
@@ -223,6 +253,59 @@ And note what the end of a **failed** run looks like, because it reads like a cl
 
 Both runs ended on those two lines, after the transaction had failed. *"Execution ended"* is not
 *"execution succeeded"* — it is the only line stdout would have let you see, and it means nothing.
+
+### Step 2b. `report-execution-log` — read the slice your run appended
+
+The daily log is **shared by every UiPath process on the machine**, so "read the log" needs a
+bound. Record its byte length before the run and read only what was appended:
+
+```powershell
+$s = '<skills>/project-scaffolding/scripts/report-execution-log.ps1'
+$mark = & $s -Mark                                    # byte length now; 0 if the file does not exist yet
+& $UiRobot execute --file $pkg --input '{"in_ENV":"TST"}'
+& $s -Offset $mark                                    # only what the run appended
+```
+
+It prints the process and job id(s), the **per-transaction status table**, and **every Warn/Error
+in full** — the selector-failure message is not truncated, because the *"closest matches found"*
+list is the part that tells you which window it actually hit.
+
+**It cannot prove which job wrote which line.** An offset bounds the slice in **time**, not by
+author: if another robot, or a Studio debug, ran in the same window, its lines are in the slice
+too. The script prints every job id it found and says this explicitly when there is more than
+one. Check the id is yours before quoting any of it as evidence.
+
+**The exit code is a CI convenience and is deliberately narrow:** non-zero **only** on a faulted
+transaction. An `Error` line alone does not fail it — a retried transaction that eventually
+succeeds logs errors on the way. The real limitation: **a run that died before reaching a
+transaction** — `InitAllSettings`, an asset that did not resolve, a login that never completed —
+has no faulted transaction and **exits 0**. The empty transaction table is the signal for that
+case, which is why the table is printed first and why this is a reporter rather than a gate.
+
+> **Do not let this become the habit Step 2a exists to break.** Replacing `$LASTEXITCODE` from
+> `UiRobot` with `$LASTEXITCODE` from this script is the same mistake with an extra step. Read
+> the table.
+
+**Verified end to end on 2026-11-05**, against `UiRobot 26.0.204.0`:
+
+| Case | Result |
+|---|---|
+| `-Mark` with no log for today yet | `0`, and the run then created the file |
+| Run 1 from offset `0` | slice `0..17701`, 1 job id, `1 Success` — exit 0 |
+| **Run 2 from offset `17701`** | slice `17701..35401`, **only run 2's job id**, `1 Success` — exit 0. The offset discriminates |
+| The 2026-11-04 log from offset `18989` | **2 faulted transactions found** (`ApplicationException`), 6 `Error` lines, 9 job ids → the multi-job caveat printed — **exit 1** |
+| Offset past end of file | warns that the log was replaced or truncated, reads from `0` |
+| Offset at EOF (nothing appended) | *"Nothing was appended… This is NOT a pass"* — exit 1 |
+| Missing log file | *"…This is NOT a pass"* — exit 1 |
+
+> **The install path moved between those two dates, which is the Part 0 warning proving itself.**
+> The 2026-11-04 runs used `C:\Program Files\UiPath\Studio\UiRobot.exe` (**UiRobot 24.10.25**).
+> By 2026-11-05 that directory was **empty** and the robot was
+> `C:\Program Files\UiPathPlatform\Robot\26.0.204-cloud.25540\UiRobot.exe` (**26.0.204.0**).
+> Ask for the path; never hardcode it from this file.
+>
+> **The exit-code finding reproduced on the newer robot**: both 2026-11-05 runs also returned
+> exit `0` with stdout `{}`. It is not a quirk of one build.
 
 ### Step 3. When it fails on an asset or on folder access — that is a checkpoint
 
@@ -479,7 +562,9 @@ Stated plainly, because the difference matters:
 | **`execute --file … --input` — the command itself** | **RUN**, 7 times, 2026-11-04, UiRobot 24.10.25. Packed with `uip rpa pack`, then executed; the log records all seven jobs with `"initiatedBy":"CommandLine"` |
 | **The PowerShell `--input` quoting** | **RUN, and corrected.** The form this file carried (`'{\"in_ENV\" : \"TST\"}'`, transcribed from the help) fails with exit `-1` and *"Invalid property identifier character: \\."*. `'{"in_ENV":"TST"}'` works. See Step 2 |
 | The **`bash` / Command Prompt `--input` quoting** | **UNVERIFIED** — left as the tool's own example form; nothing here ran it |
-| **Exit code `0` and stdout `{}` on a FAILED transaction** | **VERIFIED by observation.** Two runs threw `ApplicationException` on transaction 1 with 3 `Error` lines each and still exited `0` with `{}` — identical to the five passing runs. Step 2a |
+| **Exit code `0` and stdout `{}` on a FAILED transaction** | **VERIFIED by observation.** Two runs threw `ApplicationException` on transaction 1 with 3 `Error` lines each and still exited `0` with `{}` — identical to the five passing runs. **Reproduced on UiRobot 26.0.204.0** on 2026-11-05, so it is not a quirk of one build. Step 2a |
+| **`report-execution-log`'s `-Mark` / `-Offset` slice** | **VERIFIED on real runs**, 2026-11-05: a second run read from the first run's end offset returned **only the second run's job id**. All seven cases, including the faulted path against the 2026-11-04 log, are tabulated in Step 2b |
+| **The `UiRobot` install path in this file** | **STALE BY DESIGN — ask, do not copy.** `C:\Program Files\UiPath\Studio\` was correct on 2026-11-04 and was an **empty directory** on 2026-11-05; the robot had moved to `C:\Program Files\UiPathPlatform\Robot\26.0.204-cloud.25540\`. Part 0, fact 1 |
 | **That the execution log is the only outcome source for L4-local** | **VERIFIED** as the consequence of the row above: it is the only channel that distinguished the failed runs from the passing ones |
 | The log path `%LOCALAPPDATA%\UiPath\Logs\<date>_Execution.log` | **Verified** — read on this machine; the two failed runs are in `2026-11-04_Execution.log` |
 | That `UiRobot` has no connection-status verb | **Verified** — the verb list is `pack`, `trace`, `pip`, `connect`, `disconnect`, `flushlogs`, `version`, `execute`, `installprocess`, `help`. Hence Part 0 asks rather than probes |
