@@ -9,6 +9,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
 ## [Unreleased] — v0.2.4
 
+**Merged to `main` on 2026-11-06 via PR #6, not tagged.** Branched from `main` at `354fa92`;
+five commits, merged with a merge commit rather than squashed, because the commit messages carry
+the probe output for each finding. CI green on all six jobs on the PR before merge. `npx skills
+update` now pulls this.
+
+> **Merged with three items open**, all under *Known open* below: the `leaf-body-stub` blind spot
+> on a throwing stub (recorded, fix left as a deliberate decision), the guard isolation route
+> verified on a **folder** source and not a queue, and every verification resting on **one
+> machine** that has no Studio and no robot.
+
 Stage 3 sequencing. Four claims the repo made about stage 3 were either untested or wrong; each
 was probed on this machine first and the documents follow the result rather than the other way
 round.
