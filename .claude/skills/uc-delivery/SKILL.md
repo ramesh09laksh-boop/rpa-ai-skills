@@ -118,7 +118,7 @@ end-to-end run and needs no `uip login`; L4 is **ask-first**.
 |---|---|---|---|
 | 1 | PDD → SDD | `standards`, `security` | Every transaction type and its work-item columns defined; Open Questions listed |
 | 2 | SDD → Project | `project-scaffolding` | **L3**, and the project folder renamed off the template's name |
-| 3 | Wire the Framework | `standards` (`references/wiring-the-framework.md`), `security` | **L3**, and the 0-transaction guard observed firing |
+| 3 | Wire the Framework | `standards` (`references/wiring-the-framework.md`), `security` | **L3**; the 0-transaction guard observed firing **on `GetTransactionData` alone, both directions**; and a report carrying all four required blocks |
 | 4–5 | Capture **and** develop, one workflow at a time | `web` + `standards` + the app skill(s); `pdd-sdd-scaffolding` only in OFFLINE mode | Every row of `Documentation/Leaf_Ledger.md` reads `yes`, **and** each workflow was run once against the live application with the command recorded. `.objects/` committed |
 | 6 | Test data → tests | `standards` (`references/test-data.md`), `security` | `Tests.xlsx` built; no case marked passed without a run |
 | 7 | Review | `standards`, `security`, app skill(s) | Analyzer clean, **and the report names which rule set ran** |
@@ -162,6 +162,48 @@ workflow is wired, every rename costs an edit to each `Invoke Workflow File` poi
 which is why a wrong name stays wrong. `validate-project` reports an unprefixed leaf as
 `leaf-name-prefix`. Rules: the `standards` skill, `references/naming-conventions.md`; folder
 choice: the `standards` skill, `references/where-does-it-go.md`.
+
+**Stage 3 wires against leaf workflows that do not exist yet, and `uip rpa build` enforces the
+contract.** Verified on rpa-tool 1.204.2: build fails when an invoked `.xaml` is missing, when an
+argument name is absent from the callee's `x:Members`, and when a passed type does not match the
+declared one — and **passes** when the caller omits a declared argument, or when the callee's body
+is only a `Log Message` and a `Throw`. So the stage creates a **signature-only stub** per leaf:
+the full `_System` contract in `x:Members`, body of a `Log Message` (Error) **and a `Throw`**.
+Stage 5 replaces the body and keeps the signature. The `Throw` is load-bearing — a
+`Log Message`-only stub runs green and does nothing — and it costs you the checker:
+`leaf-body-stub` does **not** report a throwing stub, so the stage 3 report counts the stubs and
+`Documentation/Leaf_Ledger.md` carries *body real* = `no`. Detail and the verification table: the
+`standards` skill, `references/wiring-the-framework.md` → *Wiring before the leaf workflows
+exist*.
+
+**The stage 3 guard observation is of `GetTransactionData` alone, and needs no asset.** A
+`Tests/Test-GetTransactionData_Zero_Items.xaml` builds `in_Config` inline — no `InitAllSettings`,
+therefore no `Assets` row, no Orchestrator asset, no `uip login` — invokes
+`Framework/GetTransactionData.xaml` in a `Try`, and asserts the guard's **own message**:
+
+```bash
+uip rpa run --project-dir <project> \
+            --file-path "Tests\Test-GetTransactionData_Zero_Items.xaml"
+```
+
+Run it **both** ways: empty source → the guard throws; one item present → the test must fail.
+A sources run is **L3 at most**, which is all this gate asks for. This is **verified on a folder
+source only** — reaching an empty *queue* is an authenticated Orchestrator read, so on a queue
+project say what the test needed rather than reporting the gate met by analogy. The Main-level observation —
+through `InitAllSettings` and the real workbook — belongs to **stage 5/6** and again 7b; it
+**needs the Orchestrator asset if the project signs in**, and it does not hold stage 3 open.
+Procedure and the verified output: the `standards` skill, `references/wiring-the-framework.md` →
+*Observing it in isolation*; the `Tests.xlsx` row: the `standards` skill,
+`references/test-data.md`.
+
+**Stage 3's report is four blocks, and the gate includes them** — a prose summary is not a
+substitute, because *wired*, *all seven* and *the guard* read identically whether they are true
+or not:
+
+1. **The Framework-file table** — all seven rows, `file | wired (stock/edited) | what it now does | commit`, including the files left stock.
+2. **Per-application counts** — for every application the SDD names: opened in `InitAllApplications` / closed in `CloseAllApplications` / killed in `KillAllProcesses`, as three numbers side by side; plus arms in `Process.xaml` vs transaction types in the SDD.
+3. **The level reached, with the command verbatim**, and how many signature-only stubs exist, by name.
+4. **The guard status** — `observed` with the command, its `Error` line and the negative-control result, or `not observed` and what is outstanding. *"The guard is in the XAML"* is not a status.
 
 Stages 3 and 4–5 are the ones most often skipped, and both fail silently: an unwired Framework
 runs green on **zero** transactions, and an unresolved selector fails only when the robot runs.
@@ -212,8 +254,9 @@ command and why, then wait. That includes `uip login`, ANY `uip or ...` command 
 `uip rpa publish`, `uip or packages upload`, `uip or jobs start`, creating or changing a
 process/asset/queue/trigger/folder, `UiRobot connect` or `disconnect`, `uip rpa restore` where
 the feed is Orchestrator-hosted, and installing anything. Reading files and `--help` are always
-fine, as are `uip --version`, `uip tools list`, `uip login status`, validate-project, and
-`uip rpa validate`/`build`/`pack`/`analyze`. Do not run it and tell me afterwards.
+fine, as are `uip --version`, `uip tools list`, `uip login status`, validate-project,
+`uip rpa validate`/`build`/`pack`/`analyze`, and `uip rpa run` of a Tests/ workflow (local
+sources, authenticates nothing). Do not run it and tell me afterwards.
 ```
 
 When something breaks, start at the `standards` skill, `references/troubleshooting.md` — the
@@ -239,7 +282,11 @@ tenant's audit log under their name.
 **Always fine, never ask:** reading files; `--help` at any depth; `uip --version`,
 `uip tools list`, `uip login status` (reads the **local** token, authenticates nothing);
 `validate-project`, `lint-skills`, the rule fixtures, `preflight` without `-FolderPath`;
-`uip rpa validate` / `build` / `pack` / `analyze`; `UiRobot version`, `UiRobot pack`.
+`uip rpa validate` / `build` / `pack` / `analyze`; `UiRobot version`, `UiRobot pack`;
+`uip rpa run` / `debug` **of a `Tests/` workflow** — it runs project sources locally and
+authenticates nothing (the stage 3 guard observation is one of these). Running a workflow that
+drives a real application is a different question: that is the live-session checkpoint, not this
+list.
 
 **Ask first, naming the exact command and why:** `uip login` · **any** `uip or …`, including a
 pure read like `or folders list` · `uip rpa publish` / `uip or packages upload` ·
@@ -317,10 +364,17 @@ settled rather than re-decided per project.
 - **`rpa cleanup` only with `--dry-run`.** Its own description: *"Remove unused items from a
   UiPath project (**modifies the project sources in place**)"*. Without `--dry-run` it edits
   your sources. Run it bare only on a clean, committed tree, never as a side effect.
-- **`run` likely needs a Studio instance with the project open — UNVERIFIED.** The help text
-  describes `--project-dir` as matching *running Studio instances*, and `rpa instances list` can
-  report a live Studio with `"ProjectDirectory": "(none)"`. That is suggestive and has not been
-  tested. Do not present it as the cause of a failed run; test it, then record the answer.
+- ~~**`run` likely needs a Studio instance with the project open — UNVERIFIED.**~~ **Tested, and
+  it does not.** 2026-11-06, rpa-tool 1.204.2, on a machine with **no Studio and no `UiRobot.exe`
+  installed** — only the Helm backend the CLI ships with
+  (`%LOCALAPPDATA%\UiPath\Helm\<ver>-win32-x64`). `uip rpa run --project-dir <dir> --file-path
+  "Tests\<file>.xaml"` against a project **nothing had open** printed *"Validating … Building for
+  execution… Starting execution…"*, executed, and returned the workflow's output arguments as
+  JSON. `rpa instances list` then showed an instance bound to that directory — the command
+  provisions its own, which is why the help text's *"matching running Studio instances"* reads as
+  a prerequisite and is not one. It is a **sources** run as your own interactive account, so
+  **L3 at most** — never quoted as L4-local. A failed `run` is therefore not explained by
+  "needs Studio"; give the command and its error.
 
 Full map, keyed by tool and version: the `project-scaffolding` skill,
 `references/cli-command-map.md`.

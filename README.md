@@ -579,8 +579,9 @@ like `or folders list`), `uip rpa publish`, `uip or packages upload`, `uip or jo
 creating or changing a process/asset/queue/trigger/folder, `UiRobot connect` or `disconnect`,
 `uip rpa restore` where the feed is Orchestrator-hosted, and installing anything
 (`uip skills install`, `npx skills add`). Reading files and running `--help` are always fine,
-as are `uip --version`, `uip tools list`, `uip login status`, validate-project, and
-`uip rpa validate`/`build`/`pack`/`analyze`. Do not run it and tell me afterwards.
+as are `uip --version`, `uip tools list`, `uip login status`, validate-project,
+`uip rpa validate`/`build`/`pack`/`analyze`, and `uip rpa run` of a Tests/ workflow (local
+sources, authenticates nothing). Do not run it and tell me afterwards.
 
 Load the official `uipath-rpa` skill for CLI mechanics. If preflight says it is missing, ask me
 once, then install it and record the result.
@@ -652,10 +653,44 @@ silent, record an Assumption and ask. Leaf workflows must follow the `_System` c
 in_Config, an out_ outcome, SecureString secrets.
 
 Count the applications: every application opened in InitAllApplications appears in BOTH
-CloseAllApplications and KillAllProcesses. Report which Framework files are wired and the level
-reached. This stage is "wired, gate open" — not done — until you have watched the 0-transaction
-guard fire (point the source at nothing). That needs a run, and a run needs the Orchestrator
-asset; if it is missing, say so and continue.
+CloseAllApplications and KillAllProcesses.
+
+The leaf workflows do not exist yet, and `uip rpa build` will not let you wire against nothing:
+it fails when an invoked .xaml is missing, when an argument name is not in the callee's
+x:Members, and when a passed type does not match the declared one. So create a SIGNATURE-ONLY
+STUB per leaf the SDD names — the full `_System` contract in x:Members, and a body of exactly a
+Log Message (Error) plus a Throw. The Throw is not optional: a Log-Message-only stub runs green
+and does nothing. Stage 5 replaces the BODY and keeps the signature. Note that
+`leaf-body-stub` does NOT report a throwing stub, so count the stubs in your report and write
+`body real = no` in Documentation/Leaf_Ledger.md for each.
+
+This stage is "wired, gate open" — not done — until you have watched the 0-transaction guard
+fire. Observe it on GetTransactionData ALONE, which needs no asset and no uip login: a
+Tests/Test-GetTransactionData_Zero_Items.xaml that builds in_Config inline
+(New Dictionary(Of String, Object) From {{...}}, no InitAllSettings), invokes
+Framework/GetTransactionData.xaml in a Try, and asserts the guard's OWN message
+(exception.Message.Contains("yielded 0 transactions")) — a bare Catch passes on any throw. Run:
+
+  uip rpa run --project-dir <project> --file-path "Tests\Test-GetTransactionData_Zero_Items.xaml"
+
+Run it BOTH ways: empty source, the guard throws; one item present, the test must fail. That is
+a sources run, so L3 at most — which is all this gate asks. This route is verified on a FOLDER
+source; reaching an empty QUEUE is an authenticated Orchestrator read, so on a queue project say
+what the test needed instead of reporting the gate met by analogy. The Main-level observation, through
+InitAllSettings and the real workbook, belongs to stage 5/6; it needs the Orchestrator asset if
+the project signs in, and it does NOT hold this gate open.
+
+Report format (required) — four blocks, not prose:
+ 1. The Framework-file table: all seven rows, file | wired (stock/edited) | what it now does |
+    commit. Including the ones left stock.
+ 2. Per-application counts: for EVERY application the SDD names, opened in InitAllApplications /
+    closed in CloseAllApplications / killed in KillAllProcesses, as three numbers side by side.
+    Plus arms in Process.xaml vs transaction types in the SDD.
+ 3. The level reached with the command verbatim (L1/L2/L2b/L3 — a sources run is L3 at most),
+    and how many signature-only stubs you created, by name.
+ 4. The 0-transaction guard: either "observed" with the command, its Error line and the
+    negative-control result, or "not observed" and what is outstanding. "The guard is in the
+    XAML" is not a status.
 ```
 
 ### 4–5. Capture and develop — one workflow at a time

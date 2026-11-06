@@ -525,14 +525,57 @@ Three cross-file checks that no single file reveals:
 - **Count the transaction types.** Arms in `Process.xaml` == transaction types in the SDD. Fewer
   arms means a type falls through; more means one was invented.
 
+## Report format (required)
+
+Stage 3's output is the four blocks below. A prose summary is not a substitute: every claim this
+file warns about — *wired*, *all seven*, *the guard* — reads identically whether it is true or
+not, so the stage is reportable only once each block can be filled in.
+
+**1. The Framework-file table.** All seven rows, always, including the ones you left stock:
+
+| File | Wired | What it now does | Commit |
+|---|---|---|---|
+| `Framework/InitAllSettings.xaml` | stock / edited | … | `<sha>` |
+| … the remaining six, in the *Wire in this order* order … | | | |
+
+**2. Per-application counts.** Two counts, each of which fails silently when it is wrong:
+
+- For **every** application the SDD names: opened in `InitAllApplications` / closed in
+  `CloseAllApplications` / killed in `KillAllProcesses`. Report the three numbers side by side —
+  a mismatch leaks a session, and only the comparison shows it.
+- Arms in `Process.xaml` **vs** transaction types in the SDD. Fewer arms means a type falls
+  through; more means one was invented.
+
+**3. The level reached, with the command verbatim.** L1 `validate-project`, L2
+`uip rpa validate` + `build`, L2b `uip rpa pack`, L3 Studio's Error List. A sources run is
+**L3 at most** and is never reported as L4-local or L4. Also: how many signature-only stubs the
+stage created, and their names — the checker cannot count them (see *What does not catch a
+throwing stub*).
+
+**4. The 0-transaction guard status**, which is one of exactly two things:
+
+- **observed** — the isolation command, its `Error` line, and the negative-control result; or
+- **not observed** — and what is outstanding.
+
+"The guard is in the XAML" is neither. It is the claim this gate exists to stop being accepted.
+
 ## Done means
 
 - [ ] All seven files in the table wired, and the report names which
 - [ ] `Process.xaml` has one `Switch` arm per SDD transaction type, each invoking a `_System`
       workflow — no UI activity and no business rule inline
-- [ ] The 0-transaction guard is in place **and was observed firing** (point the source at
-      nothing). Until then the stage is *"wired, gate open"*, not done — and the report says what
-      it is blocked on
+- [ ] The 0-transaction guard is in place **and was observed firing in isolation**
+      (`uip rpa run --file-path "Tests\Test-GetTransactionData_Zero_Items.xaml"`), **with the
+      negative control run too**. Until then the stage is *"wired, gate open"*, not done. The
+      Main-level observation is stage 5/6's, and does not hold this gate open
+- [ ] **The report carries all four blocks** of *Report format (required)* — the Framework-file
+      table, the per-application and transaction-type counts, the level reached with its command,
+      and the guard status
+- [ ] Every leaf the Framework dispatches to **exists**, with the full `_System` signature. A
+      stub body is a `Log Message` **and a `Throw`**, never a `Log Message` alone
+- [ ] Every stub is counted in the stage 3 report **and** carries *body real* = `no` in
+      `Documentation/Leaf_Ledger.md`. `leaf-body-stub` does not see a throwing stub, so these are
+      the only records of it
 - [ ] No `leaf-body-stub` finding on a workflow the Framework dispatches to. A wired Framework
       over stub bodies is a skeleton, not a process
 - [ ] **The application instance is threaded**: `<App>-Open` publishes `OutUiElement`, `Main.xaml`
