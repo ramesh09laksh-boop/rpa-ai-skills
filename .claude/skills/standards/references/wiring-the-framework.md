@@ -31,6 +31,10 @@ independently of the robot's logs (`references/end-to-end-run.md`) and
 contains no activity that does the step. It is a warning mid-build and an **error** under
 `--uat-readiness` / `-UatReadiness`: a stub is honest work in progress and is not shippable.
 
+That rule has one blind spot worth knowing before you lean on it: a stub that *throws* is
+invisible to it, by the same narrowness that keeps it quiet on partial work. See
+*What does not catch a throwing stub*, below — and prefer the throwing stub anyway.
+
 So: **wired** is a statement about `Framework/`. **Done** is a statement about `Framework/`
 *and* the bodies behind it, which is what `Documentation/Leaf_Ledger.md`'s *body real* column
 records (`references/leaf-ledger.md`).
@@ -40,17 +44,172 @@ records (`references/leaf-ledger.md`).
 Do not report stage 3 as done on the strength of the files looking right. The gate is the guard
 **firing**, not the guard existing:
 
-- Point the configured source at nothing — a queue with no items, a path that matches no file —
+- Point the configured source at nothing — a queue with no items, a folder that matches no file —
   and **watch it fail**. An `Error` log and a thrown exception, not a green finish.
 - Then put the source back.
 
-**This needs a run, and a run needs the Orchestrator asset** (`InitAllSettings` resolves every
-`Assets` row at startup, so the credential has to exist before anything executes). That is a
-human checkpoint, not something to work around: the `standards` skill,
-`references/studio-checkpoints.md`, Checkpoint 4. Until it has been observed, report stage 3 as
-**"wired, gate open — 0-transaction guard not yet observed, blocked on <the asset>"** and carry
-on with the next stage. Do not write it up as done, and do not substitute "the guard is in the
-XAML" for having seen it fire.
+The observation that gates stage 3 is of **`GetTransactionData` alone**. It needs no
+`InitAllSettings`, no Orchestrator and no asset, so there is nothing here to be blocked on.
+
+#### Observing it in isolation — this is the stage 3 gate
+
+`in_Config` is a `Dictionary(Of String, Object)`, and **nothing requires it to come from
+`InitAllSettings`.** A test workflow builds it inline with only the keys `GetTransactionData`
+actually reads, and invokes that one file:
+
+```vb
+' Tests/Test-GetTransactionData_Zero_Items.xaml — first Assign, in place of InitAllSettings
+New Dictionary(Of String, Object) From {{"WorkItemsFolder", "Data\Input\empty-on-purpose"}}
+```
+
+```bash
+uip rpa run --project-dir <project> \
+            --file-path "Tests\Test-GetTransactionData_Zero_Items.xaml"
+```
+
+No `InitAllSettings` means **no `GetAppCredential`, no `Assets` row, no Orchestrator asset and no
+`uip login`.** Verified against **rpa-tool 1.204.2**, 2026-11-06, on a machine with **no Studio
+and no `UiRobot.exe` installed** — `uip rpa run` validated the two files reachable from the
+target, built, and executed them:
+
+| Source state | What happened |
+|---|---|
+| Folder exists, **0** matching files | `[Error] Source 'Data\Input\empty-on-purpose' yielded 0 transactions.` then the thrown `ApplicationException`. Test returned `out_GuardFired: True` |
+| Folder has **1** matching file | No throw; the test's own `Throw` fired — *"FAIL — GetTransactionData returned without throwing on an empty source. The 0-transaction guard is absent."* |
+
+**Run the second case too.** Without it the test cannot tell a firing guard from a test that
+passes unconditionally, and a vacuous test is worse than none — it reports the gate as met.
+
+> **A bare `Catch System.Exception` passes on any throw, including the wrong one.** The first
+> attempt at this pointed `WorkItemsFolder` at a path that did not exist,
+> `Directory.GetFiles` threw `DirectoryNotFoundException`, and the test logged `PASS` having
+> never reached the guard at all. So: point the source at a folder or queue that **exists and is
+> empty**, and assert the guard's **own message** rather than the fact of a throw:
+>
+> ```vb
+> out_GuardFired = exception.Message.Contains("yielded 0 transactions")
+> ```
+
+This is a **sources** run, so it is **L3 evidence at most** — which is all stage 3 asks for. The
+matching `Tests/` row and its `ExpectedResult`: `references/test-data.md`.
+
+> **Verified on a folder source. A queue source is not established.** The probe above read a
+> configured folder, which is the non-queue shape (`project-scaffolding` skill,
+> *Non-queue REFramework*) and needs nothing but the filesystem. A queue-backed
+> `GetTransactionData` yields through `Get Transaction Item` against
+> `in_Config("OrchestratorQueueName")`, and **reaching an empty queue is an authenticated
+> Orchestrator read** — so on a queue project this test needs either a mocked yield (which caps
+> the run at L3 anyway, `references/mocking.md`) or the tenant, which is ask-first. Which of
+> those is right has not been settled; say so rather than reporting the gate met by analogy.
+
+Until it has been observed, report stage 3 as **"wired, gate open — 0-transaction guard not yet
+observed"** with the command you ran and its output, and carry on. Do not write it up as done,
+and do not substitute "the guard is in the XAML" for having seen it fire.
+
+#### The Main-level observation belongs to stage 5/6, not here
+
+Running the **whole Framework** against an empty source proves strictly more: `Main.xaml` reaches
+`GetTransactionData` through `InitAllSettings` and the real config workbook, so it also proves
+the config key is spelled the same in both places — which the isolation test, supplying the
+dictionary itself, cannot.
+
+It is also the version that needs a real run, **and the Orchestrator asset if the project signs
+in**: `InitAllSettings` resolves every `Assets` row at startup, so any credential the project
+declares has to exist before anything executes. A project with no `Assets` row needs no asset for
+this.
+
+So do it — but at **stage 5/6**, once the leaf bodies exist and a run is happening anyway, and
+again at 7b. Where it needs an asset that is missing, that is a human checkpoint:
+`references/studio-checkpoints.md`, Checkpoint 4. **Do not hold stage 3 open waiting for it.**
+
+## Wiring before the leaf workflows exist
+
+`Process.xaml` dispatches to `<App>_System/` workflows, and stage 3 runs **before** stage 4–5
+authors them. That is not a sequencing mistake to route around: `uip rpa build` will not let you
+wire against nothing, and it checks more than you would guess.
+
+Verified against **rpa-tool 1.204.2**, 2026-11-06, with scratch projects differing only in the
+`Invoke Workflow File` and its callee:
+
+| The caller… | `uip rpa build` |
+|---|---|
+| passes the names the callee declares, at the declared types | **Success** |
+| passes a name the callee does **not** declare | **Failure**, error code 7 — *"is invoking workflow 'Sub' with argument 'in_Typo' that does not exists in workflow 'Sub'"* |
+| passes a declared name at the **wrong type** (`Int32` for a declared `String`) | **Failure**, error code 7 — *"of type 'Int32' which is incompatible with the argument type 'String' defined in workflow 'Sub'"* |
+| passes **nothing**, where the callee declares arguments | **Success** — an unpassed declared argument is not an error |
+| invokes a `.xaml` that **does not exist** | **Failure**, error code 7 — *"The following invoked workflows are missing"*, naming the caller |
+| invokes a callee whose body is only a `Log Message` and a `Throw` | **Success** |
+
+Three consequences, in the order they bite:
+
+- **The callee file must exist.** There is no wiring `Process.xaml` to a workflow you intend to
+  write on Thursday — the build fails and names the caller.
+- **The signature is checked; the body is not.** Names *and* types, against the callee's
+  `x:Members`. So the signature is the contract the toolchain enforces, and it is the only part
+  of a leaf that stage 3 needs.
+- **Build cannot tell you an argument is *missing*** — only that one is wrong. A caller that
+  passes nothing at all compiles clean. The contract rules are what catch that hole:
+  `system-workflow-no-config`, `system-workflow-no-outcome` (the `project-scaffolding` skill).
+
+### So: signature-only stubs, per the `_System` contract
+
+One file per leaf the SDD names, in the right folder under the right name
+(`references/naming-conventions.md` — and note that build now makes a late rename fail at *every*
+call site, which is the one time that error is a help). Its `x:Members` is the **full** `_System`
+contract (`references/project-layout.md`): `in_Config`, the window/session coordinates,
+`in_<App>Element` where the application is card-driven, the business inputs, and the `out_`
+outcome. Its body is two activities:
+
+```xml
+<Sequence DisplayName="Signature-only stub - fails visibly">
+  <ui:LogMessage DisplayName="Say what is missing" Level="Error"
+                 Message="STUB: Acme-Create_Card body not authored (stage 4-5)." />
+  <Throw DisplayName="Fail visibly">
+    <Throw.Exception>
+      <InArgument x:TypeArguments="s:Exception">[New NotImplementedException("STUB: Acme-Create_Card body not authored yet (stage 4-5).")]</InArgument>
+    </Throw.Exception>
+  </Throw>
+</Sequence>
+```
+
+**The `Throw` is the whole point.** A stub whose body is a `Log Message` alone is the Lanes
+failure in miniature — dispatched, marked Successful, nothing done. A stub that throws cannot be
+mistaken for a working leaf by any run, any log or any transaction count.
+
+### Stage 5 keeps the signatures
+
+Authoring a leaf **replaces its body**. The `x:Members` block stays, and so does every
+`Invoke Workflow File` wired against it — that is what the stage 3 wiring bought, and it is why
+wiring first is cheaper than wiring last. If authoring shows the signature was wrong, change it
+deliberately, in one commit, and let the build enumerate the call sites.
+
+### What does *not* catch a throwing stub — read this before relying on the checker
+
+**`validate-project`'s `leaf-body-stub` rule does not fire on this shape.** The rule is
+deliberately narrow — *one* substantive activity silences it — and `Throw` counts as substantive.
+Verified 2026-11-06: the same leaf reported `leaf-body-stub` with a `Log Message`-only body, and
+reported **nothing** once a `Throw` was added beside it.
+
+That is a known blind spot, not a reason to drop the `Throw`. The trade is deliberate:
+
+| | `Log Message` only | `Log Message` + `Throw` |
+|---|---|---|
+| `leaf-body-stub` reports it | yes | **no** |
+| A run over it | goes **green**, does nothing | **fails loudly** |
+
+The second row is the one that reaches production, so the `Throw` stays. What it costs is that
+**the checker cannot count your stubs** — so two things must, and neither is optional:
+
+- **`Documentation/Leaf_Ledger.md`** — *body real* reads `no` for every stub
+  (`references/leaf-ledger.md`).
+- **The stage 3 report** — it says how many signature-only stubs it created and names them. See
+  *Report format* below.
+
+None of this makes a stub shippable. At stage 8, `--uat-readiness` / `-UatReadiness` promotes
+`leaf-body-stub` to an **error** — and for a throwing stub the ledger row is what fails the gate
+instead. Do not suppress the rule, and do not park stubs under `Mock*/` or rename them `Mock-*`
+to borrow the declared-mock carve-out: that turns honest work in progress into a silent shipping
+defect (`tests/fixtures/leaf-body-stub/notes.md`).
 
 ## Wire in this order
 
