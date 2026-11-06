@@ -102,6 +102,39 @@ under `Tests/`, and the workbook row points at it with its expected result.
 - Technical-failure cases (application unreachable, file locked, Orchestrator down) →
   `SystemException`.
 
+### One case comes from no workbook row: the 0-transaction guard
+
+Every other row in `Tests/Tests.xlsx` traces to something the analyst wrote down. This one does
+not, because no analyst thinks to test *"what happens when there is no work"* — which is exactly
+why the estate has shipped a Performer that ran green on zero transactions.
+
+Add it to `Tests/Tests.xlsx` on every project, queue or not:
+
+| `WorkflowFile` | `ExpectedResult` |
+|---|---|
+| `Tests\Test-GetTransactionData_Zero_Items.xaml` | `Success` |
+
+`Success` reads oddly for a test about a failure, and it is right: the row is about the **test
+workflow's** outcome, not the guard's. The workflow invokes
+`Framework/GetTransactionData.xaml` inside a `Try`, catches the guard's exception, asserts it,
+and returns. A `SystemException` row here would mean the *test* failed.
+
+Three things make it a real test rather than a shape:
+
+- **It builds `in_Config` itself** — `New Dictionary(Of String, Object) From {{…}}`, holding only
+  the keys `GetTransactionData` reads. No `InitAllSettings`, so **no Orchestrator asset and no
+  `uip login`**, which is what lets this case run at stage 3 rather than waiting for stage 7b.
+- **It asserts the guard's own message**, not the fact of a throw:
+  `exception.Message.Contains("yielded 0 transactions")`. A bare `Catch System.Exception` reports
+  `PASS` on a mistyped path, a locked file or a missing folder — every one of which is a
+  different defect.
+- **It is run in both directions.** Empty source → the guard throws. One item present → no
+  throw, and the test must then **fail**. Without the second run the case cannot distinguish a
+  firing guard from a test that passes unconditionally.
+
+Procedure, the verified command and its output: `wiring-the-framework.md` →
+*Observing it in isolation*.
+
 ### Carry the status over, and never upgrade it without a run
 
 A case marked `To verify` or `BLOCKED` in the source workbook stays that way. **Do not mark a
@@ -131,5 +164,8 @@ create one.
 - [ ] Which column each transaction type reads taken from the SDD, not inferred from the sheet
 - [ ] Fixed dates replaced with relative ones
 - [ ] `NegativeData` rows became Business-exception tests
+- [ ] `Tests\Test-GetTransactionData_Zero_Items.xaml` exists and is in `Tests.xlsx`, asserts the
+      guard's **own message**, and has been run in **both** directions — no workbook row asks
+      for it
 - [ ] `To verify` / `BLOCKED` statuses carried over, nothing marked passed without a run
 - [ ] No credential left anywhere outside an Orchestrator asset

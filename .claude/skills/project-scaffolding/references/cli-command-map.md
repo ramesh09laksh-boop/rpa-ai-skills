@@ -231,13 +231,20 @@ The workflow cannot be found. Make sure that it is part of the project.
 1. **An unsurfaced compile error.** The same project had `BC31424: System.Data.DataRow … forwarded
    to System.Data.Common` visible only in Studio, while `validate-project` said PASS and `build`
    said Success. A project that does not compile has no workflow to find. Clear **L3** first.
-2. **`run` likely needs a Studio instance with the project open — UNVERIFIED.** `run` is in the
-   Studio-IPC family, `--project-dir` is documented as matching *running Studio instances*, and
-   `instances list` can report a live Studio with `"ProjectDirectory": "(none)"`. That is
-   suggestive, not established: it has **not** been tested by opening the project and re-running.
-   Treat it as a hypothesis until someone does.
-3. **The tool version.** That session predates the rpa-tool build on this machine, so re-test on
-   **1.204.2** before trusting the old conclusion.
+2. ~~**`run` likely needs a Studio instance with the project open — UNVERIFIED.**~~
+   **Eliminated, 2026-11-06, rpa-tool 1.204.2.** Tested on a machine with **no Studio and no
+   `UiRobot.exe` installed** — only the Helm backend the CLI ships with
+   (`%LOCALAPPDATA%\UiPath\Helm\<ver>-win32-x64`):
+   `uip rpa run --project-dir <dir> --file-path "Tests\<file>.xaml"`, against a project **nothing
+   had open**, printed *"Validating … Building for execution… Starting execution…"*, executed the
+   workflow and returned its output arguments as JSON. `instances list` afterwards showed an
+   instance bound to that directory — `run` **provisions its own**, which is why the help text's
+   *"matching running Studio instances"* reads like a prerequisite and is not one.
+   **A pre-opened Studio is not required, and "needs Studio" does not explain a failed `run`.**
+   This does not reproduce or explain the original *"workflow cannot be found"*; it removes one
+   candidate and leaves lead 1 as the leading one.
+3. **The tool version.** That session predates the rpa-tool build on this machine. Lead 2 has now
+   been re-tested on **1.204.2**; lead 1 has not.
 
 Whoever settles this writes the answer here and deletes this section.
 

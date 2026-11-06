@@ -10,11 +10,20 @@ those failures is silent. The ledger turns each of them into a column someone ha
 Copy the template below into `Documentation/Leaf_Ledger.md` when the first leaf workflow is
 authored, and fill a row as each workflow finishes. **Do not pre-fill rows with `yes`.**
 
+**Open it at stage 3, not stage 4–5.** Stage 3 creates a signature-only stub per leaf so the
+Framework has something to wire against (`references/wiring-the-framework.md` → *Wiring before
+the leaf workflows exist*). Every stub gets its row immediately, with *contract met* = `yes` —
+the full `_System` signature is exactly what a stub is — and **`body real` = `no`**. That is not
+bookkeeping: a stub whose body is a `Log Message` **and a `Throw`** is **invisible to
+`validate-project`'s `leaf-body-stub` rule**, verified 2026-11-06, because one substantive
+activity silences the rule and `Throw` counts. For those workflows this column is the **only**
+record that the body is not written.
+
 ## The columns, and what each one is actually asking
 
 | Column | `yes` means | The failure it catches |
 |---|---|---|
-| **body real** | The body performs the step. No workflow whose body is only a `LogMessage` or an annotation. | A Framework wired to stubs runs green and does nothing. `validate-project`'s `leaf-body-stub` rule finds these. |
+| **body real** | The body performs the step. No workflow whose body is only a `LogMessage` or an annotation, and none whose body is a `LogMessage` + `Throw` signature-only stub. | A Framework wired to stubs runs green and does nothing. `validate-project`'s `leaf-body-stub` rule finds the `LogMessage`-only shape — it does **not** find a stub that throws, so for those this column is the only record. |
 | **contract met** | `in_Config` in, a business-key argument in, an `out_` outcome back, `SecureString` for any secret. | A no-op is indistinguishable from success to the caller. The four leaf-contract rules in `validate-project` cover this. |
 | **captured as `<role>`** | The role the selectors were captured under, written out — not a tick. It must be the least-privilege role the robot runs as. | A selector captured as an administrator carries admin-only ancestors and cannot resolve from the robot's session. It fails at runtime, not at capture. |
 | **matched only the target** | Each target passed the capture flow's registration gate: it matched the intended element **and nothing else** (or a deliberate, documented set). | A selector that passes because the matching was loosened until it did. |

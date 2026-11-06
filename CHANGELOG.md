@@ -7,6 +7,137 @@ Tag each release (`git tag -a v<x.y> -m ...`) so a project can pin or roll back.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
+## [Unreleased] — v0.2.4
+
+Stage 3 sequencing. Four claims the repo made about stage 3 were either untested or wrong; each
+was probed on this machine first and the documents follow the result rather than the other way
+round.
+
+| Probed | Verdict |
+|---|---|
+| Does `uip rpa build` validate callee argument names against `x:Members`? | **Yes** — names *and* types, and the callee file must exist. Six scratch projects, rpa-tool 1.204.2 |
+| Can the 0-transaction guard be observed without an Orchestrator asset? | **Yes** — `GetTransactionData` alone, `in_Config` built inline, no `InitAllSettings`. Observed firing, with a negative control |
+| Does `leaf-body-stub` catch a signature-only stub that throws? | **No.** `Throw` counts as substantive work and silences the rule |
+| Does `uip rpa run` need a Studio instance with the project open? | **No** — ran on a machine with no Studio and no `UiRobot.exe`. Settles a `Known open` from v0.2.1 |
+
+### Added
+
+- **"Wiring before the leaf workflows exist"** in
+  `standards/references/wiring-the-framework.md`. Stage 3 wires `Process.xaml` to leaves that
+  stage 4–5 has not written, and the question of whether that is even possible was never
+  answered. It is, but only one way: **`uip rpa build` enforces the signature.** Verified against
+  rpa-tool 1.204.2, 2026-11-06, with scratch projects differing only in the
+  `Invoke Workflow File` and its callee —
+
+  | The caller… | `uip rpa build` |
+  |---|---|
+  | passes the declared names at the declared types | Success |
+  | passes a name the callee does not declare | **Failure**, code 7 — *"argument 'in_Typo' that does not exists in workflow 'Sub'"* |
+  | passes a declared name at the wrong type | **Failure**, code 7 — *"type 'Int32' … incompatible with the argument type 'String'"* |
+  | passes nothing, where the callee declares arguments | Success — an unpassed declared argument is not an error |
+  | invokes a `.xaml` that does not exist | **Failure**, code 7 — *"The following invoked workflows are missing"* |
+  | invokes a callee whose body is a `Log Message` + `Throw` | Success |
+
+  So: a **signature-only stub** per leaf — the full `_System` contract in `x:Members`, a body of
+  a `Log Message` (Error) **and a `Throw`** — and stage 5 replaces the body, keeping the
+  signature and every call site wired against it. The `Throw` is load-bearing: a
+  `Log Message`-only stub is the Lanes failure in miniature, dispatched and marked Successful
+  having done nothing.
+
+- **"Observing it in isolation"**, the new stage 3 gate, in the same file. The old gate said the
+  guard observation *"needs a run, and a run needs the Orchestrator asset"* and parked stage 3
+  behind a human checkpoint. That was wrong: `in_Config` is a `Dictionary(Of String, Object)` and
+  nothing requires it to come from `InitAllSettings`. A `Tests/` workflow builds it inline, points
+  it at an empty source, and invokes `Framework/GetTransactionData.xaml` alone —
+  **no `GetAppCredential`, no `Assets` row, no asset, no `uip login`.**
+
+  Observed 2026-11-06 on rpa-tool 1.204.2: empty source → `[Error] Source '…' yielded 0
+  transactions.` then the thrown `ApplicationException`, `out_GuardFired: True`. **Negative
+  control** (one item present) → no throw, and the test's own `Throw` fired. Both directions are
+  required, because a test that only ever sees the empty case cannot tell a firing guard from one
+  that passes unconditionally.
+
+  **The first attempt was a false pass**, and it is written up rather than quietly fixed: the
+  source path did not exist, `Directory.GetFiles` threw `DirectoryNotFoundException`, and a bare
+  `Catch System.Exception` logged `PASS` without ever reaching the guard. Point the source at a
+  folder that **exists and is empty**, and assert the guard's **own message**.
+
+- **A `Tests/` case that no workbook row asks for**, in `standards/references/test-data.md`:
+  `Tests\Test-GetTransactionData_Zero_Items.xaml`, `ExpectedResult = Success` (the row is about
+  the test workflow's outcome, not the guard's). No analyst writes down *"what happens when there
+  is no work"*, which is why the estate has shipped a Performer that ran green on zero
+  transactions.
+
+- **"Report format (required)"** — four blocks, in `wiring-the-framework.md`, the README stage 3
+  prompt and `uc-delivery`, and **part of the gate** rather than advice: the seven-row
+  Framework-file table (including the files left stock), per-application
+  opened/closed/killed counts side by side plus `Process.xaml` arms vs SDD transaction types, the
+  level reached with its command and the stub count by name, and the guard status. *"The guard is
+  in the XAML"* is explicitly not a status — it is the claim the gate exists to stop accepting.
+
+### Changed
+
+- **`uip rpa run` of a `Tests/` workflow is on the always-fine list** — `AGENTS.md`,
+  `uc-delivery` and the README working-rules block. It runs project sources locally and
+  authenticates nothing. The stage 3 guard observation is one of these, so it had to be stated;
+  running a workflow that drives a **real application** remains the live-session checkpoint.
+- **The Main-level guard observation moved from stage 3 to stage 5/6** (and again at 7b). It
+  proves strictly more — it goes through `InitAllSettings` and the real workbook, so it also
+  proves the config key is spelled the same in both places — and it is the one that needs a real
+  run. It no longer holds stage 3 open.
+- **"needs the Orchestrator asset" → "needs the Orchestrator asset if the project signs in."**
+  `InitAllSettings` resolves every `Assets` row at startup, so a declared credential must exist
+  first — but a project with no `Assets` row needs no asset, and the old wording made the
+  checkpoint sound unconditional.
+- **`Documentation/Leaf_Ledger.md` opens at stage 3, not stage 4–5** — one row per stub, *contract
+  met* `yes` (the full signature is what a stub is), **`body real` `no`**. For a throwing stub
+  that column is the only record that the body is unwritten.
+
+### Fixed
+
+- **`run` likely needs a Studio instance with the project open — UNVERIFIED** is settled, in
+  `project-scaffolding/references/cli-command-map.md` (*Unsolved*, lead 2),
+  `standards/references/troubleshooting.md` and `uc-delivery`. **It does not.** 2026-11-06,
+  rpa-tool 1.204.2, on a machine with **no Studio and no `UiRobot.exe`** — only the Helm backend
+  the CLI ships with: `uip rpa run --project-dir <dir> --file-path "Tests\<file>.xaml"` against a
+  project nothing had open validated, built and executed it, returning the workflow's output
+  arguments as JSON. `instances list` afterwards showed an instance bound to that directory:
+  `run` **provisions its own**, which is why the help text's *"matching running Studio
+  instances"* reads like a prerequisite and is not one. This does **not** explain the original
+  *"The workflow cannot be found"* — it removes one candidate and leaves lead 1 (an unsurfaced
+  compile error) as the leading one. The troubleshooting table no longer sends a failed `run` to
+  `studio start`.
+
+### Known open
+
+- **`leaf-body-stub` does not report a signature-only stub that throws.** Verified both
+  directions, 2026-11-06: the same leaf fired the rule with a `Log Message`-only body and fired
+  **nothing** once a `Throw` was added beside it. The rule is deliberately narrow — one
+  substantive activity silences it — and `Throw` is substantive.
+
+  The `Throw` stays regardless, because the trade is not close: a `Log Message`-only stub is
+  *reported* and runs **green**; a throwing stub is *unreported* and **fails loudly**, and only
+  the first of those reaches production. But it means **the checker cannot count the stubs**, so
+  the ledger's *body real* column and the stage 3 report's named stub count are the only records
+  — both now required, in `wiring-the-framework.md` and `leaf-ledger.md`.
+
+  Not fixed here because the fix is a judgement call this repo should make deliberately: adding
+  `Throw` to the inert list would make the rule fire on every real leaf that validates its input
+  and throws, which is a large false-positive surface. A narrower rule — `Throw` of a
+  `NotImplementedException`, or a `STUB:` marker convention the checker greps for — is the
+  likelier answer and is not written.
+
+- **Every verification here is from one machine**, which has the Helm backend and **no Studio and
+  no robot**. The `build` findings are compiler behaviour and should travel; the `run` finding is
+  the one most likely to differ where a full Studio *is* installed, and it was only ever tested
+  in the direction that matters (no Studio → it still works).
+
+- **The guard isolation was probed on a folder source**, not a queue. A queue-backed
+  `GetTransactionData` yields through `Get Transaction Item` against
+  `in_Config("OrchestratorQueueName")`, and reaching an empty queue is an authenticated
+  Orchestrator read — so for a queue project the isolation test needs either a mocked yield or
+  the tenant, and **which, is not established**. Non-queue projects are covered as written.
+
 ## [Unreleased] — v0.2.3
 
 **Merged to `main` on 2026-11-05 via PR #5, not tagged.** Branched from `main` at `339b2b9`;
