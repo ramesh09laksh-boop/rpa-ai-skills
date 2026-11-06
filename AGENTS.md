@@ -168,6 +168,10 @@ their name.
   `-FolderPath`
 - `report-execution-log` — reads the local execution log and nothing else
 - `uip rpa validate` / `build` / `pack` / `analyze` — local, Studio-IPC or compiler, no tenant
+- `uip rpa run` / `debug` of a **`Tests/`** workflow — runs project **sources** locally,
+  authenticates nothing, and is **L3 evidence at most**. The stage 3 0-transaction guard
+  observation is one of these. Running a workflow that drives a **real application** is the
+  live-session checkpoint and not covered by this line
 - `UiRobot version`, `UiRobot pack`
 
 **Ask first, naming the exact command and why:**
