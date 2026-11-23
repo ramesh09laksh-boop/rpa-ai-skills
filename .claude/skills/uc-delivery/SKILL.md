@@ -11,6 +11,11 @@ owns it, and what counts as finished. Everything else is a link.
 If you know exactly which stage you are on, go straight to that skill. This file is for
 "build this from the PDD" and for picking up a project someone else left half-done.
 
+**`/start` is the user entry point onto this skill** — `/start` to resume and see the stage
+list, `/start <number>` to jump to a stage, `/start next` to continue. It chooses *where to
+begin* and hands the work straight here; every gate, decision and safety rail below still
+applies, and wins over anything the command says.
+
 ## Before anything: preflight and state
 
 ```bash
@@ -116,7 +121,7 @@ end-to-end run and needs no `uip login`; L4 is **ask-first**.
 
 | # | Stage | Load | Gate |
 |---|---|---|---|
-| 1 | PDD → SDD | `standards`, `security` | Every transaction type and its work-item columns defined; Open Questions listed |
+| 1 | PDD → SDD | `standards` (`references/sdd-outline.md`), `security` | Every transaction type and its work-item columns defined; Open Questions listed |
 | 2 | SDD → Project | `project-scaffolding` | **L3**, and the project folder renamed off the template's name |
 | 3 | Wire the Framework | `standards` (`references/wiring-the-framework.md`), `security` | **L3**; the 0-transaction guard observed firing **on `GetTransactionData` alone, both directions**; and a report carrying all four required blocks |
 | 4–5 | Capture **and** develop, one workflow at a time | `web` + `standards` + the app skill(s); `pdd-sdd-scaffolding` only in OFFLINE mode | Every row of `Documentation/Leaf_Ledger.md` reads `yes`, **and** each workflow was run once against the live application with the command recorded. `.objects/` committed |
