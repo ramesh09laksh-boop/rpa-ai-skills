@@ -1,0 +1,56 @@
+---
+description: Stage 7b — the first end-to-end run. L4-local by default (the packed package on the local robot); the Orchestrator job is a separate, ask-first step.
+argument-hint: "[project folder]"
+---
+
+The project folder, if one was given: `$ARGUMENTS`. If it is empty, use the project in the
+current directory and say which one you picked.
+
+**Load the `uc-delivery` skill and run its stage 7b.** It owns the gate — **L4-local (folder:
+…)** by default, then **L4** and only after asking — and the rule that a `Successful` run which
+processed 0 transactions is a **failure** at either level. Load `standards`
+(`references/end-to-end-run.md`) and `security`.
+
+**This estate is Automation Suite, not Automation Cloud.** Nothing here assumes Cloud.
+
+**Ask the user once, together, in one message** — not one question per step — and record the
+answers in the project's own `AGENTS.md` Environment block:
+
+- the UiRobot install path;
+- the Orchestrator folder;
+- the robot user;
+- whether the robot is connected to the Orchestrator.
+
+**Do not probe for the connection state.** UiRobot has no status verb, and `connect` /
+`disconnect` rebind **the machine's** robot service. Ask. And the Environment block is a
+committed file: **non-secret facts only**, never an asset value.
+
+Then:
+
+1. Preflight, skipping capture. **Do not pass the folder switch unless the user has agreed** —
+   those are `uip or` calls.
+2. Pack from a clean checkout. No `--ignored-rules`, no `--skip-analyze`.
+3. Run it locally with the robot, pointed at the Orchestrator folder — **the folder is what
+   makes the credential asset resolve**. Read `UiRobot help execute` first and use what it
+   prints; do not guess flags. If the asset still does not resolve, the documented fallback is
+   `installprocess` then execute by package id — record which one worked.
+4. **A missing asset, or a robot user without access to that folder, is a checkpoint for the
+   user**, not a problem to work around: report the exact error text, name the asset and the
+   folder, and carry on with the next item. Never print an asset value. Do not retry against
+   other folders, and do not substitute a literal.
+5. Complete the SDD acceptance table — SDD step → evidence → pass/fail — with the application
+   state read back **independently of the robot's own logs**, per-transaction results compared
+   against the test data, negative-data rows producing the expected Business exceptions, no
+   `[MOCK]` or `TODO_SELECTOR` anywhere, and the transaction count equal to the input count.
+
+Report it as `L4-local (folder: <folder>)` with the command verbatim, the package and version,
+transactions processed versus input, and every `Warn` and `Error`. **Say plainly what it does
+not prove:** it ran as the user's interactive account, so not the unattended service-account
+session, not the trigger, and not permissions beyond that one folder.
+
+**Then stop and ask before the Orchestrator job.** Publishing and starting a job change the
+tenant. Name the commands and wait. Once the user agrees, reuse the **same** package from step
+2 — do not re-pack — and report L4 with the job key, state, duration, folder, published version
+and job log.
+
+Never describe L4-local as L4, and never describe a sources run as either.

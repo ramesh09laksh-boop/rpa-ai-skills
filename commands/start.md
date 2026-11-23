@@ -1,0 +1,98 @@
+---
+description: Start or resume a UiPath automation build. No argument resumes where the project stopped and shows the stage list; a number jumps to that stage; `next` resumes.
+argument-hint: "[stage number | next]"
+---
+
+What the user typed after the command, which may be empty: `$ARGUMENTS`
+
+**Load the `uc-delivery` skill now and do the work through it.** This command only chooses
+**where to begin**. `uc-delivery` owns the stages, the gate on each, the decisions to ask, the
+human checkpoints, the safety rails and which skill handles each piece — read it rather than
+acting on anything you think you remember about them. Do not invent a stage or a gate that is
+not in its stage table, and do not renumber its stages.
+
+## Choosing the entry point
+
+**Nothing after the command, or the word `next`** — resume.
+
+1. Read `Documentation/Progress.md`.
+
+2. **It exists.** Print the stage list below, marking each line:
+
+   | | |
+   |---|---|
+   | `✅` | `Progress.md` records this stage's gate met, **with the evidence** the gate asks for |
+   | `▶` | the first stage without that — this is where work resumes |
+   | *(blank)* | everything after it |
+
+   A stage that `Progress.md` merely *claims* is finished, with no command or evidence recorded
+   against its gate, is **not** `✅`. Mark it `▶` and say in one line what evidence is missing.
+   Then ask, as a single question:
+
+   > Continue from stage N, or pick a number?
+
+3. **It does not exist.** Then this is a new project. Ask these two, **one message each**:
+
+   > What have you got to start from — a document describing the process, a document
+   > describing the solution, a project folder somebody already started, or a robot that is
+   > failing?
+
+   > Which UC number is this?
+
+   Then begin at:
+
+   | They have | Start at |
+   |---|---|
+   | a document describing the process (a PDD) | stage 1 |
+   | a document describing the solution (an SDD) | stage 2 |
+   | a project folder already started | read it, then the first stage whose gate is unmet |
+   | a robot that is failing | stage 10 |
+
+   Say which stage you chose and why, in one line, before you start it.
+
+**A stage number** — run that stage. `4`, `5` and `4-5` all mean the single 4–5 loop; `7b` is
+its own stage. Anything that is not a stage in the list: say so and show the list rather than
+guessing.
+
+First, check the earlier stages' gates against `Progress.md` and report them in **one line**. A
+gate that looks unmet is a **warning, not a block** — the user may have done the work elsewhere,
+or may be deliberately redoing a stage:
+
+> Stages 1–2 look done. Stage 3's 0-transaction guard is not recorded as observed anywhere in
+> `Progress.md`. Running stage 4–5 anyway — tell me if you want stage 3 closed out first.
+
+If `Progress.md` does not exist at all, say that in the one line and carry on with the stage
+the user asked for.
+
+## The stage list
+
+Print it with these numbers exactly. They are `uc-delivery`'s own and are never renumbered.
+
+```
+ 1    Turn the process document into a solution design
+ 2    Create the project from the right template
+ 3    Wire the framework to the solution design's transactions
+ 4-5  Capture each screen and write each workflow, one workflow at a time
+ 6    Turn the test data into config and test cases
+ 7    Review
+ 7b   Run it end to end for the first time
+ 8    Check it is ready for user testing
+ 9    Check it is ready to deploy
+ 10   Change a project that already works
+```
+
+## What this command does not get to relax
+
+- **Preflight first**, as `uc-delivery` defines it, before the first change to any file — and
+  every `SKIP` listed back as something a person has to confirm. A preflight with SKIPs is not
+  "environment ready".
+- **Never mark a stage done that has not passed its gate.** The gate in `uc-delivery` wins over
+  anything written here, anything in `Progress.md`, and anything the user says they already did.
+- **Update `Documentation/Progress.md` at the end of each stage** — done / blocked / next, with
+  the command that proved "done", exactly as `uc-delivery` requires.
+- **Ask before anything that authenticates to, or changes, Orchestrator**, and never touch PRD
+  without named approval. `uc-delivery` carries the list and it applies to every stage this
+  command starts, including a stage the user jumped straight to.
+- **Ask the decisions one at a time, in plain language.** The person running this is not
+  expected to know which skill, stage, template or framework file is involved — keep those words
+  out of the questions.

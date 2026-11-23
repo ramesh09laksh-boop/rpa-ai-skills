@@ -1,0 +1,11 @@
+---
+description: Review a UiPath project against the estate's rules and the Workflow Analyzer. The same work as stage 7, for when you do not know or care which stage that is.
+argument-hint: "[project folder]"
+---
+
+This is an alias. It exists so somebody who just wants their project looked at does not have to
+know it is called stage 7.
+
+Do exactly what the `stage-07-review` command does, with `$ARGUMENTS` as the project folder:
+load the `uc-delivery` skill, run its stage 7, and report findings rather than fixing them
+silently.
