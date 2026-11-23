@@ -5,8 +5,17 @@ them). UC projects do **not** carry their own copy of these skills — they pull
 need from here.
 
 - Skills live in [`.claude/skills/`](.claude/skills/).
+- Slash commands live in [`commands/`](commands/) — one source, generated into all three agents.
 - Project templates live in [`templates/`](templates/).
 - [`AGENTS.md`](AGENTS.md) is the entry point for an agent working *in this repo*.
+
+## Quick start for users
+
+1. `npx skills add ramesh09laksh-boop/rpa-ai-skills --agent claude-code` — the guidance.
+2. `pwsh -File .claude/skills/project-scaffolding/scripts/fetch-commands.ps1 -Agent claude-code`
+   — the commands. `npx skills add` installs skills only, so this is a separate step.
+3. Type **`/start`**. It shows the numbered stage list, asks one or two plain questions, and
+   begins. `/start 3` jumps to a stage; `/start next` resumes.
 
 ## Prerequisites
 
@@ -329,32 +338,70 @@ Working from a fork or an internal mirror? Override per invocation with `-r` / `
 once per developer with `$RPA_SKILLS_REPO`. Precedence is flag > env var > default, and each
 run prints which one it used.
 
+### The slash commands do not travel with `npx skills add` either
+
+**Verified, not assumed.** The `skills` CLI is a skills installer: `--skill` is its only content
+selector, every target folder it documents is a `skills/` folder, and its own `docs/commands.md`
+is a reference for the CLI's *verbs*, not for slash commands. So a project with every skill in
+this estate installed still has no `/start`.
+
+Same answer as the templates, and from the same skill:
+
+```bash
+scripts/fetch-commands.sh -a claude-code -a github-copilot -a opencode
+```
+
+```powershell
+pwsh -NoProfile -File scripts/fetch-commands.ps1 -Agent claude-code
+```
+
+It sparse-checks-out the one command folder each agent reads and copies it in —
+`.claude/commands/` for Claude Code, `.github/prompts/` for Copilot, `.opencode/commands/` for
+OpenCode. Same `-r` / `-RepoUrl` and `$RPA_SKILLS_REPO` overrides as the template fetch, and the
+same `-b` / `-Ref` for a pinned tag: **pin the commands to the ref you pinned the skills to**, or
+the two halves drift.
+
+**`npx skills update` does not update the commands.** It updates skills and knows nothing about
+commands, so re-run the fetch after it. The fetched files are generated and the script overwrites
+them, so a hand-edit in the project is lost — a change belongs here, where every project gets it.
+
+**If `/start` does not appear in OpenCode's `/` menu, re-run with `-l` / `-OpenCodeLegacyDir`.**
+The current OpenCode docs give `commands/` (plural) and say the singular `command/` is still
+discovered but is not what new files should use, so plural is the default. That is a
+documentation claim, not a verified one: **OpenCode discovery was not confirmed on this machine**
+— `opencode api command.list` on v2.1.3 returned zero even for a config-defined control command,
+so the probe measures nothing. The flag exists so a mismatch costs one re-run instead of an
+investigation. It is a flag rather than "install into both" because a version reading both would
+list every command twice.
+
 ### Put this in your project kickoff checklist
 
 Pulling the right skills should not be something each developer remembers unprompted. Add
-the `npx skills add` line to whatever scaffolding/kickoff checklist new UC projects already
-follow, next to "create the repo" and "wire up Orchestrator".
+the `npx skills add` line **and the `fetch-commands` line** to whatever scaffolding/kickoff
+checklist new UC projects already follow, next to "create the repo" and "wire up Orchestrator".
+`project-scaffolding` also carries it as a preflight step, so an agent doing the scaffolding
+does not need the checklist to remember for it.
 
 ## Not a UiPath specialist? Start here
 
-One prompt. `uc-delivery` runs preflight, works the stages in order, asks you the decisions one
-at a time in plain language, and tells you exactly what it needs at each point that needs a
-person:
+**Type `/start`.** Nothing to paste, nothing to remember, no need to know which skill or stage
+does what.
 
-```
-Load `uc-delivery`. Build the UiPath project for <PDD file>. Run preflight, ask me the
-decisions one at a time in plain language, and tell me exactly what you need from me at each
-Studio checkpoint.
-```
+| | |
+|---|---|
+| `/start` | Shows the numbered stage list with what is done and what is next, then asks whether to continue or pick a number. On a brand-new project it asks what you have — a process document, a solution design, a project somebody started, or a failing robot — and which UC number, then begins at the right stage |
+| `/start 3` | Jumps to stage 3, for when the earlier stages are done or one needs redoing. It warns if an earlier gate looks unmet; it does not block you |
+| `/start next` | Carries on from wherever the project stopped |
 
-To pick a half-finished project back up:
-
-```
-Load `uc-delivery`. Read Documentation/Progress.md and continue from "next".
-```
+Behind it, `uc-delivery` runs preflight, works the stages in order with a gate on each, asks the
+decisions one at a time in plain language, and tells you exactly what it needs at each point
+that needs a person. The command only decides where to begin.
 
 It will not touch PRD, will not use real customer data, and will never ask you to paste a
 credential into the chat.
+
+If `/start` is not in your agent's `/` menu, the commands have not been fetched into this
+project yet — see [Quick start for users](#quick-start-for-users), step 2.
 
 ## Official UiPath skills — how they coexist
 
@@ -405,7 +452,8 @@ a release. Treat it like one.
 2. **Open a PR and let CI pass** — [`.github/workflows/checks.yml`](.github/workflows/checks.yml)
    runs the skill lint, `validate-project -TemplateMode` on all three templates, **the rule
    fixtures** ([`tests/`](tests/) — one bad/good pair per rule, both directions asserted),
-   `bash -n` on every shipped script, and a check that the template workbooks still regenerate.
+   `bash -n` on every shipped script, and a check that the template workbooks **and the slash
+   commands** still regenerate from their sources.
 3. **Work [`evals/trigger-prompts.md`](evals/trigger-prompts.md)** on the agents the estate uses.
    A skill that does not load is a skill that does not exist, and CI cannot test that.
 4. **Update [`CHANGELOG.md`](CHANGELOG.md)**, including a *Known open* entry for anything carried
@@ -532,10 +580,10 @@ editing the file by hand. Then commit.
 
 ## Development lifecycle
 
-**Ten stages** (4 and 5 are one loop; 7b sits between 7 and 8), each a short prompt you can paste
-into Claude Code (or any agent with these skills installed). Every prompt routes to skills that
-already exist in this repo — none of them duplicate skill content, they just point the agent at
-the right ones for that stage.
+**Ten stages** (4 and 5 are one loop; 7b sits between 7 and 8), each one a slash command. There
+is nothing to paste and nothing to remember: `/start` picks the stage, or name it yourself with
+`/start 3` or `/stage-03-wire-framework`. Every command routes to the skills that already exist
+in this repo rather than restating them.
 
 ```
 PDD → SDD → Project → Wire → Capture+Develop → Test → Review → E2E run → UAT → Deploy
@@ -558,353 +606,59 @@ written":
   Orchestrator folder, no `uip login`), then **L4** — a job on a robot — which is **ask-first**
   because it changes the tenant. Nothing before 7b proves the automation works.
 
-### Working rules — paste this at the top of any stage prompt
+### The stages, as commands
 
-The old claim that the no-inventing rule was "repeated in each prompt below" was only true of
-stages 1 and 3. Rather than repeat it unreliably, it lives here as one block to paste:
+`/start N` and the matching `/stage-…` command do the same thing. The descriptions below are the
+plain-language ones a non-specialist sees in the `/` menu.
 
-```
-Working rules: never invent a selector, activity, argument, API, config value, credential or
-business rule — if the source is silent it is an Open Question / TODO. Report the highest
-check level reached, with the command used: L1 validate-project, L2 uip rpa validate+build,
-L2b uip rpa pack, L3 Studio Error List clean, L4-local the packed package run by the UiRobot on
-this machine in an Orchestrator folder, L4 a real job on TST in the Orchestrator folder on a
-robot with the SDD acceptance table. A mocked run is L3 at most. "Needs Studio" only with the
-exact command and its error. Commit locally after each item; keep Documentation/Progress.md
-updated. Do not stop between items — log a blocker and continue with the next.
+| Stage | Command | What it does |
+|---|---|---|
+| — | `/start` | Picks the entry point — resume, or a stage number — and hands the work to `uc-delivery` |
+| 1 | `/stage-01-pdd-to-sdd` | Turn the process document into a solution design |
+| 2 | `/stage-02-sdd-to-project` | Create the project from the right template |
+| 3 | `/stage-03-wire-framework` | Wire the framework to the solution design's transactions |
+| 4–5 | `/stage-04-05-capture-develop` | Capture each screen and write each workflow, one at a time |
+| 6 | `/stage-06-test-data-to-tests` | Turn the test data into config and test cases |
+| 7 | `/stage-07-review` | Review — also reachable as `/review-project` |
+| 7b | `/stage-07b-end-to-end-run` | Run it end to end for the first time |
+| 8 | `/stage-08-uat-readiness` | Check it is ready for user testing |
+| 9 | `/stage-09-deployment-readiness` | Check it is ready to deploy |
+| 10 | `/stage-10-change-enhancement` | Change a project that already works |
 
-ASK ME FIRST before anything that authenticates to, or changes, Orchestrator — naming the exact
-command and why, then wait. That includes `uip login`, ANY `uip or ...` command (even a read
-like `or folders list`), `uip rpa publish`, `uip or packages upload`, `uip or jobs start`,
-creating or changing a process/asset/queue/trigger/folder, `UiRobot connect` or `disconnect`,
-`uip rpa restore` where the feed is Orchestrator-hosted, and installing anything
-(`uip skills install`, `npx skills add`). Reading files and running `--help` are always fine,
-as are `uip --version`, `uip tools list`, `uip login status`, validate-project,
-`uip rpa validate`/`build`/`pack`/`analyze`, and `uip rpa run` of a Tests/ workflow (local
-sources, authenticates nothing). Do not run it and tell me afterwards.
+Each one takes an optional argument — a file, a UC number, a project folder — and asks for it if
+you leave it off.
 
-Load the official `uipath-rpa` skill for CLI mechanics. If preflight says it is missing, ask me
-once, then install it and record the result.
-```
+**These replace the ten prompt blocks that used to be printed here.** They were a third copy of
+content that already lives in [`uc-delivery/SKILL.md`](.claude/skills/uc-delivery/SKILL.md),
+which is the copy the agent actually reads. A command is a **thin front door**: it routes to
+`uc-delivery`, names the skill that owns the work, and carries only the operating orders that are
+not a skill's job — *"carry the decision forward, do not re-ask it"*, *"continue to the next
+workflow without asking"*, *"ask these four things in one message"*. Every gate, every safety
+rail and the ask-first list stay in `uc-delivery`, and **`uc-delivery` wins** wherever the two
+could be read as disagreeing.
 
-### 1. PDD → SDD
+The old *"Working rules — paste this at the top of any stage prompt"* block is in `uc-delivery`
+verbatim, under *Working rules*. Nothing needs pasting at the top of anything any more.
 
-```
-Load `standards` for project/application conventions and `security` for the credential and
-config vocabulary. Read <PDD file> and produce a complete SDD: business context, process
-flow, Dispatcher/Performer split (if any), queue design, config keys (Settings/Constants/
-Assets, for both TST and PRD), exception handling (Business vs Application), test strategy,
-and the Orchestrator assets required. Ask two decisions up front and record the answers in
-the SDD: (1) config file format — stock `Config_<ENV>.xlsx`, or JSON (`Config_<ENV>.json`,
-which requires rebuilding `InitAllSettings.xaml` — see `standards/references/config-format.md`);
-(2) credentials — Orchestrator Credential asset, CyberArk PHI vault, or both (see `security`).
-Add an Open Questions / Assumptions section for anything else the PDD doesn't state. Do not
-invent a business rule, a credential name, a selector, or a config value — if the PDD is
-silent, it's an Open Question, not a guess.
+Sources are in [`commands/`](commands/) and the three agents' copies are generated from them —
+**edit the source, not the output**, the same rule as the template workbooks. See
+[`commands/README.md`](commands/README.md).
 
-Also record whether the process has an Orchestrator queue, and whether it is
-Dispatcher+Performer, Performer-only, or a single self-contained run. Define every transaction
-type and the work-item columns each one uses — do not leave them to the test data.
-```
+Two notes that are about the stages themselves rather than about any prompt, and so outlived the
+blocks they used to sit in:
 
-### 2. SDD → Project
-
-```
-Load `project-scaffolding`. Given <SDD file>, choose Dispatcher-only / Performer-only / both and
-fetch the matching template(s). Carry forward the config-format and credential decisions from
-the SDD — don't re-ask if they're already recorded there. Ask only for the project name and the
-shared Orchestrator queue name if unsettled. Generate Main.xaml + Framework via the CLI route
-(scratch folder, `--help` first, `--template-package-version` matching the config-format
-decision), apply the deltas from the fetched template's own README.md, then work the
-instantiation checklist — it is `references/instantiating-templates.md` inside the
-`project-scaffolding` skill, NOT `templates/README.md`, which the fetch never delivers.
-
-The fetch lands the template in a folder named after the TEMPLATE. Once the project name is
-agreed, put it in all three places in the same commit, before anything else is built on top:
-`git mv REFramework-<Template> <Project-Name>`, `project.json → name`, `project.uiproj → Name`.
-Leaving the folder as `REFramework-Dispatcher-Base` is the default outcome, not a rare slip —
-nothing downstream needs it, so it survives unless this step is done deliberately.
-
-Then run `validate-project`, `uip rpa validate` per entry point, and `uip rpa build`. Report
-`project-folder-not-renamed`, `folder-name-mismatch` and `template-default-left` as blocking —
-a half-instantiated project must not pass for a finished one. This stage is done at L3 — Studio
-opens the project with an empty Error List.
-```
-
-**Why the rename is in the prompt rather than left to the checklist:** nothing downstream fails
-without it. The project compiles, packs and runs with the template's name on the folder, so the
-step has no symptom — it is only visible to the next person reading the tree, who cannot tell an
-instantiated project from an untouched template. `validate-project` now reports it as
+**Why the folder rename is written into stage 2 rather than left to the instantiation
+checklist:** nothing downstream fails without it. The project compiles, packs and runs with the
+template's name on the folder, so the step has no symptom — it is only visible to the next person
+reading the tree, who cannot tell an instantiated project from an untouched template.
+`validate-project` now reports it as
 [`project-folder-not-renamed`](.claude/skills/project-scaffolding/scripts/validate-project.ps1)
-(error), so the gate catches it even when the prompt is paraphrased.
+(error), so the gate catches it even when the instruction is paraphrased.
 
-### 3. Wire the Framework
-
-```
-Load `standards` (wiring-the-framework) and `security`. Wire the Framework from <SDD>, in
-order: Config, GetTransactionData, InitAllApplications, Process dispatch, SetTransactionStatus,
-CloseAllApplications, KillAllProcesses. All seven — KillAllProcesses force-kills the same set
-CloseAllApplications closes, and left empty it leaks a session that the next run's idempotent
-login probe then finds half-open. Never `KillProcess chrome`: it takes down any other automation
-on the runner. Author the XAML with the CLI (`uip rpa activities get-default-xaml`,
-`uip rpa activities find`). If a configured source yields 0 transactions, fail loudly.
-Credentials from the Orchestrator asset only. Transaction types come from the SDD; if it is
-silent, record an Assumption and ask. Leaf workflows must follow the `_System` contract —
-in_Config, an out_ outcome, SecureString secrets.
-
-Count the applications: every application opened in InitAllApplications appears in BOTH
-CloseAllApplications and KillAllProcesses.
-
-The leaf workflows do not exist yet, and `uip rpa build` will not let you wire against nothing:
-it fails when an invoked .xaml is missing, when an argument name is not in the callee's
-x:Members, and when a passed type does not match the declared one. So create a SIGNATURE-ONLY
-STUB per leaf the SDD names — the full `_System` contract in x:Members, and a body of exactly a
-Log Message (Error) plus a Throw. The Throw is not optional: a Log-Message-only stub runs green
-and does nothing. Stage 5 replaces the BODY and keeps the signature. Note that
-`leaf-body-stub` does NOT report a throwing stub, so count the stubs in your report and write
-`body real = no` in Documentation/Leaf_Ledger.md for each.
-
-This stage is "wired, gate open" — not done — until you have watched the 0-transaction guard
-fire. Observe it on GetTransactionData ALONE, which needs no asset and no uip login: a
-Tests/Test-GetTransactionData_Zero_Items.xaml that builds in_Config inline
-(New Dictionary(Of String, Object) From {{...}}, no InitAllSettings), invokes
-Framework/GetTransactionData.xaml in a Try, and asserts the guard's OWN message
-(exception.Message.Contains("yielded 0 transactions")) — a bare Catch passes on any throw. Run:
-
-  uip rpa run --project-dir <project> --file-path "Tests\Test-GetTransactionData_Zero_Items.xaml"
-
-Run it BOTH ways: empty source, the guard throws; one item present, the test must fail. That is
-a sources run, so L3 at most — which is all this gate asks. This route is verified on a FOLDER
-source; reaching an empty QUEUE is an authenticated Orchestrator read, so on a queue project say
-what the test needed instead of reporting the gate met by analogy. The Main-level observation, through
-InitAllSettings and the real workbook, belongs to stage 5/6; it needs the Orchestrator asset if
-the project signs in, and it does NOT hold this gate open.
-
-Report format (required) — four blocks, not prose:
- 1. The Framework-file table: all seven rows, file | wired (stock/edited) | what it now does |
-    commit. Including the ones left stock.
- 2. Per-application counts: for EVERY application the SDD names, opened in InitAllApplications /
-    closed in CloseAllApplications / killed in KillAllProcesses, as three numbers side by side.
-    Plus arms in Process.xaml vs transaction types in the SDD.
- 3. The level reached with the command verbatim (L1/L2/L2b/L3 — a sources run is L3 at most),
-    and how many signature-only stubs you created, by name.
- 4. The 0-transaction guard: either "observed" with the command, its Error line and the
-    negative-control result, or "not observed" and what is outstanding. "The guard is in the
-    XAML" is not a status.
-```
-
-### 4–5. Capture and develop — one workflow at a time
-
-**These were two stages and are now one loop.** Capturing every screen first and authoring
-afterwards is what produced the failure this stage exists to prevent: on a project that *had* a
-live session, the agent scaffolded `TODO_SELECTOR` placeholders for whole workflows and captured
-nothing. Capture and authoring are the same unit of work, per workflow, and the unit ends with a
-run and a ledger row — not with a file that exists.
-
-Per workflow: **place and name → capture → author → run once → pack → ledger row → commit → next
-workflow.**
-
-**Naming is the first step, not a tidy-up.** The folder is `<Application>_System/` and the file
-is `<Application>-<Subject>_<Verb>.xaml`, with the prefix **derived from the folder** — so
-`Web_Nav_System/Web_Nav-Table_Extract.xaml`, not `Web_Nav_System/Extract_Table.xaml`. Once a
-workflow is wired, every rename also costs an edit to each `Invoke Workflow File` that points at
-it, which is why a wrong name is never fixed later. `validate-project` reports an unprefixed leaf
-as `leaf-name-prefix`.
-
-Before the first capture command, two prechecks the `web` skill owns: `project.json` must carry
-`UiPath.UIAutomation.Activities` and `UiPath.UIAutomation.CLI` both at `26.10.4` (fix and restore
-first), and the signed-in account must be at the **least-privilege role the robot runs as**, with
-the admin-only controls absent from the screen. A capture made at a higher role is untrusted and
-is re-captured. Commit every 2–3 screens and keep going.
-
-```
-Load `standards` for where each step belongs, plus the application skill(s) the SDD names
-(`finnova-library`, `avaloq-library`, `web`) and, for CLI mechanics, the official `uipath-rpa`
-skill (estate rules win on structure, naming and security). Use modern activities only — this
-is a Windows/modernBehavior project: no classic Excel write activities, no raw selector outside
-`Tests/` or Avaloq's `Web_Nav_System/`. Never invent an activity, API, selector, argument or
-config value.
-
-Step 0 — choose the mode and say which you chose:
-  LIVE:    a live application session exists. State the URL and, if there is a login, the
-           account role (it must be the least-privilege role the robot will run as).
-  OFFLINE: no session. Scaffold per `pdd-sdd-scaffolding` with TODO_SELECTOR / APPROX_SELECTOR
-           and tell me plainly that capture is still needed.
-In LIVE mode never defer a whole workflow to TODO_SELECTOR. Use TODO_SELECTOR only for a target
-that fails the registration gate (it must match only the target), and record why.
-
-For each leaf workflow, in order, one commit per workflow:
- 1. Place and name it FIRST, per `standards/references/naming-conventions.md`:
-    `<Application>_System/<Application>-<Subject>_<Verb>.xaml`, verb last, application prefix
-    DERIVED FROM THE FOLDER (`Web_Nav_System/` → `Web_Nav-…`, `Finnova_System/` → `Finnova-…`).
-    One folder per application the SDD names; do not reuse another application's folder because
-    it is also a browser. Say the folder and file name back to me before authoring, and do not
-    rename after the workflow is wired.
- 2. Contract: in_Config, a business-key argument, an out_ outcome, SecureString for secrets. Fail
-    visibly: an unconfirmed step must throw or return False with a Warn — never pass silently.
- 3. LIVE: capture each target (`web`: navigate explicitly, fresh snapshot, fresh work folder per
-    screen), then author the real activity and link the captured element through the `uia`
-    object-repository verbs (names per `--help`). No typed selectors.
- 4. Run the workflow once against the live application, then run validate-project,
-    `uip rpa validate` and `build`, and `pack`.
- 5. Update Documentation/Leaf_Ledger.md and the *.selectors-todo.md.
-Continue to the next workflow without asking. Stop only when every ledger row is yes, or a row
-needs something only I can do (say exactly what).
-
-Report the highest level reached with the command used: L1 validate-project, L2 build, L2b pack,
-L3 Studio Error List (I check this), L4 a real job. Never write PASS without the command.
-```
-
-**The gate on this stage is the ledger, not the file count:** every row in
+**The gate on stages 4–5 is the ledger, not the file count:** every row in
 `Documentation/Leaf_Ledger.md` reads `yes` in every column, **and** each workflow has been run
 once against the live application with the command recorded. Template and column meanings:
 [`leaf-ledger.md`](.claude/skills/standards/references/leaf-ledger.md).
-
-### 6. Test data → tests
-
-```
-Load `standards` (test-data) and `security`. Read <TestData.xlsx> and <SDD>. Map the Config
-sheet onto Settings/Constants/Assets in BOTH Config_TST.xlsx and Config_PRD.xlsx; any row whose
-provenance is not "Observed" stays [UC-SPECIFIC — replace] and goes to Open Questions. Build
-Tests/Tests.xlsx from TestCases + NegativeData per the template schema — NegativeData rows
-become Business-exception tests asserting a correct refusal. Cover the happy path for each
-transaction type in the SDD, every named Business exception, every Application exception
-(file/Excel/Finnova/Avaloq/Orchestrator unavailable), and any edge case
-`standards/references/silent-failure-traps.md` calls out. Replace fixed dates with today ± N.
-Carry over "To verify"/BLOCKED statuses and do not mark a case passed without running it.
-`Tests/RunAllTests.xaml` is never invoked from `Process.xaml`. If work items depend on each
-other, describe the ordering risk and ask before choosing. Never copy a credential from a
-fixture file.
-```
-
-### 7. Review
-
-```
-Load `standards`, `security`, and the application skill(s) in use. Validate against
-`AGENTS.md` → "Deployment & review rules", `silent-failure-traps.md`,
-`naming-conventions.md`, `prohibited-practices.md`, and the SDD's own requirement list — every
-requirement should trace to a workflow and a test. Flag findings, don't fix them silently:
-raw selectors outside `Tests/`/`Web_Nav_System/`, classic or Legacy-project activity usage,
-a secret anywhere, an unresolved `[UC-SPECIFIC — replace]` or `*-selector-todo`, a
-config-key or queue-name mismatch between TST and PRD. Do not migrate a Legacy workflow as a
-side effect of review — report it as a finding and let the team decide.
-
-Run the Workflow Analyzer and report its findings too:
-`uip rpa analyze <project> --governance-file-path "<ABSOLUTE path to the rule file>"
---governance-file-type Studio --detailed-log-path <log>`, and
-`uip rpa analyzer-rules list --project-dir <project>` to confirm the rule set loaded. The path
-must be absolute and the file type must be `Studio`, or the file is ignored or crashes the run;
-a tenant policy also silently outranks it. Cross-check the ids your file enables against the ids
-that actually load — see `standards/references/code-quality.md`. Fix findings; do not relax a
-rule to pass.
-```
-
-### 7b. End-to-end run — L4-local first, then L4
-
-The first run that proves anything. Everything before this is a developer's session running
-project *sources*.
-
-**Default is L4-local:** pack, then run the package with the UiRobot on this machine, pointed at
-an Orchestrator folder so the credential asset resolves. **No `uip login`, nothing changed in the
-tenant.** The Orchestrator job is a second, separate step — and it is ask-first.
-
-```
-Load `standards` (end-to-end-run) and `security`. This estate is Automation Suite, not
-Automation Cloud.
-
-Ask me ONCE, together, and record the answers in the project's AGENTS.md Environment block
-(committed file — NON-SECRET facts only, never an asset value):
-  - the UiRobot install path
-  - the Orchestrator folder (e.g. Modern/RAP-Demo)
-  - the robot user
-  - whether the robot is connected to the Automation Suite Orchestrator
-Do not probe for the connection state: UiRobot has no status verb, and connect/disconnect
-rebind the machine's robot service. Ask.
-
-1. Preflight: `preflight.sh <project> --skip-capture`. Fix anything blocking. Do NOT pass
-   -FolderPath unless you have asked me — those are `uip or` calls.
-2. Pack (L2b): `uip rpa pack <project> --output-path <dir>` from a clean checkout. Do not pass
-   --ignored-rules or --skip-analyze.
-3. Run it locally (L4-local). Read `UiRobot help execute` first and use what it prints — do not
-   guess flags:
-     UiRobot execute --file "<dir>\<Package>.<ver>.nupkg" --folder "<folder>"
-                     --input "{\"in_ENV\" : \"TST\"}" [--entry "<EntryPoint>.xaml"]
-   `--folder` is what makes the credential asset resolve. If it does not resolve, the documented
-   fallback is `UiRobot installprocess --process-name <name> --folder <folder>` then
-   `UiRobot execute --package-id <id> --folder <folder>` — record which worked.
-4. A missing asset, or a robot user without access to that folder, is a CHECKPOINT for me:
-   report the exact error text, name the asset and the folder, and carry on with the next item.
-   Never print an asset value. Do not retry with other folders and do not substitute a literal.
-5. Complete the SDD acceptance table: SDD step → evidence → pass/fail, with the application
-   state read back INDEPENDENTLY of the robot's logs, per-transaction results compared with the
-   test data, negative-data rows producing the expected Business exceptions, no [MOCK] or
-   TODO_SELECTOR anywhere, and transaction count equal to input count.
-
-Report it as "L4-local (folder: <folder>)" with the command verbatim, the package and version,
-transactions processed vs input, and every Warn and Error. Say plainly what it does NOT prove:
-it ran as my interactive account, so not the unattended service-account session, not the
-trigger, and not permissions beyond that one folder.
-
-THEN STOP AND ASK before the Orchestrator job. Publishing and starting a job change the tenant:
-`uip login`, `uip rpa publish` / `uip or packages upload`, `uip or processes create`,
-`uip or jobs start`. Name the commands and wait. Once I agree, reuse the SAME package from
-step 2 — do not re-pack — and follow end-to-end-run.md Part 3, then report L4 with the job key,
-state, duration, folder, published version and job log.
-
-A Successful job that processed 0 transactions is a failure, not a pass. If you reached only
-L4-local, say L4-local — never describe it as L4, and never describe a sources run as either.
-```
-
-### 8. UAT Readiness
-
-```
-Confirm: every SDD requirement traces to a workflow and a test case; every
-`APPROX_SELECTOR` / `TODO_SELECTOR` in every `*.selectors-todo.md` is resolved against the
-live application; `Config_TST.xlsx` has no remaining `[UC-SPECIFIC — replace]`;
-`Documentation/Leaf_Ledger.md` reads yes in every column of every row;
-`Tests/RunAllTests.xaml` passes. Run the checker in stage-8 mode, which promotes
-`leaf-body-stub` to an error — a leaf workflow whose body does nothing is not shippable:
-
-  validate-project.sh <project> --uat-readiness
-  pwsh -File validate-project.ps1 <project> -UatReadiness
-
-It must run clean, or every suppressed rule has a written reason in `validate-project.ignore`.
-Additionally require **L4** on the evidence ladder — a real run of `Main.xaml` on TST, with a log
-excerpt — and a clean `uip rpa analyze` result, naming which rule set ran. Read the application
-state back independently of the robot's logs: a green job with a non-zero transaction count is
-exactly what a stub-bodied automation produces. List anything still open as a named blocker, not
-a soft caveat.
-```
-
-### 9. Deployment Readiness
-
-```
-Load `standards` (deployment) and `security`. Pack, publish to TST, and confirm the process,
-queue, assets and trigger exist in the right Orchestrator folder — use the official UiPath
-platform skill for the Orchestrator mechanics. TST first; PRD only with named, explicit
-approval for this release, and the first PRD run is watched with a known rollback.
-
-Confirm: `Config_PRD.xlsx` carries the same key set as `Config_TST.xlsx`, with no remaining
-`[UC-SPECIFIC — replace]`; every `Assets` row is wired to a real Orchestrator asset in the
-right folder (`security` → `orchestrator-assets.md`); the Finnova/Avaloq `.nupkg`s are
-published to the feed at the pinned versions; `project.json → name` has no placeholder and no
-whitespace, and matches `project.uiproj`; the Dispatcher/Performer pair share one
-byte-identical `OrchestratorQueueName`; logging excludes secrets
-(`excludedLoggedData`). List anything unresolved as a blocker, not a note.
-```
-
-### 10. Change / Enhancement
-
-```
-Read the existing project and the change request together. Load `standards` and the
-application skill(s) the project already uses — match its existing conventions; don't
-introduce a second credential mechanism or a new folder pattern without asking. Identify
-every workflow, config key, and test the change touches, and update `Tests/Tests.xlsx` and
-both `Config_TST.xlsx`/`Config_PRD.xlsx` together if config changes. Don't migrate an
-existing Legacy or classic-activity workflow as a side effect — flag it, don't touch it,
-unless the change explicitly asks for that migration. Re-run `validate-project` and the test
-suite before calling the change done.
-```
 
 ## How much "validated" is worth — the evidence ladder
 
@@ -1005,12 +759,16 @@ it does not clone the sample workflow files.
 pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/lint-skills.ps1
 pwsh -NoProfile -File .claude/skills/project-scaffolding/scripts/validate-project.ps1   templates/REFramework-Dispatcher-Base templates/REFramework-Performer-Finnova   templates/REFramework-Performer-Avaloq -TemplateMode
 pwsh -NoProfile -File tests/run-fixtures.ps1
+pwsh -NoProfile -File templates/tools/build-commands.ps1 -Check
 ```
 
-All three run in CI ([`.github/workflows/checks.yml`](.github/workflows/checks.yml)) alongside
+All four run in CI ([`.github/workflows/checks.yml`](.github/workflows/checks.yml)) alongside
 `bash -n` on every shipped script and a check that the template workbooks still regenerate.
 
-**The three check different things, and the third is the one that was missing.** The lint checks
+`build-commands.ps1 -Check` writes nothing; it fails if a generated command no longer matches
+its source in [`commands/`](commands/). Drop the `-Check` to regenerate after editing a source.
+
+**The first three check different things, and the third is the one that was missing.** The lint checks
 the skills; `-TemplateMode` checks that the rules do not *false-positive* on conformant
 scaffolding; [`tests/run-fixtures.ps1`](tests/README.md) checks that each rule still *fires* at
 all. Without it, a rule whose pattern stopped matching would report nothing and CI would stay

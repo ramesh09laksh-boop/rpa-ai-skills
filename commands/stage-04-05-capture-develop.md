@@ -1,0 +1,49 @@
+---
+description: Stages 4–5 — the one loop that captures each screen and writes each workflow, one workflow at a time. Optional argument, the SDD file or a single workflow to do next.
+argument-hint: "[SDD file, or one workflow name]"
+---
+
+The solution design, or the single workflow to do next, if one was given: `$ARGUMENTS`. If it is
+empty, work every leaf the SDD names, in order.
+
+**Load the `uc-delivery` skill and run its stages 4–5.** They are **one loop, not two stages**,
+and `uc-delivery` owns the loop, its gate (every `Documentation/Leaf_Ledger.md` row `yes`, each
+workflow run once against the live application with the command recorded, `.objects/`
+committed) and why `validate-project` sits inside the loop. Load `standards` for where each step
+belongs, plus the application skill(s) the SDD names (`finnova-library`, `avaloq-library`,
+`web`), plus the official `uipath-rpa` skill for CLI mechanics — this estate's rules still win
+on structure, naming and security.
+
+**Step 0 — choose the mode and say out loud which you chose:**
+
+| | |
+|---|---|
+| **LIVE** | a live application session exists. State the URL and, if there is a login, the account role — it must be the least-privilege role the robot will run as |
+| **OFFLINE** | no session. Scaffold per `pdd-sdd-scaffolding`, and tell the user plainly that capture is still needed |
+
+In LIVE mode **never defer a whole workflow to `TODO_SELECTOR`.** Use it only for an individual
+target that fails the registration gate, and record why.
+
+Then, per workflow, one commit each:
+
+1. **Place and name it first**, before authoring — not as a tidy-up afterwards. State the folder
+   and file name you have chosen, then author against it. Once a workflow is wired, every rename
+   also costs an edit to each `Invoke Workflow File` pointing at it, which is why a wrong name
+   is never fixed later.
+2. Declare the contract. **Fail visibly:** an unconfirmed step throws, or returns `False` with a
+   `Warn`. It never passes silently.
+3. LIVE: capture each target, then author the real activity against the captured element. No
+   typed selectors.
+4. Run the workflow once against the live application, then re-run the checker, `validate`,
+   `build` and `pack`.
+5. Update `Documentation/Leaf_Ledger.md` and the `*.selectors-todo.md`.
+
+**Continue to the next workflow without asking.** Stop only when every ledger row reads `yes`,
+or when a row needs something only the user can do — and then say exactly what, and carry on
+with the next workflow that does not depend on it.
+
+Use modern activities only: this is a Windows / `modernBehavior` project. Never invent an
+activity, API, selector, argument or config value.
+
+Update `Documentation/Progress.md` per workflow, not per stage — it is the only place a captured
+Object Repository reference id survives.

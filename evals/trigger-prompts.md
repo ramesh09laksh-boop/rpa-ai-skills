@@ -16,6 +16,14 @@ hand **before each release**, on the agents the estate uses.
    npx skills add ramesh09laksh-boop/rpa-ai-skills --agent claude-code --agent github-copilot --agent opencode
    ```
 
+   **Then fetch the commands — `npx skills add` does not install them.** Without this step the
+   command cases below all fail as "command not found", which is not a trigger result:
+
+   ```bash
+   .claude/skills/project-scaffolding/scripts/fetch-commands.sh \
+     -a claude-code -a github-copilot -a opencode
+   ```
+
 2. For each prompt below, paste it as the **first message** of a fresh session — context from a
    previous turn makes the result meaningless.
 3. Record which skill(s) the agent reached for **before** producing an answer.
@@ -38,6 +46,39 @@ Copy this per release. Agents: Claude Code, GitHub Copilot, OpenCode.
 
 | # | Prompt | Expected | CC | Copilot | OC |
 |---|---|---|---|---|---|
+
+### The commands — `/start` and the stages
+
+These are not trigger evals in the same sense: a command is invoked by name, so it cannot fail
+to be *found* the way a skill can fail to be *chosen*. What they check is the thing that can
+still go wrong — that the command **hands the work to `uc-delivery`** instead of answering out
+of its own head, and that the entry-point logic behaves.
+
+Score the same way: ✅ `uc-delivery` loaded before any answer · ⚠️ loaded late or alongside
+noise · ❌ not loaded. A ❌ here is a defect in the command's wording, not in the skill.
+
+Run C1–C3 in a scratch project **with** a `Documentation/Progress.md`, and C4–C5 in one
+**without**, since that is the branch they exercise.
+
+| # | Typed | Expected |
+|---|---|---|
+| C1 | `/start` | Reads `Documentation/Progress.md`, prints the numbered stage list with ✅ / ▶ / blank, asks *"continue from stage N, or pick a number?"* as **one** question. Loads `uc-delivery` |
+| C2 | `/start 3` | Confirms stages 1–2's gates in **one line**, **warns and continues** if one looks unmet rather than blocking, then runs stage 3 through `uc-delivery` |
+| C3 | `/start next` | Identical behaviour to C1 |
+| C4 | `/start` (no `Progress.md`) | Asks what the user has — process document / solution design / existing project / failing robot — and the UC number, **one question per message**, in plain language, then names the stage it chose and why |
+| C5 | `/start 99` | Says that is not a stage and shows the list. Does not invent a stage |
+| C6 | `/stage-03-wire-framework` | Same work as `/start 3`. Loads `uc-delivery` and `standards` |
+| C7 | `/review-project` | Same work as `/stage-07-review` |
+
+**Two things to watch for, because they are how this design fails quietly:**
+
+| | |
+|---|---|
+| C8 | The stage list is printed with `uc-delivery`'s own numbering — `1, 2, 3, 4-5, 6, 7, 7b, 8, 9, 10`. A command that renumbers to 1–10 has invented a stage map |
+| C9 | A question asked by `/start` contains **no** skill name, stage jargon, or file name the user did not supply. *"Do you have a PDD?"* is a ⚠️; *"Have you got a document describing the process?"* is the ✅ |
+
+Repeat C1–C3 on each agent. The bodies are generated from one source and are byte-identical
+across the three, so a difference between agents is a harness difference — record which.
 
 ### `uc-delivery`
 

@@ -62,6 +62,26 @@ jobs:
         run: |
           ./tests/run-fixtures.ps1
 
+  commands:
+    name: slash commands are generated, not hand-edited
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # One source (commands/), three agents' formats. A hand-edit to a generated file in
+      # .claude/commands/, .github/prompts/ or .opencode/commands/ is lost the next time anyone
+      # runs the generator, so it has to fail here rather than silently diverge until someone
+      # wonders why Copilot and Claude Code disagree about what /start does.
+      #
+      # -Check writes nothing and compares in-memory, so it needs no git diff and is not
+      # line-ending-sensitive the way the workbooks job is. It also catches a frontmatter typo
+      # in a source file (an unknown key is an error, not a silent drop) and a stale output
+      # whose source was renamed or deleted.
+      - name: Re-check the generated commands against commands/
+        shell: pwsh
+        run: |
+          ./templates/tools/build-commands.ps1 -Check
+
   shell:
     name: shell scripts parse
     runs-on: ubuntu-latest

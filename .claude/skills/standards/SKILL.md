@@ -149,6 +149,10 @@ the names to avoid: `references/naming-conventions.md`. The checker reports an u
 
 ## References
 
+- `references/sdd-outline.md` — the sections an SDD has to carry, and which two decisions are
+  asked at stage 1 rather than later. The stage 1 *gate* is the transaction types and the Open
+  Questions; this is the rest of the document, including the **test strategy** that stages 6, 7b
+  and 8 all read back out of it
 - `references/project-layout.md` — every folder and Framework file, what belongs in it
 - `references/wiring-the-framework.md` — how to **connect** the SDD's transactions to
   `GetTransactionData` / `InitAllApplications` / `Process` / `SetTransactionStatus`, in order.

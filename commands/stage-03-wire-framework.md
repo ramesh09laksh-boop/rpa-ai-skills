@@ -1,0 +1,41 @@
+---
+description: Stage 3 — wire the REFramework to the solution design's transactions, with the 0-transaction guard observed. Optional argument, the SDD file or the UC number.
+argument-hint: "[SDD file or UC number]"
+---
+
+The SDD or UC number, if one was given: `$ARGUMENTS`. If it is empty, ask which solution design
+to wire from before doing anything else.
+
+**Load the `uc-delivery` skill and run its stage 3.** It owns the gate — **L3**, the
+0-transaction guard observed on `GetTransactionData` alone in both directions, and the
+four-block report — plus the signature-only-stub rule and the working rules. Load `standards`
+(`references/wiring-the-framework.md`) and `security`.
+
+Wire the seven Framework files **in this order**: Config, `GetTransactionData`,
+`InitAllApplications`, the `Process.xaml` dispatch, `SetTransactionStatus`,
+`CloseAllApplications`, `KillAllProcesses`.
+
+**All seven, including the two that are easy to leave empty.** `KillAllProcesses` force-kills
+the same set `CloseAllApplications` closes; left empty it leaks a session that the next run's
+idempotent login probe then finds half-open. And **never `KillProcess chrome`** — that takes
+down any other automation sharing the runner.
+
+Then:
+
+- **Count the applications.** Every application opened in `InitAllApplications` appears in
+  **both** `CloseAllApplications` and `KillAllProcesses`. Report the three numbers side by side,
+  per application the SDD names.
+- Transaction types come from the SDD. If it is silent, record an Assumption and ask — do not
+  pick one.
+- Credentials come from the Orchestrator asset. Nothing else.
+- Leaf workflows do not exist yet, so create the **signature-only stub** per leaf that
+  `uc-delivery` specifies, and count them by name in the report.
+- **This stage is "wired, gate open" — not done — until you have watched the 0-transaction
+  guard fire**, with the negative control also run. *"The guard is in the XAML"* is not a
+  status.
+
+Report in the four blocks `uc-delivery` requires. Prose is not a substitute: *wired*, *all
+seven* and *the guard* read identically whether they are true or not.
+
+Update `Documentation/Progress.md` when the stage closes, with the level reached, the command
+verbatim, and the guard's own `Error` line.

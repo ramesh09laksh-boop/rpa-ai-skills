@@ -73,6 +73,31 @@ case: `dotnet --version` prints a version there while `--list-sdks` is empty, wh
 "installed" and is not. Fix hint points at the official UiPath CLI installer, which provisions
 .NET SDK 8.0 — see the repo README, *Prerequisites*.
 
+## Also at preflight: fetch the slash commands
+
+**`npx skills add` installs skills, not commands** — `--skill` is its only content selector and
+every folder it writes to is a `skills/` folder, so a project with every skill in this estate
+installed still has no `/start`. The two halves travel separately. Run the second half at
+preflight, not at the end: `/start` is how a non-specialist reaches the stage list at all.
+
+```bash
+scripts/fetch-commands.sh -a claude-code            # -a repeats, or takes '*'; -h for the rest
+pwsh -NoProfile -File scripts/fetch-commands.ps1 -Agent claude-code
+```
+
+Agent ids are the `skills` CLI's own — `claude-code`, `github-copilot`, `opencode` — so one
+vocabulary covers both halves; `copilot` is not one and is rejected here as the CLI rejects it.
+**Pass the same ref you pinned the skills to** (`-b` / `-Ref`), or the two drift apart.
+
+- **`npx skills update` does not update the commands.** Re-run the fetch after it.
+- **The fetched files are generated**, and re-running overwrites them — a hand-edit in the
+  project is lost, and a change belongs in the skills repo. A same-named file the generator did
+  not write is left alone unless `-f` / `-Force`.
+- **If `/start` is missing from OpenCode's menu, re-run with `-l` / `-OpenCodeLegacyDir`.** The
+  current OpenCode docs give `commands/` (plural) and say singular `command/` is still
+  discovered, so plural is the default. Claude Code discovery is verified; **OpenCode's is
+  not** — try the flag before anything else.
+
 ## What to fetch
 
 Ask, or read it off the SDD: **which application does this UC drive?**
