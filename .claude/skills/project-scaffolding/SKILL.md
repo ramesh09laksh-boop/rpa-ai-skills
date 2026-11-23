@@ -75,35 +75,28 @@ case: `dotnet --version` prints a version there while `--list-sdks` is empty, wh
 
 ## Also at preflight: fetch the slash commands
 
-**`npx skills add` installs skills, not commands.** It has no concept of them — `--skill` is its
-only content selector and every folder it writes to is a `skills/` folder — so a project that
-has installed every skill in this estate still has no `/start`. The two halves travel
-separately, and this is the second half:
+**`npx skills add` installs skills, not commands** — `--skill` is its only content selector and
+every folder it writes to is a `skills/` folder, so a project with every skill in this estate
+installed still has no `/start`. The two halves travel separately. Run the second half at
+preflight, not at the end: `/start` is how a non-specialist reaches the stage list at all.
 
 ```bash
-scripts/fetch-commands.sh -a claude-code
-```
-
-```powershell
+scripts/fetch-commands.sh -a claude-code            # -a repeats, or takes '*'; -h for the rest
 pwsh -NoProfile -File scripts/fetch-commands.ps1 -Agent claude-code
 ```
 
-Name every agent the team uses (`-a` / `-Agent` repeats, or takes `'*'`). The ids are the
-`skills` CLI's own — `claude-code`, `github-copilot`, `opencode` — so one vocabulary covers both
-halves; `copilot` is not one of them and is rejected here for the same reason the CLI rejects it.
-Pass the **same ref you pinned the skills to** (`-b` / `-Ref`), or the commands and the skills
-drift apart.
+Agent ids are the `skills` CLI's own — `claude-code`, `github-copilot`, `opencode` — so one
+vocabulary covers both halves; `copilot` is not one and is rejected here as the CLI rejects it.
+**Pass the same ref you pinned the skills to** (`-b` / `-Ref`), or the two drift apart.
 
-Do this at preflight, not at the end: `/start` is how a non-specialist gets to the stage list at
-all, and a project without it sends them back to pasting prompts by hand.
-
-**Two things that are easy to get wrong:**
-
-- **`npx skills update` does not update the commands.** It updates skills and knows nothing
-  about commands. Re-run the fetch after it.
-- **The fetched files are generated.** The script overwrites them on every run, so a hand-edit
-  in the project is lost. A change belongs in the skills repo, where every project gets it. A
-  file of the same name that the generator did not write is left alone unless `-f` / `-Force`.
+- **`npx skills update` does not update the commands.** Re-run the fetch after it.
+- **The fetched files are generated**, and re-running overwrites them — a hand-edit in the
+  project is lost, and a change belongs in the skills repo. A same-named file the generator did
+  not write is left alone unless `-f` / `-Force`.
+- **If `/start` is missing from OpenCode's menu, re-run with `-l` / `-OpenCodeLegacyDir`.** The
+  current OpenCode docs give `commands/` (plural) and say singular `command/` is still
+  discovered, so plural is the default. Claude Code discovery is verified; **OpenCode's is
+  not** — try the flag before anything else.
 
 ## What to fetch
 

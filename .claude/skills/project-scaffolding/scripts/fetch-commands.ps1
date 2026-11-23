@@ -36,11 +36,23 @@
     Overwrite a file that is NOT a generated command. Off by default. A generated command is
     always overwritten — that is what re-running this for an update means.
 
+.PARAMETER OpenCodeLegacyDir
+    OpenCode only: install into the legacy singular `.opencode/command/` instead of
+    `.opencode/commands/`. Use it if /start does not appear in your OpenCode version's / menu.
+
+    The current OpenCode docs say `commands/` (plural), and that the singular `command/` is
+    still discovered but is not what new files should use — so plural is the default. This is a
+    flag rather than "install into both" because a version that reads both would then show
+    every command twice.
+
 .EXAMPLE
     pwsh -File fetch-commands.ps1 -Agent claude-code
 
 .EXAMPLE
     pwsh -File fetch-commands.ps1 -Agent '*' -Ref v0.2.5
+
+.EXAMPLE
+    pwsh -File fetch-commands.ps1 -Agent opencode -OpenCodeLegacyDir
 #>
 [CmdletBinding()]
 param(
@@ -48,7 +60,8 @@ param(
     [string] $RepoUrl,
     [string] $Ref,
     [string] $Dest = '.',
-    [switch] $Force
+    [switch] $Force,
+    [switch] $OpenCodeLegacyDir
 )
 
 Set-StrictMode -Version Latest
@@ -141,9 +154,13 @@ try {
             exit 1
         }
 
-        $target = Join-Path $destAbs $rel
+        # The destination is the source path, except for OpenCode with -OpenCodeLegacyDir,
+        # where the files are the same and only the folder name differs.
+        $dstRel = if ($a -eq 'opencode' -and $OpenCodeLegacyDir) { '.opencode/command' } else { $rel }
+
+        $target = Join-Path $destAbs $dstRel
         if (-not (Test-Path -LiteralPath $target)) { New-Item -ItemType Directory -Path $target -Force | Out-Null }
-        Write-Host "  $a -> $rel"
+        Write-Host "  $a -> $dstRel"
 
         foreach ($f in Get-ChildItem -LiteralPath $src -File) {
             $dstPath = Join-Path $target $f.Name

@@ -31,6 +31,7 @@ fi
 REF=""
 DEST="."
 FORCE=0
+OC_LEGACY=0
 AGENTS=()
 
 # Agent ids are the `skills` CLI's own, so one vocabulary covers both halves of the install.
@@ -63,25 +64,35 @@ Usage: $(basename "$0") [-r <repo-url>] [-b <ref>] [-d <dest>] [-f] -a <agent> [
                  Pin the same tag you pinned the skills to.
   -d <dest>      Project root to install into. Defaults to the current directory.
   -f             Overwrite a file that is NOT a generated command. Off by default.
+  -l             OpenCode only: install into the LEGACY singular .opencode/command/
+                 instead of .opencode/commands/. Use this if /start does not appear in
+                 your OpenCode version's / menu. See the note below.
   -h             This message.
 
 A generated command is always overwritten -- that is what re-running this for an update means.
 A file of the same name that does not carry the generator's marker is left alone unless -f.
 
+OpenCode folder name: the current docs say commands/ (plural), and that the singular command/
+is still discovered but is not what new files should use. That is what -l is for, and it is a
+flag rather than "install into both" because a version that reads both would then show every
+command twice.
+
 Examples:
   $(basename "$0") -a claude-code
   $(basename "$0") -a claude-code -a github-copilot -a opencode
   $(basename "$0") -a '*' -b v0.2.5          # pinned, same ref as the skills
+  $(basename "$0") -a opencode -l            # older OpenCode layout
 EOF
 }
 
-while getopts ':a:r:b:d:fh' opt; do
+while getopts ':a:r:b:d:flh' opt; do
     case "$opt" in
         a) AGENTS+=("$OPTARG") ;;
         r) REPO="$OPTARG"; REPO_SOURCE="-r" ;;
         b) REF="$OPTARG" ;;
         d) DEST="$OPTARG" ;;
         f) FORCE=1 ;;
+        l) OC_LEGACY=1 ;;
         h) usage; exit 0 ;;
         :) echo "error: -$OPTARG requires an argument" >&2; usage >&2; exit 2 ;;
         \?) echo "error: unknown option -$OPTARG" >&2; usage >&2; exit 2 ;;
@@ -179,9 +190,16 @@ for a in "${AGENTS[@]}"; do
         exit 1
     fi
 
-    target="$DEST_ABS/$src_rel"
+    # The destination is the source path, except for OpenCode with -l, where the files are the
+    # same and only the folder name differs.
+    dst_rel="$src_rel"
+    if [ "$a" = "opencode" ] && [ "$OC_LEGACY" -eq 1 ]; then
+        dst_rel=".opencode/command"
+    fi
+
+    target="$DEST_ABS/$dst_rel"
     mkdir -p "$target"
-    echo "  $a -> $src_rel"
+    echo "  $a -> $dst_rel"
 
     for f in "$src"/*; do
         [ -f "$f" ] || continue

@@ -365,6 +365,15 @@ the two halves drift.
 commands, so re-run the fetch after it. The fetched files are generated and the script overwrites
 them, so a hand-edit in the project is lost — a change belongs here, where every project gets it.
 
+**If `/start` does not appear in OpenCode's `/` menu, re-run with `-l` / `-OpenCodeLegacyDir`.**
+The current OpenCode docs give `commands/` (plural) and say the singular `command/` is still
+discovered but is not what new files should use, so plural is the default. That is a
+documentation claim, not a verified one: **OpenCode discovery was not confirmed on this machine**
+— `opencode api command.list` on v2.1.3 returned zero even for a config-defined control command,
+so the probe measures nothing. The flag exists so a mismatch costs one re-run instead of an
+investigation. It is a flag rather than "install into both" because a version reading both would
+list every command twice.
+
 ### Put this in your project kickoff checklist
 
 Pulling the right skills should not be something each developer remembers unprompted. Add

@@ -7,6 +7,120 @@ Tag each release (`git tag -a v<x.y> -m ...`) so a project can pin or roll back.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates are ISO.
 
+## [Unreleased] — v0.2.5
+
+`/start`. Nobody using this estate should have to paste a prompt or know which stage they are on.
+One command shows the numbered stage list, asks one or two plain questions, and begins.
+
+The brief for this change said "build on what already exists, do not duplicate it", and the
+honest finding is that **the duplication was already there**: README carried ten stage prompts
+that restated `uc-delivery/SKILL.md`, which is the copy an agent actually reads. So the commands
+are thin, and README's blocks are gone rather than joined by a third copy.
+
+| Probed | Verdict |
+|---|---|
+| Does `npx skills add` install commands as well as skills? | **No.** A scratch install of two skills from this branch landed `.claude/skills/` + `skills-lock.json` and **nothing else** — no `.claude/commands/`. `--skill` is the CLI's only content selector, and its own `docs/commands.md` is a CLI-verb reference unrelated to slash commands |
+| Does Claude Code discover `.claude/commands/`? | **Yes** — all twelve appeared in the `/` menu of the session that generated them, and `/start`, `/start 3`, `/start next` and `/start 4` each ran against a scratch project |
+| Does `/start` refuse to mark a stage done on an evidence-free claim? | **Yes** — given a `Progress.md` asserting stages 1–2 DONE with no artefacts on disk, it marked stage 1 `▶`, not `✅`, and named the missing evidence |
+| Does jumping to a stage warn rather than block on an unmet earlier gate? | **Yes** — *"Stages 2 and 3 are not evidenced … Running stage 4–5 anyway is the rule"* |
+| Is OpenCode's folder `commands/` or `command/`? | **Docs say plural**, singular still discovered. **Not verified on this machine** — see *Known open* |
+
+### Added
+
+- **`commands/` — the source of truth for twelve slash commands**, and
+  `templates/tools/build-commands.ps1`, which generates all three agents' formats from it.
+
+  | Agent | Generated into | Frontmatter |
+  |---|---|---|
+  | Claude Code | `.claude/commands/<name>.md` | `description`, `argument-hint` |
+  | GitHub Copilot | `.github/prompts/<name>.prompt.md` | `description`, `argument-hint` |
+  | OpenCode | `.opencode/commands/<name>.md` | `description` only — OpenCode has no `argument-hint` field |
+
+  All three substitute `$ARGUMENTS`, so one body serves all three and the generator only rewrites
+  the frontmatter. Folder names and fields were read off each product's current documentation on
+  2026-11-23, not guessed. A generator rather than 36 hand-maintained files, by the same rule as
+  the template workbooks: **edit the source, not the output.** `-Check` writes nothing and fails
+  on a drifted output, on a frontmatter typo in a source (an unknown key is an error, not a
+  silent drop), and on a stale output whose source was renamed.
+
+- **`/start`, and one command per stage.** `/start` reads `Documentation/Progress.md`, prints the
+  stage list with `✅` / `▶` / blank, and asks *"continue from stage N, or pick a number?"*. With
+  no progress file it asks what the user has — a process document, a solution design, a project
+  somebody started, or a failing robot — and the UC number, one question per message, then starts
+  at the matching stage. `/start <n>` jumps, warning rather than blocking if an earlier gate
+  looks unmet. `/start next` resumes. `/start N` and `/stage-0N-…` are the same thing, and
+  `/review-project` is a pure alias for `/stage-07-review` so somebody who just wants their
+  project looked at does not have to know it is called stage 7.
+
+  Stage numbering is `uc-delivery`'s own and is not renumbered: **1, 2, 3, 4–5, 6, 7, 7b, 8, 9,
+  10.**
+
+- **`standards/references/sdd-outline.md`** — the sections an SDD has to carry. This is the estate
+  knowledge that was trapped in README's stage 1 prompt, and one of its sections existed
+  **nowhere in the skills at all**: the **test strategy**. `grep -rl "test strategy"` over
+  `.claude/skills/` before this change returns nothing — which means stages 6, 7b and 8 each read
+  an acceptance definition back out of a document no skill told stage 1 to write. The stage 1
+  *gate* is unchanged.
+
+- **`project-scaffolding/scripts/fetch-commands.sh`** and a `.ps1` twin, plus a preflight
+  section. Mirrors `fetch-template`: blobless depth-1 sparse checkout, same
+  `-r` / `$RPA_SKILLS_REPO` precedence, same `-b` / `-Ref` for a pinned ref. It copies the
+  generated folders rather than reimplementing the generator twice. Overwrite rule, so that
+  re-running it as an update is both useful and safe: **a file carrying the generator's marker is
+  always overwritten — that is the update — and a file of the same name that the generator did
+  not write is left alone** unless `-f` / `-Force`. Both directions verified in a scratch project.
+
+- **A `commands` CI job** running `build-commands.ps1 -Check`. Unlike the workbooks job it needs
+  no `git diff` and is not line-ending-sensitive: `-Check` compares in memory and normalises CRLF
+  first.
+
+- **Nine command cases in `evals/trigger-prompts.md`**, plus the `fetch-commands` step in its
+  install instructions — without which every command case fails as *"command not found"*, which
+  is not a trigger result. Two of the nine check the failure modes this design actually has: a
+  renumbered stage list, and a question that leaks skill jargon at the user.
+
+### Changed
+
+- **README's ten inline stage prompt blocks are gone** — 348 lines out, 53 in — replaced by a
+  stage → command table. They were a third copy of `uc-delivery/SKILL.md` and could only drift
+  from it. Two paragraphs survived because they are about the stages rather than about a prompt:
+  why the folder rename is written into stage 2, and that the 4–5 gate is the ledger and not the
+  file count. The *"Working rules — paste this at the top of any stage prompt"* block is in
+  `uc-delivery` verbatim, so nothing needs pasting anywhere now.
+- **README gains a three-step "Quick start for users"** — install the skills, fetch the commands,
+  type `/start`. Three steps and not two, because the second is neither optional nor obvious.
+- **`uc-delivery/SKILL.md`** names `/start` as the user entry point and routes stage 1 to
+  `references/sdd-outline.md`. It names the command and **not** where the command file lives: the
+  install folder is agent-dependent, which is what the lint's `agent-specific-path` rule exists
+  to stop.
+- **`AGENTS.md`** gains `commands/` and the three generated folders in its contents table, and a
+  review rule: a command that starts restating what a skill says **is the defect**.
+
+### Known open
+
+- **OpenCode discovery is unverified.** `.opencode/commands/` (plural) is what the current
+  OpenCode docs give, and they say the singular `command/` is still discovered. Neither was
+  confirmed here: `opencode api command.list` on **v2.1.3** returned `data: []` with twelve files
+  present, with both folder spellings present, **and** with a config-defined control command in
+  `opencode.json` — so that probe measures nothing rather than reporting a failure. Mitigation
+  rather than fix: `-l` / `-OpenCodeLegacyDir` installs into the singular folder, so a mismatch
+  costs one re-run. A flag and not "install into both", because a version reading both would list
+  every command twice.
+- **GitHub Copilot discovery is unverified too.** `.github/prompts/<name>.prompt.md` and its
+  frontmatter fields come from the current VS Code documentation. The files generate and parse as
+  valid YAML carrying only fields that documentation lists, but no VS Code chat session was
+  driven to confirm they appear in the `/` menu.
+- **Every behavioural result above is Claude Code only, on one machine.** `/start`'s four modes
+  were exercised headless (`claude -p …`, plan mode, read-only tools) against a scratch project.
+  Nothing was run interactively, and no UC project was actually built.
+- **The warn-and-continue path was observed via `/start 4`, not `/start 3`.** On the scratch
+  fixture `/start 3` stopped — correctly, because the blocker was an absent project rather than an
+  unmet gate, and it said so. The rule itself was confirmed separately with `/start 4`, once a
+  minimal project existed for it to act on.
+- **No utility commands beyond `/review-project`.** All thirteen of README's prompts map to a
+  stage or were already merged into a skill, so nothing was left over to make a utility from.
+  `/review-project` is an alias, not a new prompt.
+
 ## [Unreleased] — v0.2.4
 
 **Merged to `main` on 2026-11-06 via PR #6, not tagged.** Branched from `main` at `354fa92`;
