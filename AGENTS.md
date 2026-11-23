@@ -25,6 +25,8 @@ that is the cause — do not work around it by relaxing the dependency pin or th
 | Path | Contents |
 |---|---|
 | `.claude/skills/` | Agent skills generated from the material below — **the distributable unit**; pulled into UC projects via `npx skills add`. |
+| `commands/` | **Source of truth for the slash commands** — `/start` and one per delivery stage. Thin front doors onto `uc-delivery`; they hold no gate or estate knowledge of their own. Edit these, never the generated copies. |
+| `.claude/commands/`, `.github/prompts/`, `.opencode/commands/` | **Generated** from `commands/` by `templates/tools/build-commands.ps1` — one folder per agent the estate supports. A hand-edit here is lost on the next run, and CI fails the PR. |
 | `templates/` | Three REFramework starting points, split by role: `REFramework-Dispatcher-Base`, `REFramework-Performer-Finnova`, `REFramework-Performer-Avaloq`. Copied and adapted per project. See `templates/README.md`. |
 | `templates/tools/` | `build-template-workbooks.ps1` — source of truth for the templates' `Config_*.xlsx` and `Tests.xlsx`. Edit the script, not the workbooks. |
 
@@ -322,6 +324,11 @@ Only what the estate actually evidences. Do not add a rule here that no project 
   `templates/tools/build-template-workbooks.ps1` and re-run it; a hand-edit to a shipped
   `.xlsx` is lost on the next run. (This applies to `templates/` only — a UC project's own
   `Config_*.xlsx` is hand-maintained as usual.)
+- **The slash commands are generated too.** Change the source under `commands/` and re-run
+  `templates/tools/build-commands.ps1`; a hand-edit to `.claude/commands/`,
+  `.github/prompts/` or `.opencode/commands/` is lost on the next run and fails CI. **A command
+  that starts restating what a skill says is the defect** — delete the restatement and link to
+  the skill. `uc-delivery` owns the stages and gates and wins over any command.
 - **Library upgrades are re-verified, not assumed.** Bumping a pin means re-checking the
   affected `references/activities.md` against the library project — the skills document exact
   argument names and several load-bearing misspellings. Two pin sets are in play and they do
